@@ -5,6 +5,7 @@ public:
 	Window();
 	~Window();
 
+	void ChangeWindowText(std::string text);
 	bool Win32MsgPump();
 private:
 	static Window* s_windowInstance;

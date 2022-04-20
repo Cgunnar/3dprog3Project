@@ -38,6 +38,14 @@ Window::~Window()
 	s_windowInstance = nullptr;
 }
 
+void Window::ChangeWindowText(std::string text)
+{
+	std::wstringstream win32text;
+	win32text << text.c_str();
+	std::wstring ws = win32text.str();
+	SetWindowText(m_hWnd, ws.c_str());
+}
+
 bool Window::Win32MsgPump()
 {
 	MSG msg{};
@@ -52,6 +60,9 @@ bool Window::Win32MsgPump()
 	}
 	return true;
 }
+
+
+
 //extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
