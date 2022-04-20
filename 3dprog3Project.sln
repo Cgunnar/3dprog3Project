@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.32126.317
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3dprog3Project", "3dprog3Project\3dprog3Project.vcxproj", "{9DB54E21-2899-4018-A176-DF361112EE3B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "imgui\imgui.vcxproj", "{57E7A32C-EEBF-48AD-BE20-A779D228EACB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -15,6 +17,10 @@ Global
 		{9DB54E21-2899-4018-A176-DF361112EE3B}.Debug|x64.Build.0 = Debug|x64
 		{9DB54E21-2899-4018-A176-DF361112EE3B}.Release|x64.ActiveCfg = Release|x64
 		{9DB54E21-2899-4018-A176-DF361112EE3B}.Release|x64.Build.0 = Release|x64
+		{57E7A32C-EEBF-48AD-BE20-A779D228EACB}.Debug|x64.ActiveCfg = Debug|x64
+		{57E7A32C-EEBF-48AD-BE20-A779D228EACB}.Debug|x64.Build.0 = Debug|x64
+		{57E7A32C-EEBF-48AD-BE20-A779D228EACB}.Release|x64.ActiveCfg = Release|x64
+		{57E7A32C-EEBF-48AD-BE20-A779D228EACB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
