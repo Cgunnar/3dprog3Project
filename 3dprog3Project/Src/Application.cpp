@@ -22,5 +22,8 @@ void Application::Run()
 	{
 		FrameTimer::NewFrame();
 		if (!m_window->Win32MsgPump()) break;
+
+
+		m_renderer->Render();
 	}
 }
