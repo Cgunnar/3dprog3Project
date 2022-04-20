@@ -24,6 +24,8 @@ private:
 	UINT64 m_fenceValue = 0;
 	UINT64 m_vramInBytes = 0;
 
+	int m_numFramesInFlight = 1;
+
 	size_t m_currentBackbufferIndex = 0;
 	std::array<ID3D12Resource*, 2> m_backbuffers;
 	ID3D12DescriptorHeap* m_rtvDescHeap = nullptr;
@@ -31,6 +33,7 @@ private:
 
 	ID3D12Resource* m_depthBufferResource = nullptr;
 	ID3D12DescriptorHeap* m_dsvDescHeap = nullptr;
+	ID3D12DescriptorHeap* m_imguiDescHeap = nullptr;
 
 
 	void BeginFrame();

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Renderer.h"
+#include <imgui_impl_dx12.h>
 
 #pragma comment( lib, "d3d12.lib")
 #pragma comment( lib, "d3dcompiler.lib")
@@ -83,10 +84,26 @@ Renderer::Renderer(HWND windowHandle)
 	heapHandle = m_dsvDescHeap->GetCPUDescriptorHandleForHeapStart();
 	m_device->CreateDepthStencilView(m_depthBufferResource, nullptr, heapHandle);
 
+
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NumDescriptors = 1;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	hr = m_device->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_imguiDescHeap));
+		assert(SUCCEEDED(hr));
+
+	ImGui_ImplDX12_Init(m_device, m_numFramesInFlight,
+		DXGI_FORMAT_R8G8B8A8_UNORM, m_imguiDescHeap,
+		m_imguiDescHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_imguiDescHeap->GetGPUDescriptorHandleForHeapStart());
+
 }
 
 Renderer::~Renderer()
 {
+	ImGui_ImplDX12_Shutdown();
+	m_imguiDescHeap->Release();
+
 	m_dsvDescHeap->Release();
 	m_depthBufferResource->Release();
 	m_rtvDescHeap->Release();
@@ -145,8 +162,8 @@ size_t Renderer::Render()
 {
 	BeginFrame();
 
-
-
+	m_directCmdList->SetDescriptorHeaps(1, &m_imguiDescHeap);
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdList);
 	EndFrame();
 
 	return m_fenceValue;

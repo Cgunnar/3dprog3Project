@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Window.h"
+#include <imgui_impl_win32.h>
 
 Window* Window::s_windowInstance = nullptr;
 
@@ -31,10 +32,26 @@ Window::Window()
 		nullptr, nullptr, m_hInst, nullptr); //last pointer is to some optional data of any kind that kan be usefull when getting messages
 
 	ShowWindow(m_hWnd, SW_SHOWDEFAULT);
+	
+
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsClassic();
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplWin32_Init(m_hWnd);
+	
 }
 
 Window::~Window()
 {
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 	s_windowInstance = nullptr;
 }
 
@@ -68,13 +85,13 @@ bool Window::Win32MsgPump()
 
 
 
-//extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	/*if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+	if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
 	{
 		return true;
-	}*/
+	}
 
 	switch (uMsg)
 	{

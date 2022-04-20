@@ -2,6 +2,8 @@
 
 #include "Application.h"
 #include "FrameTimer.h"
+#include <imgui_impl_dx12.h>
+#include <imgui_impl_win32.h>
 
 Application::Application()
 {
@@ -22,8 +24,13 @@ void Application::Run()
 	{
 		FrameTimer::NewFrame();
 		if (!m_window->Win32MsgPump()) break;
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+		ImGui::ShowDemoWindow();
+		ImGui::Render();
 
-
+		
 		m_renderer->Render();
 	}
 }
