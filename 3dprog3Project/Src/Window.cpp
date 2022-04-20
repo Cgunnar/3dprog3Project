@@ -38,6 +38,11 @@ Window::~Window()
 	s_windowInstance = nullptr;
 }
 
+HWND Window::GetHWND() const
+{
+	return m_hWnd;
+}
+
 void Window::ChangeWindowText(std::string text)
 {
 	std::wstringstream win32text;

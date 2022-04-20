@@ -6,7 +6,7 @@ public:
 	~Window();
 	Window(const Window& other) = delete;
 	Window& operator=(const Window& other) = delete;
-
+	HWND GetHWND() const;
 	void ChangeWindowText(std::string text);
 	bool Win32MsgPump();
 private:

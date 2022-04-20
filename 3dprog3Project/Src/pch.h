@@ -21,6 +21,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <random>
 #include <chrono>
 #include <memory>
 
@@ -41,3 +42,6 @@
 #include <atomic>
 #include <semaphore>
 #include <future>
+
+#include "UtilityFunctions.h"
+#include "RenderingTypes.h"
