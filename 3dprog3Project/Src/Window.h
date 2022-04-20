@@ -4,6 +4,8 @@ class Window
 public:
 	Window();
 	~Window();
+	Window(const Window& other) = delete;
+	Window& operator=(const Window& other) = delete;
 
 	void ChangeWindowText(std::string text);
 	bool Win32MsgPump();
