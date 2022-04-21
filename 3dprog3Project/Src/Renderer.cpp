@@ -29,6 +29,8 @@ Renderer::Renderer(HWND windowHandle)
 	CreateSwapChain(factory6, windowHandle);
 	factory6->Release();
 
+	CheckMonitorRes();
+
 	m_fenceValues.resize(m_numFramesInFlight, 0);
 	hr = m_device->CreateFence(m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight], D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));
 	assert(SUCCEEDED(hr));
@@ -179,6 +181,22 @@ void Renderer::OnResize(UINT width, UINT height)
 
 	m_depthBufferResource->Release();
 	CreateRTVandDSV();
+}
+
+bool Renderer::SetFullscreen(bool fullscreen)
+{
+	if (fullscreen)
+	{
+		auto displayModes = CheckMonitorRes();
+		
+		HRESULT hr = m_swapchain->ResizeTarget(&displayModes.front());
+		assert(SUCCEEDED(hr));
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 
@@ -378,4 +396,46 @@ void Renderer::FrameFence()
 	m_fenceValues[fenceIndexNextFrame] = fenceValueThisFrame + 1;
 }
 
+std::vector<DXGI_MODE_DESC> Renderer::CheckMonitorRes()
+{
+	IDXGIOutput* outPut;
+	HRESULT hr = m_swapchain->GetContainingOutput(&outPut);
+	if (FAILED(hr))
+	{
+		//find an other solution, laptops might make GetContainingOutput fail
+		return std::vector<DXGI_MODE_DESC>();
+	};
+	DXGI_FORMAT format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	UINT numModes = 0;
+	hr = outPut->GetDisplayModeList(format, 0, &numModes, 0);
+	assert(SUCCEEDED(hr));
+	std::vector<DXGI_MODE_DESC> modeVec;
+	modeVec.resize(numModes);
+	hr = outPut->GetDisplayModeList(format, 0, &numModes, modeVec.data());
+	assert(SUCCEEDED(hr));
+
+	std::sort(modeVec.begin(), modeVec.end(), [](auto a, auto b) {
+		if (a.Width * a.Height > b.Width * b.Height) return true;
+		if (a.Width * a.Height < b.Width * b.Height) return false;
+		return (float)(a.RefreshRate.Numerator / (float)a.RefreshRate.Denominator) >
+			(float)(b.RefreshRate.Numerator / (float)b.RefreshRate.Denominator);
+		});
+
+	
+
+#ifdef _DEBUG
+	UINT monitorWidth = modeVec.front().Width;
+	UINT monitorHeight = modeVec.front().Height;
+	float hz = (float)modeVec.front().RefreshRate.Numerator / (float)modeVec.front().RefreshRate.Denominator;
+	DXGI_OUTPUT_DESC outDesc;
+	outPut->GetDesc(&outDesc);
+	std::wstring name = outDesc.DeviceName;
+	std::wstring debugOut = name + L" Best Mode: resolution: " + std::to_wstring(monitorWidth) + L"x" + std::to_wstring(monitorHeight) +
+		L" hz: " + std::to_wstring(hz) + L"\n";
+	std::wcout << debugOut;
+#endif // _DEBUG
+
+	outPut->Release();
+	return modeVec;
+}
 

@@ -4,7 +4,7 @@
 class Window;
 class Renderer
 {
-	//friend Window;
+	friend Window;
 public:
 	Renderer(HWND windowHandle);
 	~Renderer();
@@ -14,12 +14,12 @@ public:
 	UINT64 Render();
 
 	void OnResize(UINT width, UINT height);
+	bool SetFullscreen(bool fullscreen);
 
 private:
 	UINT m_width;
 	UINT m_height;
 	bool m_fullscreen = false;
-	bool m_minimized = false;
 
 	ID3D12Device* m_device = nullptr;
 	IDXGISwapChain3* m_swapchain = nullptr;
@@ -54,5 +54,6 @@ private:
 	void FlushGPU();
 	void FrameFence();
 	MemoryInfo GetVramInfo(IDXGIAdapter4* adapter);
+	std::vector<DXGI_MODE_DESC> CheckMonitorRes();
 };
 

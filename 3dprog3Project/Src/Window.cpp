@@ -32,7 +32,7 @@ Window::Window()
 		nullptr, nullptr, m_hInst, nullptr); //last pointer is to some optional data of any kind that kan be usefull when getting messages
 
 	ShowWindow(m_hWnd, SW_SHOWDEFAULT);
-	
+	GetWindowRect(m_hWnd, &m_windowModeRect);
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -88,6 +88,72 @@ void Window::SetRenderer(Renderer* renderer)
 	m_renderer = renderer;
 }
 
+bool Window::SetFullscreen(bool fullscreen)
+{
+	if (fullscreen)
+	{
+		if (m_renderer)
+		{
+			GetWindowRect(m_hWnd, &m_windowModeRect);
+			SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME));
+
+			IDXGIOutput* output;
+			HRESULT hr = m_renderer->m_swapchain->GetContainingOutput(&output);
+			if (FAILED(hr))
+			{
+				utl::PrintDebug("Window::SetFullscreen(bool fullscreen) failed");
+				//likely laptop
+				fullscreen = false;
+			}
+			else
+			{
+
+				DXGI_OUTPUT_DESC outputDesc;
+				hr = output->GetDesc(&outputDesc);
+				assert(SUCCEEDED(hr));
+				output->Release();
+				RECT rect = outputDesc.DesktopCoordinates;
+
+
+				SetWindowPos(
+					m_hWnd,
+					HWND_TOPMOST,
+					rect.left,
+					rect.top,
+					rect.right,
+					rect.bottom,
+					SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+
+				ShowWindow(m_hWnd, SW_MAXIMIZE);
+				if (!m_renderer->SetFullscreen(true))
+				{
+					assert(false);
+				}
+			}
+		}
+	}
+
+	if (!fullscreen)
+	{
+		SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+
+		SetWindowPos(
+			m_hWnd,
+			HWND_NOTOPMOST,
+			m_windowModeRect.left,
+			m_windowModeRect.top,
+			m_windowModeRect.right - m_windowModeRect.left,
+			m_windowModeRect.bottom - m_windowModeRect.top,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+		ShowWindow(m_hWnd, SW_NORMAL);
+	}
+
+	m_isFullscreen = fullscreen;
+	return fullscreen;
+}
+
 
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -126,16 +192,37 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		return 0;
 	}
+
+	case WM_SYSKEYDOWN:
+	{
+		// Handle ALT+ENTER:
+		if ((wParam == VK_RETURN) && (lParam & (1 << 29)))
+		{
+			SetFullscreen(!m_isFullscreen);
+			return 0;
+		}
+		break;
+	}
 	case WM_ACTIVATEAPP:
 	{
 		//alt + tab
 		if (wParam)
 		{
 			//open
+			if (m_wasFullscreenWhenOnOutOfFocus)
+			{
+				SetFullscreen(true);
+				m_wasFullscreenWhenOnOutOfFocus = false;
+			}
 		}
 		else
 		{
 			//close
+			if (m_isFullscreen)
+			{
+				m_wasFullscreenWhenOnOutOfFocus = true;
+				SetFullscreen(false);
+			}
 		}
 		return 0;
 	}
