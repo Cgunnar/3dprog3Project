@@ -1,9 +1,10 @@
 #pragma once
 
 
-
+class Window;
 class Renderer
 {
+	//friend Window;
 public:
 	Renderer(HWND windowHandle);
 	~Renderer();
@@ -12,7 +13,14 @@ public:
 
 	UINT64 Render();
 
+	void OnResize(UINT width, UINT height);
+
 private:
+	UINT m_width;
+	UINT m_height;
+	bool m_fullscreen = false;
+	bool m_minimized = false;
+
 	ID3D12Device* m_device = nullptr;
 	IDXGISwapChain3* m_swapchain = nullptr;
 	IDXGIAdapter4* m_adapter = nullptr;
@@ -41,6 +49,7 @@ private:
 	void EndFrame();
 	void CreateDeviceAndDirectCmd(IDXGIFactory6* factory);
 	void CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle);
+	void CreateRTVandDSV();
 
 	void FlushGPU();
 	void FrameFence();

@@ -83,6 +83,11 @@ bool Window::Win32MsgPump()
 	return true;
 }
 
+void Window::SetRenderer(Renderer* renderer)
+{
+	m_renderer = renderer;
+}
+
 
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -113,6 +118,12 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		auto width = LOWORD(lParam);
 		auto height = HIWORD(lParam);
 		std::cout << "WM_SIZE\twidth: " << width << " height: " << height << std::endl;
+
+		if (m_renderer)
+		{
+			m_renderer->OnResize(width, height);
+		}
+
 		return 0;
 	}
 	case WM_ACTIVATEAPP:

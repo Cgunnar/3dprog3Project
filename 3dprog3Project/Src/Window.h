@@ -1,4 +1,5 @@
 #pragma once
+#include "Renderer.h"
 class Window
 {
 public:
@@ -9,12 +10,14 @@ public:
 	HWND GetHWND() const;
 	void ChangeWindowText(std::string text);
 	bool Win32MsgPump();
+
+	void SetRenderer(Renderer* renderer);
 private:
 	static Window* s_windowInstance;
 	const wchar_t* m_wndClassName{ L"wcName" };
 	HINSTANCE m_hInst;
 	HWND m_hWnd;
-
+	Renderer* m_renderer = nullptr;
 	bool m_firstActivate = false;
 	bool m_isClosed = false;
 	bool m_isStarting = true;

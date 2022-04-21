@@ -27,6 +27,7 @@ Renderer::Renderer(HWND windowHandle)
 
 	CreateDeviceAndDirectCmd(factory6);
 	CreateSwapChain(factory6, windowHandle);
+	factory6->Release();
 
 	m_fenceValues.resize(m_numFramesInFlight, 0);
 	hr = m_device->CreateFence(m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight], D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));
@@ -36,7 +37,6 @@ Renderer::Renderer(HWND windowHandle)
 	m_eventHandle = CreateEventEx(nullptr, 0, 0, EVENT_ALL_ACCESS);
 	assert(m_eventHandle);
 
-	factory6->Release();
 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvDescHDesc;
 	rtvDescHDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -44,63 +44,20 @@ Renderer::Renderer(HWND windowHandle)
 	rtvDescHDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvDescHDesc.NodeMask = 0;
 
+	m_rtvDescSize = m_device->GetDescriptorHandleIncrementSize(rtvDescHDesc.Type);
 	hr = m_device->CreateDescriptorHeap(&rtvDescHDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_rtvDescHeap));
 	assert(SUCCEEDED(hr));
 
-	D3D12_CPU_DESCRIPTOR_HANDLE heapHandle;
-
-	m_rtvDescSize = m_device->GetDescriptorHandleIncrementSize(rtvDescHDesc.Type);
-	heapHandle = m_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
-	for (UINT i = 0; i < m_backbuffers.size(); i++)
-	{
-		hr = m_swapchain->GetBuffer(i, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_backbuffers[i]));
-		assert(SUCCEEDED(hr));
-		m_device->CreateRenderTargetView(m_backbuffers[i], nullptr, heapHandle);
-		heapHandle.ptr += m_rtvDescSize;
-	}
-
-
-
-	auto backBufferDesc = m_backbuffers.front()->GetDesc();
-
-	D3D12_CLEAR_VALUE depthClarValue;
-	depthClarValue.Format = DXGI_FORMAT_D32_FLOAT;
-	depthClarValue.DepthStencil.Depth = 1.0f;
-	D3D12_HEAP_PROPERTIES heapZProp = {};
-	heapZProp.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-	D3D12_RESOURCE_DESC zResoDesc;
-	zResoDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	zResoDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-	zResoDesc.Width = backBufferDesc.Width;
-	zResoDesc.Height = backBufferDesc.Height;
-	zResoDesc.MipLevels = 1;
-	zResoDesc.DepthOrArraySize = 1;
-	zResoDesc.Format = DXGI_FORMAT_D32_FLOAT;
-	zResoDesc.SampleDesc.Count = 1;
-	zResoDesc.SampleDesc.Quality = 0;
-	zResoDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-	zResoDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-
-	hr = m_device->CreateCommittedResource(&heapZProp, D3D12_HEAP_FLAG_NONE, &zResoDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE, &depthClarValue, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_depthBufferResource));
-	assert(SUCCEEDED(hr));
-
-	D3D12_DESCRIPTOR_HEAP_DESC dsvDescHDesc
-	{
-		.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
-		.NumDescriptors = 1u,
-		.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-		.NodeMask = 0u
-	};
-
+	D3D12_DESCRIPTOR_HEAP_DESC dsvDescHDesc;
+	dsvDescHDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvDescHDesc.NumDescriptors = 1;
+	dsvDescHDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	dsvDescHDesc.NodeMask = 0;
 
 	hr = m_device->CreateDescriptorHeap(&dsvDescHDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_dsvDescHeap));
 	assert(SUCCEEDED(hr));
 
-	heapHandle = m_dsvDescHeap->GetCPUDescriptorHandleForHeapStart();
-	m_device->CreateDepthStencilView(m_depthBufferResource, nullptr, heapHandle);
-
+	CreateRTVandDSV();
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -190,6 +147,38 @@ size_t Renderer::Render()
 	EndFrame();
 	static size_t counter = 0;
 	return counter++;
+}
+
+void Renderer::OnResize(UINT width, UINT height)
+{
+	if (width == m_width && height == m_height) return;
+
+	FlushGPU();
+
+	for (auto& fv : m_fenceValues)
+		fv = m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight];
+
+	for (auto& bb : m_backbuffers)
+		bb->Release();
+
+	DXGI_SWAP_CHAIN_DESC1 swapDesc;
+	HRESULT hr = m_swapchain->GetDesc1(&swapDesc);
+	assert(SUCCEEDED(hr));
+
+	
+	hr = m_swapchain->ResizeBuffers(0, 0, 0, swapDesc.Format, swapDesc.Flags);
+	assert(SUCCEEDED(hr));
+
+	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
+	hr = m_swapchain->GetDesc1(&swapDesc);
+	assert(SUCCEEDED(hr));
+	m_width = swapDesc.Width;
+	m_height = swapDesc.Height;
+
+	utl::PrintDebug("Swapchain updated to width: " + std::to_string(m_width) + ", height: " + std::to_string(m_height));
+
+	m_depthBufferResource->Release();
+	CreateRTVandDSV();
 }
 
 
@@ -294,6 +283,11 @@ void Renderer::CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle)
 	assert(SUCCEEDED(hr));
 
 	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
+
+	hr = m_swapchain->GetDesc1(&desc);
+	assert(SUCCEEDED(hr));
+	m_width = desc.Width;
+	m_height = desc.Height;
 }
 
 MemoryInfo Renderer::GetVramInfo(IDXGIAdapter4* adapter)
@@ -322,6 +316,48 @@ void Renderer::FlushGPU()
 	assert(SUCCEEDED(hr));
 	WaitForSingleObject(m_eventHandle, INFINITE);
 	m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight]++;
+}
+
+void Renderer::CreateRTVandDSV()
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE heapHandle;
+	heapHandle = m_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
+	for (UINT i = 0; i < m_backbuffers.size(); i++)
+	{
+		HRESULT hr = m_swapchain->GetBuffer(i, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_backbuffers[i]));
+		assert(SUCCEEDED(hr));
+		m_device->CreateRenderTargetView(m_backbuffers[i], nullptr, heapHandle);
+		heapHandle.ptr += m_rtvDescSize;
+	}
+
+
+	auto backBufferDesc = m_backbuffers.front()->GetDesc();
+
+	D3D12_CLEAR_VALUE depthClarValue;
+	depthClarValue.Format = DXGI_FORMAT_D32_FLOAT;
+	depthClarValue.DepthStencil.Depth = 1.0f;
+	D3D12_HEAP_PROPERTIES heapZProp = {};
+	heapZProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	D3D12_RESOURCE_DESC zResoDesc;
+	zResoDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	zResoDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+	zResoDesc.Width = backBufferDesc.Width;
+	zResoDesc.Height = backBufferDesc.Height;
+	zResoDesc.MipLevels = 1;
+	zResoDesc.DepthOrArraySize = 1;
+	zResoDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	zResoDesc.SampleDesc.Count = 1;
+	zResoDesc.SampleDesc.Quality = 0;
+	zResoDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+	zResoDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+	HRESULT hr = m_device->CreateCommittedResource(&heapZProp, D3D12_HEAP_FLAG_NONE, &zResoDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE, &depthClarValue, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_depthBufferResource));
+	assert(SUCCEEDED(hr));
+
+	heapHandle = m_dsvDescHeap->GetCPUDescriptorHandleForHeapStart();
+	m_device->CreateDepthStencilView(m_depthBufferResource, nullptr, heapHandle);
 }
 
 void Renderer::FrameFence()

@@ -10,10 +10,12 @@ Application::Application()
 	FrameTimer::Init();
 	m_window = new Window();
 	m_renderer = new Renderer(m_window->GetHWND());
+	m_window->SetRenderer(m_renderer);
 }
 
 Application::~Application()
 {
+	m_window->SetRenderer(nullptr);
 	delete m_renderer;
 	delete m_window;
 }
