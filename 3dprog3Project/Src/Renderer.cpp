@@ -145,8 +145,6 @@ void Renderer::BeginFrame()
 	hr = m_directCmdList->Reset(m_directCmdAllocator, nullptr);
 	assert(SUCCEEDED(hr));
 
-	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
-
 
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_dsvDescHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
