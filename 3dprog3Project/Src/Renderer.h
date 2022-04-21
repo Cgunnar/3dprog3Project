@@ -21,10 +21,11 @@ private:
 	ID3D12GraphicsCommandList* m_directCmdList = nullptr;
 
 	ID3D12Fence* m_fence = nullptr;
-	UINT64 m_fenceValue = 0;
-	UINT64 m_vramInBytes = 0;
-
+	std::vector<UINT64> m_fenceValues;
+	HANDLE m_eventHandle;
 	int m_numFramesInFlight = 1;
+
+	UINT64 m_vramInBytes = 0;
 
 	size_t m_currentBackbufferIndex = 0;
 	std::array<ID3D12Resource*, 2> m_backbuffers;
@@ -40,6 +41,8 @@ private:
 	void EndFrame();
 	void CreateDeviceAndDirectCmd(IDXGIFactory6* factory);
 	void CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle);
+
+	void FlushGPU();
 	void FrameFence();
 	MemoryInfo GetVramInfo(IDXGIAdapter4* adapter);
 };

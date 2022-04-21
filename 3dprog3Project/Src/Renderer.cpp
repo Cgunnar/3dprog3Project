@@ -28,7 +28,13 @@ Renderer::Renderer(HWND windowHandle)
 	CreateDeviceAndDirectCmd(factory6);
 	CreateSwapChain(factory6, windowHandle);
 
+	m_fenceValues.resize(m_numFramesInFlight, 0);
+	hr = m_device->CreateFence(m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight], D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));
 	assert(SUCCEEDED(hr));
+
+	m_eventHandle = CreateEventEx(nullptr, 0, 0, EVENT_ALL_ACCESS);
+	assert(m_eventHandle);
+
 	factory6->Release();
 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvDescHDesc;
@@ -111,6 +117,8 @@ Renderer::Renderer(HWND windowHandle)
 
 Renderer::~Renderer()
 {
+	FlushGPU();
+
 	ImGui_ImplDX12_Shutdown();
 	m_imguiDescHeap->Release();
 
@@ -126,6 +134,8 @@ Renderer::~Renderer()
 	m_directCmdQueue->Release();
 	m_device->Release();
 	m_adapter->Release();
+
+	CloseHandle(m_eventHandle);
 }
 
 void Renderer::BeginFrame()
@@ -175,8 +185,8 @@ size_t Renderer::Render()
 	m_directCmdList->SetDescriptorHeaps(1, &m_imguiDescHeap);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdList);
 	EndFrame();
-
-	return m_fenceValue;
+	static size_t counter = 0;
+	return counter++;
 }
 
 
@@ -248,9 +258,6 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 	assert(SUCCEEDED(hr));
 	hr = m_directCmdList->SetName(L"mainCmdList");
 	assert(SUCCEEDED(hr));
-
-	hr = m_device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));
-	assert(SUCCEEDED(hr));
 }
 
 void Renderer::CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle)
@@ -271,13 +278,11 @@ void Renderer::CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle)
 	HRESULT hr = factory->CreateSwapChainForHwnd(m_directCmdQueue, windowHandle, &desc, nullptr,
 		nullptr, reinterpret_cast<IDXGISwapChain1**>(&m_swapchain));
 	assert(SUCCEEDED(hr));
-	//m_swapchain->GetParent(__uuidof(IDXGIFactory))
-	/*IDXGIFactory* factory1;
-	hr = m_swapchain->QueryInterface(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&factory1));
-	assert(SUCCEEDED(hr));*/
 
 	hr = factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER);
 	assert(SUCCEEDED(hr));
+
+	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
 }
 
 MemoryInfo Renderer::GetVramInfo(IDXGIAdapter4* adapter)
@@ -298,20 +303,32 @@ MemoryInfo Renderer::GetVramInfo(IDXGIAdapter4* adapter)
 	return memInfo;
 }
 
+void Renderer::FlushGPU()
+{
+	HRESULT hr = m_directCmdQueue->Signal(m_fence, m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight]);
+	assert(SUCCEEDED(hr));
+	hr = m_fence->SetEventOnCompletion(m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight], m_eventHandle);
+	assert(SUCCEEDED(hr));
+	WaitForSingleObject(m_eventHandle, INFINITE);
+	m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight]++;
+}
+
 void Renderer::FrameFence()
 {
-	m_fenceValue++;
-	HRESULT hr = m_directCmdQueue->Signal(m_fence, m_fenceValue);
+	UINT64 fenceValueThisFrame = m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight];
+	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
+	//this function should be called after present so m_currentBackbufferIndex now holds the next frames backbufferIndex
+	UINT64 fenceIndexNextFrame = m_currentBackbufferIndex % m_numFramesInFlight;
+	HRESULT hr = m_directCmdQueue->Signal(m_fence, fenceValueThisFrame);
 	assert(SUCCEEDED(hr));
 
-	if (m_fence->GetCompletedValue() < m_fenceValue)
+	if (m_fence->GetCompletedValue() < m_fenceValues[fenceIndexNextFrame])
 	{
-		HANDLE eventHandle = CreateEventEx(nullptr, 0, 0, EVENT_ALL_ACCESS);
-		hr = m_fence->SetEventOnCompletion(m_fenceValue, eventHandle);
+		hr = m_fence->SetEventOnCompletion(m_fenceValues[fenceIndexNextFrame], m_eventHandle);
 		assert(SUCCEEDED(hr));
-		WaitForSingleObject(eventHandle, INFINITE);
-		CloseHandle(eventHandle);
+		WaitForSingleObject(m_eventHandle, INFINITE);
 	}
+	m_fenceValues[fenceIndexNextFrame] = fenceValueThisFrame + 1;
 }
 
 
