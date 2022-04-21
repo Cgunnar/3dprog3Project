@@ -8,24 +8,34 @@
 
 Renderer::Renderer(HWND windowHandle)
 {
+	HRESULT hr = S_OK;
+	UINT factoryFlag = 0;
+#ifdef _DEBUG
+	ID3D12Debug1* dx12debug;
+	hr = D3D12GetDebugInterface(__uuidof(ID3D12Debug1), reinterpret_cast<void**>(&dx12debug));
+	assert(SUCCEEDED(hr));
+	dx12debug->EnableDebugLayer();
+	dx12debug->SetEnableGPUBasedValidation(true);
+	dx12debug->Release();
+
+	factoryFlag = DXGI_CREATE_FACTORY_DEBUG;
+#endif // _DEBUG
+
 	IDXGIFactory6* factory6;
-	HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory6), reinterpret_cast<void**>(&factory6));
+	hr = CreateDXGIFactory2(factoryFlag, __uuidof(IDXGIFactory6), reinterpret_cast<void**>(&factory6));
 	assert(SUCCEEDED(hr));
 
 	CreateDeviceAndDirectCmd(factory6);
 	CreateSwapChain(factory6, windowHandle);
 
+	assert(SUCCEEDED(hr));
 	factory6->Release();
 
-
-
-	D3D12_DESCRIPTOR_HEAP_DESC rtvDescHDesc
-	{
-		.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-		.NumDescriptors = static_cast<UINT>(m_backbuffers.size()),
-		.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-		.NodeMask = 0u
-	};
+	D3D12_DESCRIPTOR_HEAP_DESC rtvDescHDesc;
+	rtvDescHDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvDescHDesc.NumDescriptors = static_cast<UINT>(m_backbuffers.size());
+	rtvDescHDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	rtvDescHDesc.NodeMask = 0;
 
 	hr = m_device->CreateDescriptorHeap(&rtvDescHDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_rtvDescHeap));
 	assert(SUCCEEDED(hr));
@@ -193,17 +203,7 @@ void Renderer::EndFrame()
 
 void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 {
-	HRESULT hr = S_OK;
-#ifdef _DEBUG
-	ID3D12Debug1* dx12debug;
-	hr = D3D12GetDebugInterface(__uuidof(ID3D12Debug1), reinterpret_cast<void**>(&dx12debug));
-	assert(SUCCEEDED(hr));
-	dx12debug->EnableDebugLayer();
-	dx12debug->SetEnableGPUBasedValidation(true);
-	dx12debug->Release();
-#endif // _DEBUG
-
-	hr = factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE::DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+	HRESULT hr = factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE::DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
 		__uuidof(IDXGIAdapter4), reinterpret_cast<void**>(&m_adapter));
 	assert(SUCCEEDED(hr));
 
@@ -262,6 +262,13 @@ void Renderer::CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle)
 
 	HRESULT hr = factory->CreateSwapChainForHwnd(m_directCmdQueue, windowHandle, &desc, nullptr,
 		nullptr, reinterpret_cast<IDXGISwapChain1**>(&m_swapchain));
+	assert(SUCCEEDED(hr));
+	//m_swapchain->GetParent(__uuidof(IDXGIFactory))
+	/*IDXGIFactory* factory1;
+	hr = m_swapchain->QueryInterface(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&factory1));
+	assert(SUCCEEDED(hr));*/
+
+	hr = factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER);
 	assert(SUCCEEDED(hr));
 }
 
