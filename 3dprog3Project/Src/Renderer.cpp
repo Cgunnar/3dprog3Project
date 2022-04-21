@@ -197,7 +197,15 @@ void Renderer::EndFrame()
 	assert(SUCCEEDED(hr));
 	ID3D12CommandList* tmpCmdList = m_directCmdList;
 	m_directCmdQueue->ExecuteCommandLists(1, &tmpCmdList);
-	m_swapchain->Present(0, 0);
+
+	// this comment is from microsofts smmple repo
+	// When using sync interval 0, it is recommended to always pass the tearing
+	// flag when it is supported, even when presenting in windowed mode.
+	// However, this flag cannot be used if the app is in fullscreen mode as a
+	// result of calling SetFullscreenState.
+	hr = m_swapchain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	assert(SUCCEEDED(hr));
+
 	FrameFence();
 }
 
