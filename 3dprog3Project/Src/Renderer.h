@@ -17,13 +17,13 @@ private:
 	IDXGISwapChain3* m_swapchain = nullptr;
 	IDXGIAdapter4* m_adapter = nullptr;
 	ID3D12CommandQueue* m_directCmdQueue = nullptr;
-	ID3D12CommandAllocator* m_directCmdAllocator = nullptr;
+	std::vector<ID3D12CommandAllocator*> m_directCmdAllocator;
 	ID3D12GraphicsCommandList* m_directCmdList = nullptr;
 
 	ID3D12Fence* m_fence = nullptr;
 	std::vector<UINT64> m_fenceValues;
 	HANDLE m_eventHandle;
-	int m_numFramesInFlight = 1;
+	int m_numFramesInFlight = 2;
 
 	UINT64 m_vramInBytes = 0;
 

@@ -31,6 +31,7 @@ Renderer::Renderer(HWND windowHandle)
 	m_fenceValues.resize(m_numFramesInFlight, 0);
 	hr = m_device->CreateFence(m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight], D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));
 	assert(SUCCEEDED(hr));
+	m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight]++;
 
 	m_eventHandle = CreateEventEx(nullptr, 0, 0, EVENT_ALL_ACCESS);
 	assert(m_eventHandle);
@@ -113,6 +114,8 @@ Renderer::Renderer(HWND windowHandle)
 		m_imguiDescHeap->GetCPUDescriptorHandleForHeapStart(),
 		m_imguiDescHeap->GetGPUDescriptorHandleForHeapStart());
 
+
+	FlushGPU();
 }
 
 Renderer::~Renderer()
@@ -130,7 +133,8 @@ Renderer::~Renderer()
 	m_swapchain->Release();
 	m_fence->Release();
 	m_directCmdList->Release();
-	m_directCmdAllocator->Release();
+	for (auto& dca : m_directCmdAllocator)
+		dca->Release();
 	m_directCmdQueue->Release();
 	m_device->Release();
 	m_adapter->Release();
@@ -140,9 +144,10 @@ Renderer::~Renderer()
 
 void Renderer::BeginFrame()
 {
-	HRESULT hr = m_directCmdAllocator->Reset();
+	size_t frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
+	HRESULT hr = m_directCmdAllocator[frameIndex]->Reset();
 	assert(SUCCEEDED(hr));
-	hr = m_directCmdList->Reset(m_directCmdAllocator, nullptr);
+	hr = m_directCmdList->Reset(m_directCmdAllocator[frameIndex], nullptr);
 	assert(SUCCEEDED(hr));
 
 
@@ -243,17 +248,25 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 	hr = m_device->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), reinterpret_cast<void**>(&m_directCmdQueue));
 	assert(SUCCEEDED(hr));
 
-	hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), reinterpret_cast<void**>(&m_directCmdAllocator));
-	assert(SUCCEEDED(hr));
+	m_directCmdAllocator.resize(m_numFramesInFlight, nullptr);
+	for (int i = 0; i < m_directCmdAllocator.size(); i++)
+	{
+		hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), reinterpret_cast<void**>(&m_directCmdAllocator[i]));
+		assert(SUCCEEDED(hr));
+	}
 
-	hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_directCmdAllocator, nullptr, __uuidof(ID3D12GraphicsCommandList), reinterpret_cast<void**>(&m_directCmdList));
+	hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_directCmdAllocator.front(), nullptr, __uuidof(ID3D12GraphicsCommandList), reinterpret_cast<void**>(&m_directCmdList));
 	assert(SUCCEEDED(hr));
 	m_directCmdList->Close();
 
 	hr = m_directCmdQueue->SetName(L"mainCmdQueue");
 	assert(SUCCEEDED(hr));
-	hr = m_directCmdAllocator->SetName(L"mainCmdAllocator");
-	assert(SUCCEEDED(hr));
+	for (int i = 0; i < m_directCmdAllocator.size(); i++)
+	{
+		std::wstring name = std::wstring(L"mainCmdAllocator: ") + std::to_wstring(i);
+		hr = m_directCmdAllocator[i]->SetName(name.c_str());
+		assert(SUCCEEDED(hr));
+	}
 	hr = m_directCmdList->SetName(L"mainCmdList");
 	assert(SUCCEEDED(hr));
 }
