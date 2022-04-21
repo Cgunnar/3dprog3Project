@@ -190,7 +190,7 @@ void Renderer::OnResize(UINT width, UINT height, bool forceResolution)
 	CreateRTVandDSV();
 }
 
-bool Renderer::SetFullscreen(bool fullscreen)
+bool Renderer::SetFullscreen(bool fullscreen, UINT exitFullscreenWidth, UINT exitFullscreenHeight)
 {
 	BOOL currentState;
 	HRESULT hr = m_swapchain->GetFullscreenState(&currentState, nullptr);
@@ -203,31 +203,39 @@ bool Renderer::SetFullscreen(bool fullscreen)
 
 	if (fullscreen)
 	{
-		/*auto displayModes = CheckMonitorRes();
-		HRESULT hr = m_swapchain->ResizeTarget(&displayModes.front());
-		assert(SUCCEEDED(hr));*/
-		
-
+		DXGI_MODE_DESC modeDesc = CheckMonitorRes().front();
+		HRESULT hr = m_swapchain->ResizeTarget(&modeDesc);
+		assert(SUCCEEDED(hr));
 		hr = m_swapchain->SetFullscreenState(TRUE, nullptr);
 		assert(SUCCEEDED(hr));
 		m_fullscreen = true;
-		DXGI_MODE_DESC modeDesc = CheckMonitorRes().front();
-		HRESULT hr = m_swapchain->ResizeTarget(&modeDesc);
+		
+		hr = m_swapchain->ResizeTarget(&modeDesc);
 		assert(SUCCEEDED(hr));
 		OnResize(modeDesc.Width, modeDesc.Height, true);
 		return true;
 	}
 	else
 	{
+		DXGI_MODE_DESC modeDesc;
+		modeDesc.Width = exitFullscreenWidth;
+		modeDesc.Height = exitFullscreenHeight;
+
+		if (modeDesc.Width == 0 || modeDesc.Height == 0)
+		{
+			DXGI_SWAP_CHAIN_DESC1 swapDesc;
+			HRESULT hr = m_swapchain->GetDesc1(&swapDesc);
+			assert(SUCCEEDED(hr));
+			modeDesc.Width = swapDesc.Width;
+			modeDesc.Height = swapDesc.Height;
+		}
 		hr = m_swapchain->SetFullscreenState(FALSE, nullptr);
 		assert(SUCCEEDED(hr));
-		auto displayModes = CheckMonitorRes();
-		DXGI_MODE_DESC modeDesc;
-		modeDesc.Width = 1280;
-		modeDesc.Height = 720;
+		
+
 		HRESULT hr = m_swapchain->ResizeTarget(&modeDesc);
 		assert(SUCCEEDED(hr));
-		OnResize(modeDesc.Width, modeDesc.Height, true);
+		OnResize(modeDesc.Width, modeDesc.Height, false);
 		m_fullscreen = false;
 		return false;
 	}
@@ -475,6 +483,9 @@ std::vector<DXGI_MODE_DESC> Renderer::CheckMonitorRes()
 #endif // _DEBUG
 
 	outPut->Release();
+	assert(modeVec.front().ScanlineOrdering == DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE || modeVec.front().ScanlineOrdering == DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED);
+	assert(modeVec.front().Scaling == DXGI_MODE_SCALING_STRETCHED || modeVec.front().Scaling == DXGI_MODE_SCALING_UNSPECIFIED);
+	assert(modeVec.front().Format == DXGI_FORMAT_B8G8R8A8_UNORM);
 	return modeVec;
 }
 

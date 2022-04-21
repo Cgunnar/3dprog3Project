@@ -29,10 +29,19 @@ void Application::Run()
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-		ImGui::ShowDemoWindow();
-		ImGui::Render();
 
-		
+		ImGui::ShowDemoWindow();
+
+		ImGui::Begin("Settings");
+		if (ImGui::Button("Windowed"))
+			m_window->SetFullscreen(Window::FullscreenState::windowed);
+		if (ImGui::Button("Borderless"))
+			m_window->SetFullscreen(Window::FullscreenState::borderLess);
+		if (ImGui::Button("Fullscreen"))
+			m_window->SetFullscreen(Window::FullscreenState::fullscreen);
+		ImGui::End();
+
+		ImGui::Render();
 		m_renderer->Render();
 	}
 }

@@ -144,10 +144,16 @@ void Window::SetFullscreen(FullscreenState state)
 
 void Window::SetBorderLess()
 {
-	bool fullscreen = m_renderer->SetFullscreen(false);
-	assert(!fullscreen);
+	if (m_fullscreenState == FullscreenState::fullscreen)
+	{
+		bool fullscreen = m_renderer->SetFullscreen(false);
+		assert(!fullscreen);
+	}
+	else
+	{
+		GetWindowRect(m_hWnd, &m_windowModeRect);
+	}
 
-	GetWindowRect(m_hWnd, &m_windowModeRect);
 	SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME));
 
 	IDXGIOutput* output;
@@ -180,14 +186,17 @@ void Window::SetBorderLess()
 		ShowWindow(m_hWnd, SW_MAXIMIZE);
 		auto mode = m_renderer->GetBestDisplayMode();
 		m_renderer->OnResize(mode.Width, mode.Height, true);
+		m_fullscreenState = FullscreenState::borderLess;
 	}
 }
 
 void Window::SetWindowed()
 {
+	int width = abs(m_windowModeRect.right - m_windowModeRect.left);
+	int height = abs(m_windowModeRect.bottom - m_windowModeRect.top);
 	if (m_fullscreenState == FullscreenState::fullscreen)
 	{
-		bool state = m_renderer->SetFullscreen(false);
+		bool state = m_renderer->SetFullscreen(false, width, height);
 		assert(state == false);
 	}
 
@@ -197,8 +206,8 @@ void Window::SetWindowed()
 		HWND_NOTOPMOST,
 		m_windowModeRect.left,
 		m_windowModeRect.top,
-		m_windowModeRect.right - m_windowModeRect.left,
-		m_windowModeRect.bottom - m_windowModeRect.top,
+		width,
+		height,
 		SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
 	ShowWindow(m_hWnd, SW_NORMAL);
