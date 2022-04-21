@@ -45,7 +45,7 @@ Window::Window()
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(m_hWnd);
-	
+
 }
 
 Window::~Window()
@@ -88,73 +88,123 @@ void Window::SetRenderer(Renderer* renderer)
 	m_renderer = renderer;
 }
 
-bool Window::SetFullscreen(bool fullscreen)
+void Window::SetFullscreen(FullscreenState state)
 {
-	if (fullscreen)
+	if (m_renderer == nullptr) return;
+	
+	switch (m_fullscreenState)
 	{
-		if (m_renderer)
+	case Window::FullscreenState::windowed:
+	{
+		switch (state)
 		{
-			GetWindowRect(m_hWnd, &m_windowModeRect);
-			SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME));
-
-			IDXGIOutput* output;
-			HRESULT hr = m_renderer->m_swapchain->GetContainingOutput(&output);
-			if (FAILED(hr))
-			{
-				utl::PrintDebug("Window::SetFullscreen(bool fullscreen) failed");
-				//likely laptop
-				fullscreen = false;
-			}
-			else
-			{
-
-				DXGI_OUTPUT_DESC outputDesc;
-				hr = output->GetDesc(&outputDesc);
-				assert(SUCCEEDED(hr));
-				output->Release();
-				RECT rect = outputDesc.DesktopCoordinates;
-
-
-				SetWindowPos(
-					m_hWnd,
-					HWND_TOPMOST,
-					rect.left,
-					rect.top,
-					rect.right,
-					rect.bottom,
-					SWP_FRAMECHANGED | SWP_NOACTIVATE);
-
-
-				ShowWindow(m_hWnd, SW_MAXIMIZE);
-				if (!m_renderer->SetFullscreen(true))
-				{
-					assert(false);
-				}
-			}
+		case Window::FullscreenState::borderLess:
+			SetBorderLess();
+			break;
+		case Window::FullscreenState::fullscreen:
+			bool fullscreen = m_renderer->SetFullscreen(true);
+			assert(fullscreen);
+			break;
 		}
-	}
 
-	if (!fullscreen)
+		break;
+	}
+	case Window::FullscreenState::borderLess:
 	{
-		SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+		switch (state)
+		{
+		case Window::FullscreenState::windowed:
+			SetWindowed();
+			break;
+		case Window::FullscreenState::fullscreen:
+			bool fullscreen = m_renderer->SetFullscreen(true);
+			assert(fullscreen);
+			break;
+		}
+
+		break;
+	}
+	case Window::FullscreenState::fullscreen:
+	{
+		switch (state)
+		{
+		case Window::FullscreenState::windowed:
+			SetWindowed();
+			break;
+		case Window::FullscreenState::borderLess:
+			SetBorderLess();
+			break;
+		}
+
+		break;
+	}
+	}
+	m_fullscreenState = state;
+}
+
+void Window::SetBorderLess()
+{
+	bool fullscreen = m_renderer->SetFullscreen(false);
+	assert(!fullscreen);
+
+	GetWindowRect(m_hWnd, &m_windowModeRect);
+	SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME));
+
+	IDXGIOutput* output;
+	HRESULT hr = m_renderer->m_swapchain->GetContainingOutput(&output);
+	if (FAILED(hr))
+	{
+		utl::PrintDebug("Window::SetFullscreen(bool fullscreen) failed");
+		//likely laptop
+		assert(false);
+	}
+	else
+	{
+		DXGI_OUTPUT_DESC outputDesc;
+		HRESULT hr = output->GetDesc(&outputDesc);
+		assert(SUCCEEDED(hr));
+		output->Release();
+		RECT rect = outputDesc.DesktopCoordinates;
+
 
 		SetWindowPos(
 			m_hWnd,
-			HWND_NOTOPMOST,
-			m_windowModeRect.left,
-			m_windowModeRect.top,
-			m_windowModeRect.right - m_windowModeRect.left,
-			m_windowModeRect.bottom - m_windowModeRect.top,
+			HWND_TOPMOST,
+			rect.left,
+			rect.top,
+			rect.right,
+			rect.bottom,
 			SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
-		ShowWindow(m_hWnd, SW_NORMAL);
-	}
 
-	m_isFullscreen = fullscreen;
-	return fullscreen;
+		ShowWindow(m_hWnd, SW_MAXIMIZE);
+		auto mode = m_renderer->GetBestDisplayMode();
+		m_renderer->OnResize(mode.Width, mode.Height, true);
+	}
 }
 
+void Window::SetWindowed()
+{
+	if (m_fullscreenState == FullscreenState::fullscreen)
+	{
+		bool state = m_renderer->SetFullscreen(false);
+		assert(state == false);
+	}
 
+	SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+	SetWindowPos(
+		m_hWnd,
+		HWND_NOTOPMOST,
+		m_windowModeRect.left,
+		m_windowModeRect.top,
+		m_windowModeRect.right - m_windowModeRect.left,
+		m_windowModeRect.bottom - m_windowModeRect.top,
+		SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+	ShowWindow(m_hWnd, SW_NORMAL);
+
+	m_fullscreenState = FullscreenState::windowed;
+}
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -187,7 +237,7 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		if (m_renderer)
 		{
-			m_renderer->OnResize(width, height);
+			m_renderer->OnResize(width, height, false);
 		}
 
 		return 0;
@@ -198,7 +248,10 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Handle ALT+ENTER:
 		if ((wParam == VK_RETURN) && (lParam & (1 << 29)))
 		{
-			SetFullscreen(!m_isFullscreen);
+			if(m_fullscreenState == Window::FullscreenState::windowed || m_fullscreenState == Window::FullscreenState::borderLess)
+				SetFullscreen(FullscreenState::fullscreen);
+			else if(m_fullscreenState == Window::FullscreenState::fullscreen)
+				SetFullscreen(FullscreenState::windowed);
 			return 0;
 		}
 		break;
@@ -209,20 +262,13 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (wParam)
 		{
 			//open
-			if (m_wasFullscreenWhenOnOutOfFocus)
-			{
-				SetFullscreen(true);
-				m_wasFullscreenWhenOnOutOfFocus = false;
-			}
+			SetFullscreen(m_fullscreenStateWhenOnOutOfFocus);
 		}
 		else
 		{
 			//close
-			if (m_isFullscreen)
-			{
-				m_wasFullscreenWhenOnOutOfFocus = true;
-				SetFullscreen(false);
-			}
+			m_fullscreenStateWhenOnOutOfFocus = m_fullscreenState;
+			SetFullscreen(FullscreenState::windowed);
 		}
 		return 0;
 	}

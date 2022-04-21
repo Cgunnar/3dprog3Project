@@ -7,13 +7,24 @@ public:
 	~Window();
 	Window(const Window& other) = delete;
 	Window& operator=(const Window& other) = delete;
+
+	enum class FullscreenState
+	{
+		windowed,
+		borderLess,
+		fullscreen //this is not full-screen exclusive mode
+	};
+
 	HWND GetHWND() const;
 	void ChangeWindowText(std::string text);
 	bool Win32MsgPump();
 
 	void SetRenderer(Renderer* renderer);
-	bool SetFullscreen(bool value);
+	
+	void SetFullscreen(FullscreenState state);
 private:
+	
+	FullscreenState m_fullscreenState = FullscreenState::windowed;
 	static Window* s_windowInstance;
 	const wchar_t* m_wndClassName{ L"wcName" };
 	HINSTANCE m_hInst;
@@ -24,10 +35,11 @@ private:
 	bool m_firstActivate = false;
 	bool m_isClosed = false;
 	bool m_isStarting = true;
-	bool m_wasFullscreenWhenOnOutOfFocus = false;
+	FullscreenState m_fullscreenStateWhenOnOutOfFocus = FullscreenState::windowed;
 
 	std::vector<std::byte> m_ridData;
-
+	void SetBorderLess();
+	void SetWindowed();
 	LRESULT CALLBACK HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 

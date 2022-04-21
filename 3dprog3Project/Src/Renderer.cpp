@@ -151,9 +151,9 @@ size_t Renderer::Render()
 	return counter++;
 }
 
-void Renderer::OnResize(UINT width, UINT height)
+void Renderer::OnResize(UINT width, UINT height, bool forceResolution)
 {
-	if (width == m_width && height == m_height) return;
+	//if (width == m_width && height == m_height) return;
 
 	FlushGPU();
 
@@ -167,9 +167,16 @@ void Renderer::OnResize(UINT width, UINT height)
 	HRESULT hr = m_swapchain->GetDesc1(&swapDesc);
 	assert(SUCCEEDED(hr));
 
-	
-	hr = m_swapchain->ResizeBuffers(0, 0, 0, swapDesc.Format, swapDesc.Flags);
-	assert(SUCCEEDED(hr));
+	if (forceResolution)
+	{
+		hr = m_swapchain->ResizeBuffers(0, width, height, swapDesc.Format, swapDesc.Flags);
+		assert(SUCCEEDED(hr));
+	}
+	else
+	{
+		hr = m_swapchain->ResizeBuffers(0, 0, 0, swapDesc.Format, swapDesc.Flags);
+		assert(SUCCEEDED(hr));
+	}
 
 	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
 	hr = m_swapchain->GetDesc1(&swapDesc);
@@ -185,18 +192,50 @@ void Renderer::OnResize(UINT width, UINT height)
 
 bool Renderer::SetFullscreen(bool fullscreen)
 {
+	BOOL currentState;
+	HRESULT hr = m_swapchain->GetFullscreenState(&currentState, nullptr);
+	if (currentState == fullscreen)
+	{
+		utl::PrintDebug("Renderer::SetFullscreen state mismatch");
+		m_fullscreen = currentState;
+		return m_fullscreen;
+	}
+
 	if (fullscreen)
 	{
-		auto displayModes = CheckMonitorRes();
-		
+		/*auto displayModes = CheckMonitorRes();
 		HRESULT hr = m_swapchain->ResizeTarget(&displayModes.front());
+		assert(SUCCEEDED(hr));*/
+		
+
+		hr = m_swapchain->SetFullscreenState(TRUE, nullptr);
 		assert(SUCCEEDED(hr));
+		m_fullscreen = true;
+		DXGI_MODE_DESC modeDesc = CheckMonitorRes().front();
+		HRESULT hr = m_swapchain->ResizeTarget(&modeDesc);
+		assert(SUCCEEDED(hr));
+		OnResize(modeDesc.Width, modeDesc.Height, true);
 		return true;
 	}
 	else
 	{
+		hr = m_swapchain->SetFullscreenState(FALSE, nullptr);
+		assert(SUCCEEDED(hr));
+		auto displayModes = CheckMonitorRes();
+		DXGI_MODE_DESC modeDesc;
+		modeDesc.Width = 1280;
+		modeDesc.Height = 720;
+		HRESULT hr = m_swapchain->ResizeTarget(&modeDesc);
+		assert(SUCCEEDED(hr));
+		OnResize(modeDesc.Width, modeDesc.Height, true);
+		m_fullscreen = false;
 		return false;
 	}
+}
+
+DXGI_MODE_DESC Renderer::GetBestDisplayMode()
+{
+	return CheckMonitorRes().front();
 }
 
 
@@ -223,7 +262,7 @@ void Renderer::EndFrame()
 	// flag when it is supported, even when presenting in windowed mode.
 	// However, this flag cannot be used if the app is in fullscreen mode as a
 	// result of calling SetFullscreenState.
-	hr = m_swapchain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	hr = m_swapchain->Present(0, m_fullscreen ? 0 : DXGI_PRESENT_ALLOW_TEARING);
 	assert(SUCCEEDED(hr));
 
 	FrameFence();

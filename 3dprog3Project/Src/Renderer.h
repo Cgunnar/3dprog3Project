@@ -13,8 +13,9 @@ public:
 
 	UINT64 Render();
 
-	void OnResize(UINT width, UINT height);
+	void OnResize(UINT width, UINT height, bool forceResolution);
 	bool SetFullscreen(bool fullscreen);
+	DXGI_MODE_DESC GetBestDisplayMode();
 
 private:
 	UINT m_width;
