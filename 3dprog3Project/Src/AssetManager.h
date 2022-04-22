@@ -37,6 +37,9 @@ public:
 	uint64_t AddMesh(const Mesh& mesh);
 	uint64_t AddMaterial(const Material &material);
 
+	void MoveMeshToGPU(uint64_t id);
+	void MoveMaterialToGPU(uint64_t id);
+
 	MeshAsset GetMesh(uint64_t id) const;
 	MaterialAsset GetMaterial(uint64_t id) const;
 
@@ -59,4 +62,19 @@ private:
 	std::unordered_map<uint64_t, MaterialAsset> m_materials;
 	std::queue<std::pair<GPUAsset, uint64_t>> m_gpuAssetsToRemove; //the uint is the frame the remove was requested on
 	DescriptorVector m_heapDescriptor = DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+
+	ID3D12CommandQueue* m_cpyCmdQueue = nullptr;
+	ID3D12CommandAllocator* m_cpyCmdAllocator = nullptr;
+	ID3D12GraphicsCommandList* m_cpyCmdList = nullptr;
+
+	ID3D12Fence* m_fence = nullptr;
+	UINT64 m_fenceValue = 0;
+
+	ID3D12Resource* m_uploadBuffer = nullptr;
+	ID3D12Heap* m_uploadHeap = nullptr;
+	UINT64 m_uploadHeapSize = 0;
+	UINT64 m_uploadBufferOffset = 0;
+
+	void RecordUpload();
+	void ExecuteUpload();
 };
