@@ -25,18 +25,23 @@ AssetManager& AssetManager::Get()
 uint64_t AssetManager::AddMesh(const Mesh& mesh)
 {
 	uint64_t id = utl::GenerateRandomID();
-	m_meshes[id] = std::make_shared<Mesh>(mesh);
+	
+	MeshAsset asset;
+	asset.mesh = std::make_shared<Mesh>(mesh);
+	m_meshes[id] = asset;
 	return id;
 }
 
 uint64_t AssetManager::AddMaterial(const Material& material)
 {
 	uint64_t id = utl::GenerateRandomID();
-	m_materials[id] = std::make_shared<Material>(material);
+	MaterialAsset asset;
+	asset.material = std::make_shared<Material>(material);
+	m_materials[id] = asset;
 	return id;
 }
 
-std::shared_ptr<Mesh> AssetManager::GetMesh(uint64_t id) const
+MeshAsset AssetManager::GetMesh(uint64_t id) const
 {
 	if (m_meshes.contains(id))
 	{
@@ -44,11 +49,11 @@ std::shared_ptr<Mesh> AssetManager::GetMesh(uint64_t id) const
 	}
 	else
 	{
-		return nullptr;
+		return MeshAsset();
 	}
 }
 
-std::shared_ptr<Material> AssetManager::GetMaterial(uint64_t id) const
+MaterialAsset AssetManager::GetMaterial(uint64_t id) const
 {
 	if (m_materials.contains(id))
 	{
@@ -56,7 +61,7 @@ std::shared_ptr<Material> AssetManager::GetMaterial(uint64_t id) const
 	}
 	else
 	{
-		return nullptr;
+		return MaterialAsset();
 	}
 }
 
