@@ -156,6 +156,34 @@ size_t Renderer::Render()
 	return counter++;
 }
 
+void Renderer::EndFrame()
+{
+	D3D12_RESOURCE_BARRIER backbufferTransitionBarrier;
+	backbufferTransitionBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	backbufferTransitionBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	backbufferTransitionBarrier.Transition.pResource = m_backbuffers[m_currentBackbufferIndex];
+	backbufferTransitionBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	backbufferTransitionBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	backbufferTransitionBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+
+	m_directCmdList->ResourceBarrier(1, &backbufferTransitionBarrier);
+
+	HRESULT hr = m_directCmdList->Close();
+	assert(SUCCEEDED(hr));
+	ID3D12CommandList* tmpCmdList = m_directCmdList;
+	m_directCmdQueue->ExecuteCommandLists(1, &tmpCmdList);
+
+	// this comment is from microsofts smmple repo
+	// When using sync interval 0, it is recommended to always pass the tearing
+	// flag when it is supported, even when presenting in windowed mode.
+	// However, this flag cannot be used if the app is in fullscreen mode as a
+	// result of calling SetFullscreenState.
+	hr = m_swapchain->Present(0, m_fullscreen ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+	assert(SUCCEEDED(hr));
+
+	FrameFence();
+}
+
 void Renderer::OnResize(UINT width, UINT height, bool forceResolution)
 {
 	//if (width == m_width && height == m_height) return;
@@ -214,7 +242,7 @@ bool Renderer::SetFullscreen(bool fullscreen, UINT exitFullscreenWidth, UINT exi
 		hr = m_swapchain->SetFullscreenState(TRUE, nullptr);
 		assert(SUCCEEDED(hr));
 		m_fullscreen = true;
-		
+
 		hr = m_swapchain->ResizeTarget(&modeDesc);
 		assert(SUCCEEDED(hr));
 		OnResize(modeDesc.Width, modeDesc.Height, true);
@@ -249,36 +277,6 @@ bool Renderer::SetFullscreen(bool fullscreen, UINT exitFullscreenWidth, UINT exi
 DXGI_MODE_DESC Renderer::GetBestDisplayMode()
 {
 	return CheckMonitorRes().front();
-}
-
-
-
-void Renderer::EndFrame()
-{
-	D3D12_RESOURCE_BARRIER backbufferTransitionBarrier;
-	backbufferTransitionBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	backbufferTransitionBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	backbufferTransitionBarrier.Transition.pResource = m_backbuffers[m_currentBackbufferIndex];
-	backbufferTransitionBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	backbufferTransitionBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	backbufferTransitionBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-
-	m_directCmdList->ResourceBarrier(1, &backbufferTransitionBarrier);
-
-	HRESULT hr = m_directCmdList->Close();
-	assert(SUCCEEDED(hr));
-	ID3D12CommandList* tmpCmdList = m_directCmdList;
-	m_directCmdQueue->ExecuteCommandLists(1, &tmpCmdList);
-
-	// this comment is from microsofts smmple repo
-	// When using sync interval 0, it is recommended to always pass the tearing
-	// flag when it is supported, even when presenting in windowed mode.
-	// However, this flag cannot be used if the app is in fullscreen mode as a
-	// result of calling SetFullscreenState.
-	hr = m_swapchain->Present(0, m_fullscreen ? 0 : DXGI_PRESENT_ALLOW_TEARING);
-	assert(SUCCEEDED(hr));
-
-	FrameFence();
 }
 
 void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)

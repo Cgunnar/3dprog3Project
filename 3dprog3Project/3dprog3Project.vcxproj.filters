@@ -30,13 +30,19 @@
     <ClCompile Include="Src\FrameTimer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Renderer.cpp">
+    <ClCompile Include="Src\Graphics\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Src\UtilityFunctions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\RenderingTypes.cpp">
+    <ClCompile Include="Src\Graphics\RenderingTypes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AssetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,13 +59,25 @@
     <ClInclude Include="Src\FrameTimer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Renderer.h">
+    <ClInclude Include="Src\Graphics\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\UtilityFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\RenderingTypes.h">
+    <ClInclude Include="Src\Graphics\RenderingTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\AssetManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\rfEntity.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Components\CommonComponents.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

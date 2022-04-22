@@ -1,6 +1,7 @@
 #pragma once
 #include "Window.h"
 #include "Renderer.h"
+#include "Scene.h"
 
 class Application
 {
@@ -14,5 +15,6 @@ public:
 private:
 	Window* m_window = nullptr;
 	Renderer* m_renderer = nullptr;
+	Scene* m_scene = nullptr;
 };
 
