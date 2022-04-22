@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Renderer.h"
+#include "rfEntity.hpp"
+#include "CommonComponents.h"
+#include "TestRenderPass.h"
 #include <imgui_impl_dx12.h>
 
 #pragma comment( lib, "d3d12.lib")
@@ -65,6 +68,8 @@ Renderer::Renderer(HWND windowHandle)
 	assert(SUCCEEDED(hr));
 
 	CreateRTVandDSV();
+
+	m_renderPass = std::make_unique<TestRenderPass>();
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -148,6 +153,8 @@ void Renderer::BeginFrame()
 size_t Renderer::Render()
 {
 	BeginFrame();
+
+	m_renderPass->RunRenderPass(m_directCmdList);
 
 	m_directCmdList->SetDescriptorHeaps(1, &m_imguiDescHeap);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdList);

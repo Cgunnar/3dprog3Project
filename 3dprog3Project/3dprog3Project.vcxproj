@@ -90,6 +90,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Graphics\RenderPass.cpp" />
     <ClCompile Include="Src\Material.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\FrameTimer.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\Geometry.cpp" />
@@ -113,8 +114,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Src\Window.cpp" />
+    <ClCompile Include="Src\Graphics\TestRenderPass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\Graphics\RenderPass.h" />
     <ClInclude Include="Src\Material.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\FrameTimer.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\Geometry.h" />
@@ -135,6 +138,7 @@
     <ClInclude Include="Src\Graphics\RenderingTypes.h" />
     <ClInclude Include="Src\UtilityFunctions.h" />
     <ClInclude Include="Src\Window.h" />
+    <ClInclude Include="Src\Graphics\TestRenderPass.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">

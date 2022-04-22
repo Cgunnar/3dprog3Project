@@ -1,5 +1,5 @@
 #pragma once
-
+#include "RenderPass.h"
 
 class Window;
 class Renderer
@@ -21,6 +21,8 @@ private:
 	UINT m_width;
 	UINT m_height;
 	bool m_fullscreen = false;
+
+	std::unique_ptr<RenderPass> m_renderPass;
 
 	ID3D12Device* m_device = nullptr;
 	IDXGISwapChain3* m_swapchain = nullptr;
@@ -44,7 +46,6 @@ private:
 	ID3D12Resource* m_depthBufferResource = nullptr;
 	ID3D12DescriptorHeap* m_dsvDescHeap = nullptr;
 	ID3D12DescriptorHeap* m_imguiDescHeap = nullptr;
-
 
 	void BeginFrame();
 	void EndFrame();
