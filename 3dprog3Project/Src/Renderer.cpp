@@ -6,6 +6,11 @@
 #pragma comment( lib, "d3dcompiler.lib")
 #pragma comment( lib, "dxgi.lib")
 
+extern "C" {
+	_declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 Renderer::Renderer(HWND windowHandle)
 {
 	HRESULT hr = S_OK;
@@ -447,11 +452,7 @@ std::vector<DXGI_MODE_DESC> Renderer::CheckMonitorRes()
 {
 	IDXGIOutput* outPut;
 	HRESULT hr = m_swapchain->GetContainingOutput(&outPut);
-	if (FAILED(hr))
-	{
-		//find an other solution, laptops might make GetContainingOutput fail
-		return std::vector<DXGI_MODE_DESC>();
-	};
+	assert(SUCCEEDED(hr));
 	DXGI_FORMAT format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	UINT numModes = 0;
 	hr = outPut->GetDisplayModeList(format, 0, &numModes, 0);

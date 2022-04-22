@@ -91,7 +91,7 @@ void Window::SetRenderer(Renderer* renderer)
 void Window::SetFullscreen(FullscreenState state)
 {
 	if (m_renderer == nullptr) return;
-	
+
 	switch (m_fullscreenState)
 	{
 	case Window::FullscreenState::windowed:
@@ -158,36 +158,28 @@ void Window::SetBorderLess()
 
 	IDXGIOutput* output;
 	HRESULT hr = m_renderer->m_swapchain->GetContainingOutput(&output);
-	if (FAILED(hr))
-	{
-		utl::PrintDebug("Window::SetFullscreen(bool fullscreen) failed");
-		//likely laptop
-		assert(false);
-	}
-	else
-	{
-		DXGI_OUTPUT_DESC outputDesc;
-		HRESULT hr = output->GetDesc(&outputDesc);
-		assert(SUCCEEDED(hr));
-		output->Release();
-		RECT rect = outputDesc.DesktopCoordinates;
+	assert(SUCCEEDED(hr));
+	DXGI_OUTPUT_DESC outputDesc;
+	hr = output->GetDesc(&outputDesc);
+	assert(SUCCEEDED(hr));
+	output->Release();
+	RECT rect = outputDesc.DesktopCoordinates;
 
 
-		SetWindowPos(
-			m_hWnd,
-			HWND_TOPMOST,
-			rect.left,
-			rect.top,
-			rect.right,
-			rect.bottom,
-			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+	SetWindowPos(
+		m_hWnd,
+		HWND_TOPMOST,
+		rect.left,
+		rect.top,
+		rect.right,
+		rect.bottom,
+		SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
 
-		ShowWindow(m_hWnd, SW_MAXIMIZE);
-		auto mode = m_renderer->GetBestDisplayMode();
-		m_renderer->OnResize(mode.Width, mode.Height, true);
-		m_fullscreenState = FullscreenState::borderLess;
-	}
+	ShowWindow(m_hWnd, SW_MAXIMIZE);
+	auto mode = m_renderer->GetBestDisplayMode();
+	m_renderer->OnResize(mode.Width, mode.Height, true);
+	m_fullscreenState = FullscreenState::borderLess;
 }
 
 void Window::SetWindowed()
@@ -257,9 +249,9 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Handle ALT+ENTER:
 		if ((wParam == VK_RETURN) && (lParam & (1 << 29)))
 		{
-			if(m_fullscreenState == Window::FullscreenState::windowed || m_fullscreenState == Window::FullscreenState::borderLess)
+			if (m_fullscreenState == Window::FullscreenState::windowed || m_fullscreenState == Window::FullscreenState::borderLess)
 				SetFullscreen(FullscreenState::fullscreen);
-			else if(m_fullscreenState == Window::FullscreenState::fullscreen)
+			else if (m_fullscreenState == Window::FullscreenState::fullscreen)
 				SetFullscreen(FullscreenState::windowed);
 			return 0;
 		}
