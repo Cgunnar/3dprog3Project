@@ -7,3 +7,5 @@ public:
 	virtual void RunRenderPass(ID3D12GraphicsCommandList* cmdList) = 0;
 };
 
+ID3DBlob* LoadCSO(const std::string& filepath);
+
