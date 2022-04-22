@@ -43,6 +43,8 @@ public:
 	void RemoveMesh(uint64_t id);
 	void RemoveMaterial(uint64_t id);
 
+	void Update(int numberOfFramesInFlight);
+
 	const DescriptorVector& GetHeapDescriptors() const;
 
 private:
@@ -55,5 +57,6 @@ private:
 
 	std::unordered_map<uint64_t, MeshAsset> m_meshes;
 	std::unordered_map<uint64_t, MaterialAsset> m_materials;
+	std::queue<std::pair<GPUAsset, uint64_t>> m_gpuAssetsToRemove; //the uint is the frame the remove was requested on
 	DescriptorVector m_heapDescriptor = DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 };

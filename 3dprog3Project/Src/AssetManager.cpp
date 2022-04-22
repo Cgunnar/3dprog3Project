@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "AssetManager.h"
+#include "FrameTimer.h"
 
 AssetManager* AssetManager::s_instance = nullptr;
 
@@ -67,12 +68,43 @@ MaterialAsset AssetManager::GetMaterial(uint64_t id) const
 
 void AssetManager::RemoveMesh(uint64_t id)
 {
-	m_meshes.erase(id);
+	if (m_meshes.contains(id))
+	{
+		m_gpuAssetsToRemove.emplace(std::make_pair(m_meshes[id].vertexBuffer, FrameTimer::Frame()));
+		m_gpuAssetsToRemove.emplace(std::make_pair(m_meshes[id].indexBuffer, FrameTimer::Frame()));
+		m_meshes.erase(id);
+	}
 }
 
 void AssetManager::RemoveMaterial(uint64_t id)
 {
-	m_materials.erase(id);
+	if (m_materials.contains(id))
+	{
+		m_gpuAssetsToRemove.emplace(std::make_pair(m_materials[id].constantBuffer, FrameTimer::Frame()));
+		m_materials.erase(id);
+	}
+}
+
+void AssetManager::Update(int numberOfFramesInFlight)
+{
+	bool keepRemoving = true;
+	while (!m_gpuAssetsToRemove.empty() && keepRemoving)
+	{
+		auto[asset, frame] = m_gpuAssetsToRemove.front();
+		if (!asset.resource)
+		{
+			m_gpuAssetsToRemove.pop(); //resource was never sent to the gpu
+		}
+		else if(asset.resource && FrameTimer::Frame() - frame > numberOfFramesInFlight)
+		{
+			asset.resource->Release();
+			m_gpuAssetsToRemove.pop();
+		}
+		else
+		{
+			keepRemoving = false;
+		}
+	}
 }
 
 const DescriptorVector& AssetManager::GetHeapDescriptors() const
@@ -87,5 +119,10 @@ AssetManager::AssetManager(ID3D12Device* device)
 
 AssetManager::~AssetManager()
 {
-
+	while (!m_gpuAssetsToRemove.empty())
+	{
+		if (m_gpuAssetsToRemove.front().first.resource)
+			m_gpuAssetsToRemove.front().first.resource->Release();
+		m_gpuAssetsToRemove.pop();
+	}
 }

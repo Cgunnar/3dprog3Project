@@ -291,6 +291,11 @@ DXGI_MODE_DESC Renderer::GetBestDisplayMode()
 	return CheckMonitorRes().front();
 }
 
+int Renderer::GetNumberOfFramesInFlight() const
+{
+	return m_numFramesInFlight;
+}
+
 void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 {
 	HRESULT hr = factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE::DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,

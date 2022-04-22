@@ -39,7 +39,6 @@ void Application::Run()
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-
 		ImGui::ShowDemoWindow();
 
 		ImGui::Begin("Settings");
@@ -50,6 +49,8 @@ void Application::Run()
 		if (ImGui::Button("Fullscreen"))
 			m_window->SetFullscreen(Window::FullscreenState::fullscreen);
 		ImGui::End();
+
+		AssetManager::Get().Update(m_renderer->GetNumberOfFramesInFlight());
 
 		ImGui::Render();
 		m_renderer->Render();
