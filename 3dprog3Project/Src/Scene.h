@@ -12,4 +12,7 @@ public:
 
 private:
 	std::vector<rfe::Entity> m_entities;
+
+	uint64_t m_sphereMesh;
+	uint64_t m_greenMaterial;
 };

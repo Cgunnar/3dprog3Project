@@ -60,7 +60,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/Components;$(SolutionDir)imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/CodeFromOlderProjects;Src/CodeFromOlderProjects/Math;Src/Components;$(SolutionDir)imgui</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -78,7 +78,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/Components;$(SolutionDir)imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/CodeFromOlderProjects;Src/CodeFromOlderProjects/Math;Src/Components;$(SolutionDir)imgui</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -90,11 +90,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Material.cpp" />
+    <ClCompile Include="Src\CodeFromOlderProjects\FrameTimer.cpp" />
+    <ClCompile Include="Src\CodeFromOlderProjects\Geometry.cpp" />
+    <ClCompile Include="Src\CodeFromOlderProjects\Math\Matrix.cpp" />
+    <ClCompile Include="Src\CodeFromOlderProjects\Math\RfextendedMath.cpp" />
+    <ClCompile Include="Src\CodeFromOlderProjects\Math\Transform.cpp" />
+    <ClCompile Include="Src\CodeFromOlderProjects\Math\Vector.cpp" />
+    <ClCompile Include="Src\Mesh.cpp" />
     <ClCompile Include="Src\Scene.cpp" />
     <ClCompile Include="Src\AssetManager.cpp" />
     <ClCompile Include="Src\Graphics\Renderer.cpp" />
     <ClCompile Include="Src\Application.cpp" />
-    <ClCompile Include="Src\FrameTimer.cpp" />
     <ClCompile Include="Src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -108,13 +115,22 @@
     <ClCompile Include="Src\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\Material.h" />
+    <ClInclude Include="Src\CodeFromOlderProjects\FrameTimer.h" />
+    <ClInclude Include="Src\CodeFromOlderProjects\Geometry.h" />
+    <ClInclude Include="Src\CodeFromOlderProjects\Math\Matrix.hpp" />
+    <ClInclude Include="Src\CodeFromOlderProjects\Math\RfextendedMath.hpp" />
+    <ClInclude Include="Src\CodeFromOlderProjects\Math\rfmFunctions.h" />
+    <ClInclude Include="Src\CodeFromOlderProjects\Math\RimfrostMath.hpp" />
+    <ClInclude Include="Src\CodeFromOlderProjects\Math\Transform.hpp" />
+    <ClInclude Include="Src\CodeFromOlderProjects\Math\Vector.hpp" />
+    <ClInclude Include="Src\CodeFromOlderProjects\rfEntity.hpp" />
     <ClInclude Include="Src\Components\CommonComponents.h" />
-    <ClInclude Include="Src\rfEntity.hpp" />
+    <ClInclude Include="Src\Mesh.h" />
     <ClInclude Include="Src\Scene.h" />
     <ClInclude Include="Src\AssetManager.h" />
     <ClInclude Include="Src\Graphics\Renderer.h" />
     <ClInclude Include="Src\Application.h" />
-    <ClInclude Include="Src\FrameTimer.h" />
     <ClInclude Include="Src\pch.h" />
     <ClInclude Include="Src\Graphics\RenderingTypes.h" />
     <ClInclude Include="Src\UtilityFunctions.h" />

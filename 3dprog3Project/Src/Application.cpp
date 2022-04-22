@@ -3,29 +3,32 @@
 #include "Application.h"
 #include "FrameTimer.h"
 #include "rfEntity.hpp"
+#include "AssetManager.h"
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 
 Application::Application()
 {
 	FrameTimer::Init();
+	AssetManager::Init();
 	m_window = new Window();
 	m_renderer = new Renderer(m_window->GetHWND());
 	m_window->SetRenderer(m_renderer);
-
 	m_scene = new Scene();
 }
 
 Application::~Application()
 {
 	delete m_scene;
-
 	m_window->SetRenderer(nullptr);
 	delete m_renderer;
 	delete m_window;
 
+	AssetManager::Destroy();
+
 	rfe::EntityReg::Clear();
 }
+
 
 void Application::Run()
 {
@@ -51,4 +54,10 @@ void Application::Run()
 		ImGui::Render();
 		m_renderer->Render();
 	}
+}
+
+
+void Application::SetUp()
+{
+
 }
