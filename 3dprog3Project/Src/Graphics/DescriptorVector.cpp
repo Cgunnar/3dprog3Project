@@ -63,11 +63,10 @@ void DescriptorVector::Clear()
 	size = 0;
 }
 
-void DescriptorVector::AddFromOther(DescriptorVector& other, UINT srcIndex, UINT count, ID3D12Device* device)
+void DescriptorVector::AddFromOther(const DescriptorVector& other, UINT srcIndex, UINT count, ID3D12Device* device)
 {
 	assert(heapDescriptorDesc.Type == other.heapDescriptorDesc.Type && srcIndex + count <= other.size);
-	if (other.Get() == nullptr)
-		other.Init(device);
+	assert(other.Get());
 	if (this->Get() == nullptr)
 		this->Init(device);
 	device->CopyDescriptorsSimple(count, this->operator[](size), other[srcIndex], heapDescriptorDesc.Type);

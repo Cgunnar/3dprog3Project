@@ -10,10 +10,10 @@
 Application::Application()
 {
 	FrameTimer::Init();
-	AssetManager::Init();
 	m_window = new Window();
 	m_renderer = new Renderer(m_window->GetHWND());
 	m_window->SetRenderer(m_renderer);
+	AssetManager::Init(m_renderer->GetDevice());
 	m_scene = new Scene();
 }
 

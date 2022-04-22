@@ -2,6 +2,7 @@
 
 #include "Mesh.h"
 #include "Material.h"
+#include "DescriptorVector.h"
 
 struct GPUAsset
 {
@@ -29,7 +30,7 @@ struct MaterialAsset
 class AssetManager
 {
 public:
-	static void Init();
+	static void Init(ID3D12Device* device);
 	static void Destroy();
 	static AssetManager& Get();
 
@@ -42,8 +43,10 @@ public:
 	void RemoveMesh(uint64_t id);
 	void RemoveMaterial(uint64_t id);
 
+	const DescriptorVector& GetHeapDescriptors() const;
+
 private:
-	AssetManager();
+	AssetManager(ID3D12Device* device);
 	~AssetManager();
 	AssetManager(const AssetManager& other) = delete;
 	AssetManager& operator=(const AssetManager& other) = delete;
@@ -52,4 +55,5 @@ private:
 
 	std::unordered_map<uint64_t, MeshAsset> m_meshes;
 	std::unordered_map<uint64_t, MaterialAsset> m_materials;
+	DescriptorVector m_heapDescriptor = DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 };

@@ -12,7 +12,7 @@ public:
 	Renderer& operator=(const Renderer& other) = delete;
 
 	UINT64 Render();
-
+	ID3D12Device* GetDevice();
 	void OnResize(UINT width, UINT height, bool forceResolution);
 	bool SetFullscreen(bool fullscreen, UINT exitFullscreenWidth = 0, UINT exitFullscreenHeight = 0);
 	DXGI_MODE_DESC GetBestDisplayMode();

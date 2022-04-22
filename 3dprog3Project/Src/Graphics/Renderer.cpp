@@ -1,7 +1,5 @@
 #include "pch.h"
 #include "Renderer.h"
-#include "rfEntity.hpp"
-#include "CommonComponents.h"
 #include "TestRenderPass.h"
 #include <imgui_impl_dx12.h>
 
@@ -111,6 +109,11 @@ Renderer::~Renderer()
 	CloseHandle(m_eventHandle);
 }
 
+ID3D12Device* Renderer::GetDevice()
+{
+	return m_device;
+}
+
 void Renderer::BeginFrame()
 {
 	size_t frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
@@ -162,6 +165,8 @@ size_t Renderer::Render()
 	static size_t counter = 0;
 	return counter++;
 }
+
+
 
 void Renderer::EndFrame()
 {

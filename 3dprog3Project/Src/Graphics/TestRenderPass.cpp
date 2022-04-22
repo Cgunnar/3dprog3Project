@@ -1,8 +1,14 @@
 #include "pch.h"
 #include "TestRenderPass.h"
+#include "rfEntity.hpp"
+#include "CommonComponents.h"
+#include "AssetManager.h"
 
-TestRenderPass::TestRenderPass(ID3D12Device* device)
+
+TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 {
+	m_heapDescriptor.Init(device);
+
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
 
@@ -141,5 +147,33 @@ TestRenderPass::~TestRenderPass()
 
 void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList)
 {
+	m_heapDescriptor.Clear();
+	auto heapDescriptor = m_heapDescriptor.Get();
+	cmdList->SetDescriptorHeaps(1, &heapDescriptor);
+	cmdList->SetGraphicsRootSignature(m_rootSignature);
+	cmdList->SetPipelineState(m_pipelineState);
 
+	const AssetManager& am = AssetManager::Get();
+	//fix a better way of allocating memory
+	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
+	for (auto& entity : entities)
+	{
+		auto mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
+		auto material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
+		auto transform = entity.GetComponent<TransformComp>()->transform;
+
+		GPUAsset vb = mesh.vertexBuffer;
+		GPUAsset ib = mesh.indexBuffer;
+		GPUAsset colorBuffer = material.constantBuffer;
+
+		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
+
+		UINT tableSlot0 = m_heapDescriptor.Size();
+		m_heapDescriptor.AddFromOther(am.GetHeapDescriptors(), vb.descIndex, 1, m_device);
+		m_heapDescriptor.AddFromOther(am.GetHeapDescriptors(), ib.descIndex, 1, m_device);
+
+		cmdList->SetGraphicsRootDescriptorTable(0, m_heapDescriptor.GetGPUHandle(tableSlot0));
+		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
+		cmdList->DrawInstanced(ib.elementCount, 0, 0, 0);
+	}
 }

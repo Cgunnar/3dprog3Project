@@ -3,10 +3,10 @@
 
 AssetManager* AssetManager::s_instance = nullptr;
 
-void AssetManager::Init()
+void AssetManager::Init(ID3D12Device* device)
 {
 	assert(!s_instance);
-	s_instance = new AssetManager();
+	s_instance = new AssetManager(device);
 }
 
 void AssetManager::Destroy()
@@ -75,9 +75,14 @@ void AssetManager::RemoveMaterial(uint64_t id)
 	m_materials.erase(id);
 }
 
-AssetManager::AssetManager()
+const DescriptorVector& AssetManager::GetHeapDescriptors() const
 {
+	return m_heapDescriptor;
+}
 
+AssetManager::AssetManager(ID3D12Device* device)
+{
+	m_heapDescriptor.Init(device);
 }
 
 AssetManager::~AssetManager()
