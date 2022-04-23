@@ -32,6 +32,10 @@ TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 	descriptorRange.BaseShaderRegister = 1;
 	vsDescriptorRanges.push_back(descriptorRange);
 
+	descriptorRange.BaseShaderRegister = 0;
+	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	vsDescriptorRanges.push_back(descriptorRange);
+
 	std::array<D3D12_ROOT_PARAMETER, 2> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
