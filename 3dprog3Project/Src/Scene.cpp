@@ -14,7 +14,9 @@ Scene::Scene()
 	newMaterial.albedo = { 0, 1, 0, 1 };
 
 	m_sphereMesh = AssetManager::Get().AddMesh(newSphereMesh);
+	AssetManager::Get().MoveMeshToGPU(m_sphereMesh);
 	m_greenMaterial = AssetManager::Get().AddMaterial(newMaterial);
+	AssetManager::Get().MoveMaterialToGPU(m_greenMaterial);
 
 	Entity& newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	newEntity.AddComponent<TransformComp>();

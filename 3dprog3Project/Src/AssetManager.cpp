@@ -26,44 +26,65 @@ AssetManager& AssetManager::Get()
 uint64_t AssetManager::AddMesh(const Mesh& mesh)
 {
 	uint64_t id = utl::GenerateRandomID();
-	
-	MeshAsset asset;
-	asset.mesh = std::make_shared<Mesh>(mesh);
-	m_meshes[id] = asset;
+	m_meshes[id] = MeshAsset(mesh);
 	return id;
 }
 
 uint64_t AssetManager::AddMaterial(const Material& material)
 {
 	uint64_t id = utl::GenerateRandomID();
-	MaterialAsset asset;
-	asset.material = std::make_shared<Material>(material);
-	m_materials[id] = asset;
+	m_materials[id] = MaterialAsset(material);
 	return id;
 }
 
 void AssetManager::MoveMeshToGPU(uint64_t id)
 {
 	assert(m_meshes.contains(id));
-	GPUAsset& vb = m_meshes[id].vertexBuffer;
 
-	D3D12_RESOURCE_DESC desc;
-	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	desc.Format = DXGI_FORMAT_UNKNOWN;
-	desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-	desc.MipLevels = 1;
-	desc.DepthOrArraySize = 1;
-	desc.Height = 1;
-	desc.Width = static_cast<UINT64>(elementSize) * nrOfElements;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	MeshAsset& meshAsset = m_meshes[id];
+	CreateBuffer(meshAsset.vertexBuffer);
+	CreateBuffer(meshAsset.indexBuffer);
+
+	RecordUpload();
+	UploadBufferStaged(meshAsset.vertexBuffer, meshAsset.mesh->GetVertexData().data());
+	UploadBufferStaged(meshAsset.indexBuffer, meshAsset.mesh->GetIndices().data());
+	ExecuteUpload();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
+	viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	viewDesc.Format = DXGI_FORMAT_UNKNOWN;
+	viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	viewDesc.Buffer.FirstElement = 0;
+	viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+	viewDesc.Buffer.NumElements = meshAsset.vertexBuffer.elementCount;
+	viewDesc.Buffer.StructureByteStride = meshAsset.vertexBuffer.elementSize;
+	meshAsset.vertexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_device,
+		meshAsset.vertexBuffer.resource.Get(), &viewDesc);
+
+	viewDesc.Buffer.NumElements = meshAsset.indexBuffer.elementCount;
+	viewDesc.Buffer.StructureByteStride = meshAsset.indexBuffer.elementSize;
+	meshAsset.indexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_device,
+		meshAsset.indexBuffer.resource.Get(), &viewDesc);
+
+	meshAsset.vertexBuffer.valid = true;
+	meshAsset.indexBuffer.valid = true;
 }
 
 void AssetManager::MoveMaterialToGPU(uint64_t id)
 {
+	assert(m_materials.contains(id));
 
+	MaterialAsset &materialAsset = m_materials[id];
+	CreateBuffer(materialAsset.constantBuffer);
+	RecordUpload();
+	UploadBufferStaged(materialAsset.constantBuffer, &materialAsset.material->albedo);
+	ExecuteUpload();
+	D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc;
+	viewDesc.BufferLocation = materialAsset.constantBuffer.resource->GetGPUVirtualAddress();
+	viewDesc.SizeInBytes = materialAsset.constantBuffer.resource->GetDesc().Width;
+	materialAsset.constantBuffer.descIndex = m_heapDescriptor.CreateConstantBuffer(m_device, &viewDesc);
+	materialAsset.constantBuffer.valid = true;
 }
 
 MeshAsset AssetManager::GetMesh(uint64_t id) const
@@ -123,7 +144,6 @@ void AssetManager::Update(int numberOfFramesInFlight)
 		}
 		else if(asset.resource && FrameTimer::Frame() - frame > numberOfFramesInFlight)
 		{
-			asset.resource->Release();
 			m_gpuAssetsToRemove.pop();
 		}
 		else
@@ -138,7 +158,7 @@ const DescriptorVector& AssetManager::GetHeapDescriptors() const
 	return m_heapDescriptor;
 }
 
-AssetManager::AssetManager(ID3D12Device* device)
+AssetManager::AssetManager(ID3D12Device* device) : m_device(device)
 {
 	m_heapDescriptor.Init(device);
 
@@ -212,11 +232,9 @@ AssetManager::~AssetManager()
 {
 	while (!m_gpuAssetsToRemove.empty())
 	{
-		if (m_gpuAssetsToRemove.front().first.resource)
-			m_gpuAssetsToRemove.front().first.resource->Release();
 		m_gpuAssetsToRemove.pop();
 	}
-
+	
 
 	m_uploadBuffer->Release();
 	m_uploadHeap->Release();
@@ -252,4 +270,62 @@ void AssetManager::ExecuteUpload()
 		CloseHandle(eventHandle);
 	}
 	m_uploadBufferOffset = 0;
+}
+
+void AssetManager::CreateBuffer(GPUAsset& buffer)
+{
+
+	D3D12_RESOURCE_DESC desc;
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	desc.Format = DXGI_FORMAT_UNKNOWN;
+	desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+	desc.MipLevels = 1;
+	desc.DepthOrArraySize = 1;
+	desc.Height = 1;
+	desc.Width = static_cast<UINT64>(buffer.elementSize) * buffer.elementCount;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	if (buffer.flag & GPUAsset::CBV)
+		desc.Width = utl::AlignSize(desc.Width, 256);
+
+	if (buffer.flag & GPUAsset::CPU_WRITE)
+	{
+		D3D12_HEAP_PROPERTIES heapProps{};
+		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		HRESULT hr = m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+			&desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), &buffer.resource);
+		assert(SUCCEEDED(hr));
+	}
+	else
+	{
+		D3D12_HEAP_PROPERTIES heapProps{};
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		HRESULT hr = m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+			&desc, D3D12_RESOURCE_STATE_COMMON, nullptr, __uuidof(ID3D12Resource), &buffer.resource);
+		assert(SUCCEEDED(hr));
+	}
+}
+
+void AssetManager::UploadBufferStaged(const GPUAsset& target, const void* data)
+{
+	D3D12_RESOURCE_DESC targetDesc = target.resource->GetDesc();
+	UINT numRows = 0;
+	UINT64 rowSizeInBytes = 0;
+	UINT64 totalBytes = 0;
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT targetFootPrint;
+	m_device->GetCopyableFootprints(&targetDesc, 0, 1, 0, &targetFootPrint, &numRows, &rowSizeInBytes, &totalBytes);
+
+	D3D12_RANGE emptyRange = { 0, 0 };
+	std::byte* mappedMemory = nullptr;
+	HRESULT hr = m_uploadBuffer->Map(0, &emptyRange, reinterpret_cast<void**>(&mappedMemory));
+	assert(SUCCEEDED(hr));
+
+	std::memcpy(utl::AlignAdress(mappedMemory + m_uploadBufferOffset, target.elementSize), data, rowSizeInBytes);
+
+	m_cpyCmdList->CopyBufferRegion(target.resource.Get(), 0, m_uploadBuffer, m_uploadBufferOffset, targetFootPrint.Footprint.Width);
+	m_uploadBufferOffset += targetFootPrint.Footprint.RowPitch;
+	m_uploadBuffer->Unmap(0, nullptr);
 }
