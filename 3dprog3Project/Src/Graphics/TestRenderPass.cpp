@@ -45,7 +45,8 @@ TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
-	rasterState.CullMode = D3D12_CULL_MODE_BACK;
+	rasterState.CullMode = D3D12_CULL_MODE_NONE;
+	//rasterState.CullMode = D3D12_CULL_MODE_BACK;
 	rasterState.FrontCounterClockwise = false;
 	rasterState.DepthBias = 0;
 	rasterState.DepthBiasClamp = 0.0f;
@@ -174,6 +175,6 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList)
 
 		cmdList->SetGraphicsRootDescriptorTable(0, m_heapDescriptor.GetGPUHandle(tableSlot0));
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
-		cmdList->DrawInstanced(ib.elementCount, 0, 0, 0);
+		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}
 }
