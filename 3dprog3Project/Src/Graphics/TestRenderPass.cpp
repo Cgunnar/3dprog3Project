@@ -8,6 +8,7 @@
 TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 {
 	m_heapDescriptor.Init(device);
+	m_constantBuffers = new ConstantBufferManager(device, 10000);
 
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -32,9 +33,9 @@ TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 	descriptorRange.BaseShaderRegister = 1;
 	vsDescriptorRanges.push_back(descriptorRange);
 
-	descriptorRange.BaseShaderRegister = 0;
+	/*descriptorRange.BaseShaderRegister = 0;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	vsDescriptorRanges.push_back(descriptorRange);
+	vsDescriptorRanges.push_back(descriptorRange);*/
 
 	std::array<D3D12_ROOT_PARAMETER, 2> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -146,6 +147,7 @@ TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 
 TestRenderPass::~TestRenderPass()
 {
+	delete m_constantBuffers;
 	m_pipelineState->Release();
 	m_rootSignature->Release();
 }

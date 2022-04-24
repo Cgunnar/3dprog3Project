@@ -3,7 +3,7 @@
 class DescriptorVector
 {
 public:
-	DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
+	DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT maxSize = 2048 * 4);
 	~DescriptorVector();
 	DescriptorVector(const DescriptorVector& other) = delete;
 	DescriptorVector& operator=(const DescriptorVector& other) = delete;
@@ -22,7 +22,7 @@ public:
 
 private:
 	UINT size = 0;
-	UINT capacity = 2048*4;
+	UINT capacity = 0;
 	UINT incrementSize = 0;
 	ID3D12DescriptorHeap* heapDescriptor = nullptr;
 

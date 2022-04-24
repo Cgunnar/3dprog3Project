@@ -75,6 +75,9 @@
     <ClCompile Include="Src\Graphics\DescriptorVector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Graphics\ConstantBufferManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Window.h">
@@ -144,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\Graphics\DescriptorVector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Graphics\ConstantBufferManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

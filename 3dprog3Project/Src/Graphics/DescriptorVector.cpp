@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "DescriptorVector.h"
 
-DescriptorVector::DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
+DescriptorVector::DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT maxSize)
 {
+	capacity = maxSize;
 	heapDescriptorDesc.Flags = flags;
 	heapDescriptorDesc.NodeMask = 0;
 	heapDescriptorDesc.Type = type;

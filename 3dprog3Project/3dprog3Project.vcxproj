@@ -90,6 +90,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Graphics\ConstantBufferManager.cpp" />
     <ClCompile Include="Src\Graphics\DescriptorVector.cpp" />
     <ClCompile Include="Src\Graphics\RenderPass.cpp" />
     <ClCompile Include="Src\Material.cpp" />
@@ -118,6 +119,7 @@
     <ClCompile Include="Src\Graphics\TestRenderPass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\Graphics\ConstantBufferManager.h" />
     <ClInclude Include="Src\Graphics\DescriptorVector.h" />
     <ClInclude Include="Src\Graphics\RenderPass.h" />
     <ClInclude Include="Src\Material.h" />
