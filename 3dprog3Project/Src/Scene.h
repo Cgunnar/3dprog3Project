@@ -15,4 +15,5 @@ private:
 
 	uint64_t m_sphereMesh;
 	uint64_t m_greenMaterial;
+	uint64_t m_redMaterial;
 };

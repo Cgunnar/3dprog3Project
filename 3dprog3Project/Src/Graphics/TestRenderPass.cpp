@@ -5,10 +5,13 @@
 #include "AssetManager.h"
 
 
-TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
+TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight) 
+	: m_device(device)
 {
 	m_heapDescriptor.Init(device);
-	m_constantBuffers = new ConstantBufferManager(device, 10000);
+	m_constantBuffers.resize(framesInFlight);
+	for (auto& cbManager : m_constantBuffers)
+		cbManager = new ConstantBufferManager(device, 10000, 64);
 
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -33,9 +36,9 @@ TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 	descriptorRange.BaseShaderRegister = 1;
 	vsDescriptorRanges.push_back(descriptorRange);
 
-	/*descriptorRange.BaseShaderRegister = 0;
+	descriptorRange.BaseShaderRegister = 0;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	vsDescriptorRanges.push_back(descriptorRange);*/
+	vsDescriptorRanges.push_back(descriptorRange);
 
 	std::array<D3D12_ROOT_PARAMETER, 2> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -50,8 +53,8 @@ TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
-	rasterState.CullMode = D3D12_CULL_MODE_NONE;
-	//rasterState.CullMode = D3D12_CULL_MODE_BACK;
+	//rasterState.CullMode = D3D12_CULL_MODE_NONE;
+	rasterState.CullMode = D3D12_CULL_MODE_BACK;
 	rasterState.FrontCounterClockwise = false;
 	rasterState.DepthBias = 0;
 	rasterState.DepthBiasClamp = 0.0f;
@@ -147,18 +150,21 @@ TestRenderPass::TestRenderPass(ID3D12Device* device) : m_device(device)
 
 TestRenderPass::~TestRenderPass()
 {
-	delete m_constantBuffers;
+	for (auto& cbManager : m_constantBuffers)
+		delete cbManager;
 	m_pipelineState->Release();
 	m_rootSignature->Release();
 }
 
-void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList)
+void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frameIndex)
 {
 	m_heapDescriptor.Clear();
 	auto heapDescriptor = m_heapDescriptor.Get();
 	cmdList->SetDescriptorHeaps(1, &heapDescriptor);
 	cmdList->SetGraphicsRootSignature(m_rootSignature);
 	cmdList->SetPipelineState(m_pipelineState);
+
+	m_constantBuffers[frameIndex]->Clear();
 
 	const AssetManager& am = AssetManager::Get();
 	//fix a better way of allocating memory
@@ -167,7 +173,10 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList)
 	{
 		auto mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
 		auto material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
-		auto transform = entity.GetComponent<TransformComp>()->transform;
+		auto& transform = entity.GetComponent<TransformComp>()->transform;
+
+		UINT worldMatrixCB = m_constantBuffers[frameIndex]->PushConstantBuffer();
+		m_constantBuffers[frameIndex]->UpdateConstantBuffer(worldMatrixCB, &transform, 64);
 
 		GPUAsset vb = mesh.vertexBuffer;
 		GPUAsset ib = mesh.indexBuffer;
@@ -178,7 +187,8 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList)
 		UINT tableSlot0 = m_heapDescriptor.Size();
 		m_heapDescriptor.AddFromOther(am.GetHeapDescriptors(), vb.descIndex, 1, m_device);
 		m_heapDescriptor.AddFromOther(am.GetHeapDescriptors(), ib.descIndex, 1, m_device);
-
+		m_heapDescriptor.AddFromOther(m_constantBuffers[frameIndex]->GetAllDescriptors(), worldMatrixCB, 1, m_device);
+		
 		cmdList->SetGraphicsRootDescriptorTable(0, m_heapDescriptor.GetGPUHandle(tableSlot0));
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);

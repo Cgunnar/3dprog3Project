@@ -67,7 +67,7 @@ Renderer::Renderer(HWND windowHandle)
 
 	CreateRTVandDSV();
 
-	m_renderPass = std::make_unique<TestRenderPass>(m_device);
+	m_renderPass = std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight);
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -155,9 +155,10 @@ void Renderer::BeginFrame()
 
 size_t Renderer::Render()
 {
+	int frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
 	BeginFrame();
 
-	m_renderPass->RunRenderPass(m_directCmdList);
+	m_renderPass->RunRenderPass(m_directCmdList, frameIndex);
 
 	m_directCmdList->SetDescriptorHeaps(1, &m_imguiDescHeap);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdList);
