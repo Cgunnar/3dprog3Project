@@ -17,6 +17,8 @@ private:
 	rfe::Entity m_camera;
 
 	uint64_t m_sphereMesh;
-	uint64_t m_greenMaterial;
+	uint64_t m_boxMesh;
 	uint64_t m_redMaterial;
+	uint64_t m_greenMaterial;
+	uint64_t m_blueMaterial;
 };
