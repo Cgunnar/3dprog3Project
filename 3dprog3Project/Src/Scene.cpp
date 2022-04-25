@@ -3,6 +3,7 @@
 #include "CommonComponents.h"
 #include "AssetManager.h"
 #include "Window.h"
+#include "CameraControllerScript.h"
 
 using namespace rfe;
 
@@ -51,6 +52,8 @@ Scene::Scene()
 	m_camera = EntityReg::CreateEntity();
 	m_camera.AddComponent<TransformComp>()->transform.setTranslation(0, 0, -2);
 	m_camera.AddComponent<CameraComp>();
+	auto controller = m_camera.AddComponent<CameraControllerScript>();
+	controller->ToggleCameraLock();
 }
 
 Scene::~Scene()
@@ -60,6 +63,8 @@ Scene::~Scene()
 
 void Scene::Update(float dt)
 {
+	rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
+
 	auto [width, height] = Window::GetWidthAndHeight();
 	m_camera.GetComponent<CameraComp>()->projectionMatrix
 		= rfm::PerspectiveProjectionMatrix(rfm::PIDIV4,

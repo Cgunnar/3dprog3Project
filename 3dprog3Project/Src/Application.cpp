@@ -4,6 +4,7 @@
 #include "FrameTimer.h"
 #include "rfEntity.hpp"
 #include "AssetManager.h"
+#include "Mouse.h"
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 
@@ -32,9 +33,11 @@ Application::~Application()
 
 void Application::Run()
 {
+	Mouse::Get().SetMode(Mouse::Mode::Hidden | Mouse::Mode::Confined);
 	while (true)
 	{
 		float dt = FrameTimer::NewFrame();
+		Mouse::Get().Update();
 		if (!m_window->Win32MsgPump()) break;
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();

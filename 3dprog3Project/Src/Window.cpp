@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Window.h"
+#include "Mouse.h"
 #include <imgui_impl_win32.h>
 
 Window* Window::s_windowInstance = nullptr;
@@ -34,6 +35,13 @@ Window::Window()
 	ShowWindow(m_hWnd, SW_SHOWDEFAULT);
 	GetWindowRect(m_hWnd, &m_windowModeRect);
 
+	RAWINPUTDEVICE rid;
+	rid.usUsagePage = 0x01;
+	rid.usUsage = 0x02;
+	rid.dwFlags = 0;
+	rid.hwndTarget = nullptr;
+	if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) assert(false); //failed to register device
+
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
@@ -46,10 +54,14 @@ Window::Window()
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(m_hWnd);
 
+	Mouse::Init(m_hWnd);
+
+	m_isStarting = false;
 }
 
 Window::~Window()
 {
+	Mouse::Destroy();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 	s_windowInstance = nullptr;
@@ -296,6 +308,83 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			m_firstActivate = true;
 			break;
+		}
+		return 0;
+	}
+	case WM_MOUSEMOVE:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+
+		POINTS p = MAKEPOINTS(lParam);
+		mouse.m_mouseState0.x = p.x;
+		mouse.m_mouseState0.y = p.y;
+		return 0;
+	}
+	case WM_MOUSEWHEEL:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+		mouse.m_mouseState0.z += GET_WHEEL_DELTA_WPARAM(wParam) / 120;
+		mouse.m_mouseState0.deltaZ += GET_WHEEL_DELTA_WPARAM(wParam) / 120;
+		return 0;
+	}
+	case WM_LBUTTONDOWN:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+		mouse.m_mouseState0.LMBClicked = true;
+		mouse.m_mouseState0.LMBHeld = true;
+		return 0;
+	}
+
+	case WM_LBUTTONUP:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+		mouse.m_mouseState0.LMBReleased = true;
+		mouse.m_mouseState0.LMBHeld = false;
+		return 0;
+	}
+	case WM_RBUTTONDOWN:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+		mouse.m_mouseState0.RMBClicked = true;
+		mouse.m_mouseState0.RMBHeld = true;
+		return 0;
+	}
+
+	case WM_RBUTTONUP:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+		mouse.m_mouseState0.RMBReleased = true;
+		mouse.m_mouseState0.RMBHeld = false;
+		return 0;
+	}
+	case WM_INPUT:
+	{
+		if (!m_isStarting && !m_isClosed && ImGui::GetIO().WantCaptureMouse) return 0;
+		UINT bufferSize{};
+		UINT errorCode = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, nullptr, &bufferSize, sizeof(RAWINPUTHEADER));
+		assert(errorCode != -1);
+		if (errorCode == -1) return 0;
+
+		m_ridData.resize(bufferSize);
+		errorCode = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, m_ridData.data(), &bufferSize, sizeof(RAWINPUTHEADER));
+		assert(errorCode != -1);
+		if (errorCode == -1) return 0;
+
+		auto& myMouse = Mouse::Get();
+		RAWINPUT& rawMouseInput = (RAWINPUT&)(*m_ridData.data());
+		if (rawMouseInput.header.dwType == RIM_TYPEMOUSE)
+		{
+			if (rawMouseInput.data.mouse.lLastX || rawMouseInput.data.mouse.lLastY)
+			{
+				myMouse.m_mouseState0.deltaX += static_cast<float>(rawMouseInput.data.mouse.lLastX);
+				myMouse.m_mouseState0.deltaY += static_cast<float>(rawMouseInput.data.mouse.lLastY);
+			}
 		}
 		return 0;
 	}
