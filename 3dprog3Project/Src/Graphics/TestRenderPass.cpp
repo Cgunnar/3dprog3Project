@@ -8,7 +8,12 @@
 TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight) 
 	: m_device(device)
 {
-	m_heapDescriptor.Init(device);
+	m_heapDescriptor.resize(framesInFlight);
+	for (auto& hp : m_heapDescriptor)
+	{
+		hp = new DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+		hp->Init(device);
+	}
 	m_constantBuffers.resize(framesInFlight);
 	for (auto& cbManager : m_constantBuffers)
 		cbManager = new ConstantBufferManager(device, 10000, 64);
@@ -152,14 +157,16 @@ TestRenderPass::~TestRenderPass()
 {
 	for (auto& cbManager : m_constantBuffers)
 		delete cbManager;
+	for (auto& hp : m_heapDescriptor)
+		delete hp;
 	m_pipelineState->Release();
 	m_rootSignature->Release();
 }
 
 void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frameIndex)
 {
-	m_heapDescriptor.Clear();
-	auto heapDescriptor = m_heapDescriptor.Get();
+	m_heapDescriptor[frameIndex]->Clear();
+	auto heapDescriptor = m_heapDescriptor[frameIndex]->Get();
 	cmdList->SetDescriptorHeaps(1, &heapDescriptor);
 	cmdList->SetGraphicsRootSignature(m_rootSignature);
 	cmdList->SetPipelineState(m_pipelineState);
@@ -184,12 +191,12 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frame
 
 		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
 
-		UINT tableSlot0 = m_heapDescriptor.Size();
-		m_heapDescriptor.AddFromOther(am.GetHeapDescriptors(), vb.descIndex, 1, m_device);
-		m_heapDescriptor.AddFromOther(am.GetHeapDescriptors(), ib.descIndex, 1, m_device);
-		m_heapDescriptor.AddFromOther(m_constantBuffers[frameIndex]->GetAllDescriptors(), worldMatrixCB, 1, m_device);
+		UINT tableSlot0 = m_heapDescriptor[frameIndex]->Size();
+		m_heapDescriptor[frameIndex]->AddFromOther(am.GetHeapDescriptors(), vb.descIndex, 1, m_device);
+		m_heapDescriptor[frameIndex]->AddFromOther(am.GetHeapDescriptors(), ib.descIndex, 1, m_device);
+		m_heapDescriptor[frameIndex]->AddFromOther(m_constantBuffers[frameIndex]->GetAllDescriptors(), worldMatrixCB, 1, m_device);
 		
-		cmdList->SetGraphicsRootDescriptorTable(0, m_heapDescriptor.GetGPUHandle(tableSlot0));
+		cmdList->SetGraphicsRootDescriptorTable(0, m_heapDescriptor[frameIndex]->GetGPUHandle(tableSlot0));
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}

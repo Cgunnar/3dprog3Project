@@ -314,6 +314,33 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 	assert(SUCCEEDED(hr));
 
 
+	D3D12_FEATURE_DATA_D3D12_OPTIONS featureSupport{};
+
+	hr = m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &featureSupport, sizeof(featureSupport));
+	assert(SUCCEEDED(hr));
+	switch (featureSupport.ResourceBindingTier)
+	{
+	case D3D12_RESOURCE_BINDING_TIER_1:
+	{
+		// Tier 1 is supported.
+		utl::PrintDebug("Tier 1 is supported. Get new computer");
+		break;
+	}
+	case D3D12_RESOURCE_BINDING_TIER_2:
+	{
+		// Tiers 1 and 2 are supported.
+		utl::PrintDebug("Tiers 1 and 2 are supported. Get new computer");
+		break;
+	}
+	case D3D12_RESOURCE_BINDING_TIER_3:
+	{
+		// Tiers 1, 2, and 3 are supported.
+		utl::PrintDebug("Tiers 1, 2, and 3 are supported.");
+		break;
+	}
+	}
+
+
 	D3D12_COMMAND_QUEUE_DESC desc;
 	desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	desc.Priority = 0;
