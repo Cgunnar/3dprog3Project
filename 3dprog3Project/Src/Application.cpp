@@ -5,6 +5,7 @@
 #include "rfEntity.hpp"
 #include "AssetManager.h"
 #include "Mouse.h"
+#include "CameraControllerScript.h"
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 
@@ -52,6 +53,13 @@ void Application::Run()
 		if (ImGui::Button("Fullscreen"))
 			m_window->SetFullscreen(Window::FullscreenState::fullscreen);
 		ImGui::End();
+
+		if (Mouse::Get().State().RMBClicked)
+		{
+			Mouse::Get().SetMode(~Mouse::Get().GetMode());
+			for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
+				c.GetComponent<CameraControllerScript>()->ToggleCameraLock();
+		}
 
 		AssetManager::Get().Update(m_renderer->GetNumberOfFramesInFlight());
 		m_scene->Update(dt);

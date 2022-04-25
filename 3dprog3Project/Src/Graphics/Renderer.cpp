@@ -191,7 +191,8 @@ void Renderer::EndFrame()
 	// flag when it is supported, even when presenting in windowed mode.
 	// However, this flag cannot be used if the app is in fullscreen mode as a
 	// result of calling SetFullscreenState.
-	hr = m_swapchain->Present(0, m_fullscreen ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+	hr = m_swapchain->Present(0, m_fullscreen ? 0 : DXGI_PRESENT_ALLOW_TEARING); // this is for variable rate displayes
+	//hr = m_swapchain->Present(0, 0);
 	assert(SUCCEEDED(hr));
 
 	FrameFence();
