@@ -52,6 +52,9 @@ void Application::Run()
 			m_window->SetFullscreen(Window::FullscreenState::borderLess);
 		if (ImGui::Button("Fullscreen"))
 			m_window->SetFullscreen(Window::FullscreenState::fullscreen);
+		static bool vsync = false;
+		if (ImGui::Checkbox("vsync", &vsync))
+			m_renderer->vsyncEnabled = vsync;
 		ImGui::End();
 
 		if (Mouse::Get().State().RMBClicked)

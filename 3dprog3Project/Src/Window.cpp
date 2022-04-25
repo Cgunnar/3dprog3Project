@@ -272,7 +272,18 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		return 0;
 	}
-
+	case WM_MOVE:
+	{
+		if (m_renderer)
+		{
+			auto oc = m_renderer->GetOutputCapabilities();
+			if (oc.Monitor != m_renderer->m_outputDesc.Monitor)
+			{
+				utl::PrintDebug("Display changed");
+				m_renderer->DisplayChanged();
+			}
+		}
+	}
 	case WM_SYSKEYDOWN:
 	{
 		// Handle ALT+ENTER:

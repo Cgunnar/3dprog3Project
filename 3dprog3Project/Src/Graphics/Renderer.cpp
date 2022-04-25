@@ -12,7 +12,7 @@ extern "C" {
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
-Renderer::Renderer(HWND windowHandle)
+Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
 {
 	HRESULT hr = S_OK;
 	UINT factoryFlag = 0;
@@ -33,6 +33,8 @@ Renderer::Renderer(HWND windowHandle)
 
 	CreateDeviceAndDirectCmd(factory6);
 	CreateSwapChain(factory6, windowHandle);
+
+	
 	factory6->Release();
 
 	CheckMonitorRes();
@@ -191,9 +193,19 @@ void Renderer::EndFrame()
 	// flag when it is supported, even when presenting in windowed mode.
 	// However, this flag cannot be used if the app is in fullscreen mode as a
 	// result of calling SetFullscreenState.
-	hr = m_swapchain->Present(0, m_fullscreen ? 0 : DXGI_PRESENT_ALLOW_TEARING); // this is for variable rate displayes
-	//hr = m_swapchain->Present(0, 0);
-	assert(SUCCEEDED(hr));
+	
+	
+	if(m_hasVariableRefreshRate && !m_fullscreen)
+	{
+		hr = m_swapchain->Present(0, DXGI_PRESENT_ALLOW_TEARING); // this is for variable rate displayes
+		assert(SUCCEEDED(hr));
+	}
+	else
+	{
+		hr = m_swapchain->Present(static_cast<UINT>(vsyncEnabled), 0);
+		assert(SUCCEEDED(hr));
+	}
+	
 
 	FrameFence();
 }
@@ -298,6 +310,22 @@ int Renderer::GetNumberOfFramesInFlight() const
 	return m_numFramesInFlight;
 }
 
+void Renderer::DisplayChanged()
+{
+	IDXGIFactory6* factory;
+	HRESULT hr = m_swapchain->GetParent(__uuidof(IDXGIFactory6), reinterpret_cast<void**>(&factory));
+	assert(SUCCEEDED(hr));
+	hr = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &m_hasVariableRefreshRate, sizeof(BOOL));
+	assert(SUCCEEDED(hr));
+	factory->Release();
+	utl::PrintDebug("Display has VariableRefreshRate: " + std::to_string(m_hasVariableRefreshRate));
+
+	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
+	m_outputDesc = GetOutputCapabilities();
+	OnResize(0, 0, false);
+	
+}
+
 void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 {
 	HRESULT hr = factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE::DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
@@ -374,8 +402,11 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 	assert(SUCCEEDED(hr));
 }
 
-void Renderer::CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle)
+void Renderer::CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle)
 {
+	HRESULT hr = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &m_hasVariableRefreshRate, sizeof(BOOL));
+	utl::PrintDebug("Display has VariableRefreshRate: " + std::to_string(m_hasVariableRefreshRate));
+
 	DXGI_SWAP_CHAIN_DESC1 desc;
 	desc.Width = 0;
 	desc.Height = 0;
@@ -387,9 +418,10 @@ void Renderer::CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle)
 	desc.Scaling = DXGI_SCALING_STRETCH;
 	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	if (m_hasVariableRefreshRate) desc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-	HRESULT hr = factory->CreateSwapChainForHwnd(m_directCmdQueue, windowHandle, &desc, nullptr,
+	hr = factory->CreateSwapChainForHwnd(m_directCmdQueue, windowHandle, &desc, nullptr,
 		nullptr, reinterpret_cast<IDXGISwapChain1**>(&m_swapchain));
 	assert(SUCCEEDED(hr));
 
@@ -402,6 +434,8 @@ void Renderer::CreateSwapChain(IDXGIFactory2* factory, HWND windowHandle)
 	assert(SUCCEEDED(hr));
 	m_width = desc.Width;
 	m_height = desc.Height;
+
+	m_outputDesc = GetOutputCapabilities();
 }
 
 MemoryInfo Renderer::GetVramInfo(IDXGIAdapter4* adapter)
@@ -532,5 +566,22 @@ std::vector<DXGI_MODE_DESC> Renderer::CheckMonitorRes()
 	assert(modeVec.front().Scaling == DXGI_MODE_SCALING_STRETCHED || modeVec.front().Scaling == DXGI_MODE_SCALING_UNSPECIFIED);
 	assert(modeVec.front().Format == DXGI_FORMAT_B8G8R8A8_UNORM);
 	return modeVec;
+}
+
+DXGI_OUTPUT_DESC1 Renderer::GetOutputCapabilities()
+{
+	IDXGIOutput* output;
+	HRESULT hr = m_swapchain->GetContainingOutput(&output);
+	assert(SUCCEEDED(hr));
+	IDXGIOutput6* output6;
+	hr = output->QueryInterface(__uuidof(IDXGIOutput6), reinterpret_cast<void**>(&output6));
+	assert(SUCCEEDED(hr));
+
+	DXGI_OUTPUT_DESC1 desc;
+	hr = output6->GetDesc1(&desc);
+	assert(SUCCEEDED(hr));
+	output->Release();
+	output6->Release();
+	return desc;
 }
 
