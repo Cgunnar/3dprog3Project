@@ -10,8 +10,11 @@ public:
 	Scene(const Scene& other) = delete;
 	Scene& operator=(const Scene& other) = delete;
 
+	void Update(float dt);
+
 private:
 	std::vector<rfe::Entity> m_entities;
+	rfe::Entity m_camera;
 
 	uint64_t m_sphereMesh;
 	uint64_t m_greenMaterial;

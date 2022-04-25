@@ -41,20 +41,28 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight)
 	descriptorRange.BaseShaderRegister = 1;
 	vsDescriptorRanges.push_back(descriptorRange);
 
-	descriptorRange.BaseShaderRegister = 0;
+	//worldMatrix CB
+	descriptorRange.BaseShaderRegister = 1;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	vsDescriptorRanges.push_back(descriptorRange);
 
-	std::array<D3D12_ROOT_PARAMETER, 2> rootParameters;
+	std::array<D3D12_ROOT_PARAMETER, 3> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = vsDescriptorRanges.size();
 	rootParameters[0].DescriptorTable.pDescriptorRanges = vsDescriptorRanges.data();
 
+	//material CB
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParameters[1].Descriptor.ShaderRegister = 0;
+	rootParameters[1].Descriptor.ShaderRegister = 1;
 	rootParameters[1].Descriptor.RegisterSpace = 0;
+
+	//camera CB
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rootParameters[2].Descriptor.ShaderRegister = 0;
+	rootParameters[2].Descriptor.RegisterSpace = 0;
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -173,6 +181,22 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frame
 
 	m_constantBuffers[frameIndex]->Clear();
 
+	auto camera = rfe::EntityReg::ViewEntities<CameraComp>().front();
+	struct CameraCBData
+	{
+		rfm::Matrix proj;
+		rfm::Matrix view;
+		rfm::Matrix viewProj;
+		rfm::Vector3 pos;
+	} cameraCBData;
+	cameraCBData.proj = camera.GetComponent<CameraComp>()->projectionMatrix;
+	cameraCBData.view = rfm::inverse(camera.GetComponent<TransformComp>()->transform);
+	cameraCBData.viewProj = cameraCBData.proj * cameraCBData.view;
+	cameraCBData.pos = camera.GetComponent<TransformComp>()->transform.getTranslation();
+
+	UINT cameraCB = m_constantBuffers[frameIndex]->PushConstantBuffer();
+	m_constantBuffers[frameIndex]->UpdateConstantBuffer(cameraCB, &cameraCBData, sizeof(cameraCBData));
+
 	const AssetManager& am = AssetManager::Get();
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
@@ -198,6 +222,7 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frame
 		
 		cmdList->SetGraphicsRootDescriptorTable(0, m_heapDescriptor[frameIndex]->GetGPUHandle(tableSlot0));
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
+		cmdList->SetGraphicsRootConstantBufferView(2, m_constantBuffers[frameIndex]->GetGPUVirtualAddress(cameraCB));
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}
 }

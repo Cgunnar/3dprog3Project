@@ -34,7 +34,7 @@ void Application::Run()
 {
 	while (true)
 	{
-		FrameTimer::NewFrame();
+		float dt = FrameTimer::NewFrame();
 		if (!m_window->Win32MsgPump()) break;
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -51,6 +51,7 @@ void Application::Run()
 		ImGui::End();
 
 		AssetManager::Get().Update(m_renderer->GetNumberOfFramesInFlight());
+		m_scene->Update(dt);
 
 		ImGui::Render();
 		m_renderer->Render();

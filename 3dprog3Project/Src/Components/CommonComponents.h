@@ -22,3 +22,8 @@ struct MaterialComp : public rfe::Component<MaterialComp>
 	MaterialComp(uint64_t id = 0) : materialID(id) {}
 	uint64_t materialID;
 };
+
+struct CameraComp : public rfe::Component<CameraComp>
+{
+	rfm::Matrix projectionMatrix = rfm::PerspectiveProjectionMatrix(rfm::PIDIV4, 16.0f / 9.0f, 0.001f, 1000.0f);
+};

@@ -5,7 +5,15 @@ struct VS_OUT
 	float2 uv : UV;
 };
 
-cbuffer ColorBuffer : register(b0)
+cbuffer CameraCB : register(b0)
+{
+	float4x4 projectionMatrix;
+	float4x4 viewMatrix;
+	float4x4 viewProjectionMatrix;
+	float3 cameraPosition;
+}
+
+cbuffer ColorBuffer : register(b1)
 {
 	float4 color;
 }

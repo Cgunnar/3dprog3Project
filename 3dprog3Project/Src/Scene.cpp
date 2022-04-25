@@ -29,13 +29,23 @@ Scene::Scene()
 
 	newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	auto& transform = newEntity.AddComponent<TransformComp>()->transform;
-	transform.setTranslation({ 0, 0.4f, 1 });
-	transform.setScale(0.5f);
+	transform.setTranslation({ 0, 0.4f, 0.8f });
+	transform.setScale(0.7f);
 	newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
 	newEntity.AddComponent<MaterialComp>()->materialID = m_redMaterial;
+
+
+	m_camera = EntityReg::CreateEntity();
+	m_camera.AddComponent<TransformComp>()->transform.setTranslation(0, 0, -2);
+	m_camera.AddComponent<CameraComp>();
 }
 
 Scene::~Scene()
+{
+
+}
+
+void Scene::Update(float dt)
 {
 
 }
