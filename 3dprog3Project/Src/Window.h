@@ -20,7 +20,7 @@ public:
 	bool Win32MsgPump();
 
 	void SetRenderer(Renderer* renderer);
-	
+	static std::pair<uint32_t, uint32_t> GetWidthAndHeight();
 	void SetFullscreen(FullscreenState state);
 private:
 	

@@ -88,6 +88,23 @@ void Window::SetRenderer(Renderer* renderer)
 	m_renderer = renderer;
 }
 
+std::pair<uint32_t, uint32_t> Window::GetWidthAndHeight()
+{
+	if (s_windowInstance)
+	{
+		RECT rect;
+		GetClientRect(s_windowInstance->m_hWnd, &rect);
+		uint32_t width = rect.right - rect.left;
+		uint32_t height = rect.bottom - rect.top;
+		assert(s_windowInstance->m_renderer == nullptr || (s_windowInstance->m_renderer->m_width == width && s_windowInstance->m_renderer->m_height == height));
+		return std::make_pair(width, height);
+	}
+	else
+	{
+		std::pair<uint32_t, uint32_t>();
+	}
+}
+
 void Window::SetFullscreen(FullscreenState state)
 {
 	if (m_renderer == nullptr) return;

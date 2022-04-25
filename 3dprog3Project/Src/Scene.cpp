@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "CommonComponents.h"
 #include "AssetManager.h"
+#include "Window.h"
 
 using namespace rfe;
 
@@ -59,5 +60,8 @@ Scene::~Scene()
 
 void Scene::Update(float dt)
 {
-
+	auto [width, height] = Window::GetWidthAndHeight();
+	m_camera.GetComponent<CameraComp>()->projectionMatrix
+		= rfm::PerspectiveProjectionMatrix(rfm::PIDIV4,
+			static_cast<float>(width) / static_cast<float>(height), 0.001, 1000);
 }
