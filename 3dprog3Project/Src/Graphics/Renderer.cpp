@@ -195,14 +195,14 @@ void Renderer::EndFrame()
 	// result of calling SetFullscreenState.
 	
 	
-	if(m_hasVariableRefreshRate && !m_fullscreen)
+	if(vsyncEnabled)
 	{
-		hr = m_swapchain->Present(0, DXGI_PRESENT_ALLOW_TEARING); // this is for variable rate displayes
+		hr = m_swapchain->Present(1, 0);
 		assert(SUCCEEDED(hr));
 	}
 	else
 	{
-		hr = m_swapchain->Present(static_cast<UINT>(vsyncEnabled), 0);
+		hr = m_swapchain->Present(0, !m_fullscreen && m_hasVariableRefreshRate ? DXGI_PRESENT_ALLOW_TEARING : 0); // this is for variable rate displayes
 		assert(SUCCEEDED(hr));
 	}
 	

@@ -131,6 +131,7 @@ void Window::SetFullscreen(FullscreenState state)
 			SetBorderLess();
 			break;
 		case Window::FullscreenState::fullscreen:
+			GetWindowRect(m_hWnd, &m_windowModeRect);
 			bool fullscreen = m_renderer->SetFullscreen(true);
 			assert(fullscreen);
 			break;
