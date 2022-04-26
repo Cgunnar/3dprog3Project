@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "TestRenderPass.h"
+#include "pix3.h"
 #include <imgui_impl_dx12.h>
 
 #pragma comment( lib, "d3d12.lib")
@@ -118,6 +119,7 @@ ID3D12Device* Renderer::GetDevice()
 
 void Renderer::BeginFrame()
 {
+	PIXBeginEvent(1, "hej");
 	size_t frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
 	HRESULT hr = m_directCmdAllocator[frameIndex]->Reset();
 	assert(SUCCEEDED(hr));
@@ -208,6 +210,7 @@ void Renderer::EndFrame()
 	
 
 	FrameFence();
+	PIXEndEvent();
 }
 
 void Renderer::OnResize(UINT width, UINT height, bool forceResolution)

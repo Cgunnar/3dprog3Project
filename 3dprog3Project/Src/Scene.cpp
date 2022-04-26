@@ -48,6 +48,24 @@ Scene::Scene()
 	newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
 	newEntity.AddComponent<MaterialComp>()->materialID = m_redMaterial;
 
+	for (int i = 0; i < 5; i++)
+	{
+		for (int j = 0; j < 5; j++)
+		{
+			for (int k = 0; k < 5; k++)
+			{
+				rfm::Vector3 pos = rfm::Vector3( 2*i, 2*j, 2*k );
+				newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+				auto& transform = newEntity.AddComponent<TransformComp>()->transform;
+				transform.setTranslation(pos);
+				transform.setRotationDeg(30, 20, 0);
+				transform.setScale(0.4f);
+				newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
+				newEntity.AddComponent<MaterialComp>()->materialID = m_redMaterial;
+			}
+		}
+	}
+
 
 	m_camera = EntityReg::CreateEntity();
 	m_camera.AddComponent<TransformComp>()->transform.setTranslation(0, 0, -2);
