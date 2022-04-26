@@ -414,7 +414,7 @@ void Renderer::CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle)
 {
 	HRESULT hr = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &m_hasVariableRefreshRate, sizeof(BOOL));
 	utl::PrintDebug("Display has VariableRefreshRate: " + std::to_string(m_hasVariableRefreshRate) + "this always seems to be true even when it should not");
-
+	m_backbuffers.resize(m_numBackBuffers);
 	DXGI_SWAP_CHAIN_DESC1 desc;
 	desc.Width = 0;
 	desc.Height = 0;
@@ -426,13 +426,15 @@ void Renderer::CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle)
 	desc.Scaling = DXGI_SCALING_STRETCH;
 	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 	//it does not seem to be illigal to allow tearing on non VariableRefreshRate displayes
 	//if (m_hasVariableRefreshRate) desc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 	hr = factory->CreateSwapChainForHwnd(m_directCmdQueue, windowHandle, &desc, nullptr,
 		nullptr, reinterpret_cast<IDXGISwapChain1**>(&m_swapchain));
 	assert(SUCCEEDED(hr));
+
+	m_swapchain->SetMaximumFrameLatency(m_numBackBuffers);
 
 	hr = factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER);
 	assert(SUCCEEDED(hr));

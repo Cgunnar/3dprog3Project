@@ -1,6 +1,12 @@
 #pragma once
 #include "RenderPass.h"
 
+struct FrameResources
+{
+	ID3D12Resource* m_renderTarget;
+	ID3D12Resource* m_depthBuffer;
+};
+
 class Window;
 class Renderer
 {
@@ -40,13 +46,16 @@ private:
 	std::vector<UINT64> m_fenceValues;
 	HANDLE m_eventHandle;
 	int m_numFramesInFlight = 2;
+	int m_numBackBuffers = 4;
 
 	UINT64 m_vramInBytes = 0;
 
 	size_t m_currentBackbufferIndex = 0;
-	std::array<ID3D12Resource*, 2> m_backbuffers;
+	std::vector<ID3D12Resource*> m_backbuffers;
 	ID3D12DescriptorHeap* m_rtvDescHeap = nullptr;
 	UINT m_rtvDescSize = 0;
+
+	std::vector<FrameResources> FrameResources;
 
 	ID3D12Resource* m_depthBufferResource = nullptr;
 	ID3D12DescriptorHeap* m_dsvDescHeap = nullptr;
