@@ -1,11 +1,6 @@
 #pragma once
 #include "RenderPass.h"
-
-struct FrameResources
-{
-	ID3D12Resource* m_renderTarget;
-	ID3D12Resource* m_depthBuffer;
-};
+#include "FrameResource.h"
 
 class Window;
 class Renderer
@@ -55,7 +50,7 @@ private:
 	ID3D12DescriptorHeap* m_rtvDescHeap = nullptr;
 	UINT m_rtvDescSize = 0;
 
-	std::vector<FrameResources> FrameResources;
+	std::vector<FrameResource> m_frameResources;
 
 	ID3D12Resource* m_depthBufferResource = nullptr;
 	ID3D12DescriptorHeap* m_dsvDescHeap = nullptr;

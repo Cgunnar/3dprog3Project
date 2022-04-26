@@ -39,6 +39,11 @@ Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
 	
 	factory6->Release();
 
+	for (int i = 0; i < m_numFramesInFlight; i++)
+	{
+		m_frameResources.emplace_back(m_device, 1920, 1080);
+	}
+
 	CheckMonitorRes();
 
 	m_fenceValues.resize(m_numFramesInFlight, 0);
