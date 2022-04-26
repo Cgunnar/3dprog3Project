@@ -119,7 +119,6 @@ ID3D12Device* Renderer::GetDevice()
 
 void Renderer::BeginFrame()
 {
-	PIXBeginEvent(1, "hej");
 	size_t frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
 	HRESULT hr = m_directCmdAllocator[frameIndex]->Reset();
 	assert(SUCCEEDED(hr));
@@ -162,7 +161,9 @@ size_t Renderer::Render()
 	int frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
 	BeginFrame();
 
+	PIXBeginEvent(m_directCmdList, 200, "RunRenderPass");
 	m_renderPass->RunRenderPass(m_directCmdList, frameIndex);
+	PIXEndEvent(m_directCmdList);
 
 	m_directCmdList->SetDescriptorHeaps(1, &m_imguiDescHeap);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdList);
@@ -210,7 +211,6 @@ void Renderer::EndFrame()
 	
 
 	FrameFence();
-	PIXEndEvent();
 }
 
 void Renderer::OnResize(UINT width, UINT height, bool forceResolution)
