@@ -26,7 +26,7 @@ private:
 	BOOL m_hasVariableRefreshRate = false;
 	DXGI_OUTPUT_DESC1 m_outputDesc;
 
-	std::unique_ptr<RenderPass> m_renderPass;
+	std::vector<std::unique_ptr<RenderPass>> m_renderPasses;
 
 	HWND m_hWnd;
 	ID3D12Device* m_device = nullptr;

@@ -226,3 +226,8 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frame
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}
 }
+
+std::string TestRenderPass::Name() const
+{
+	return "TestRenderPass";
+}

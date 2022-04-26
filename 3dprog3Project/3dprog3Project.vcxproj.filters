@@ -84,6 +84,9 @@
     <ClCompile Include="Src\CodeFromOlderProjects\CameraControllerScript.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Graphics\PostProcessingPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Window.h">
@@ -164,9 +167,14 @@
     <ClInclude Include="Src\CodeFromOlderProjects\CameraControllerScript.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Graphics\PostProcessingPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\VertexShader.hlsl" />
     <FxCompile Include="Shaders\PixelShader.hlsl" />
+    <FxCompile Include="Shaders\VS_quad.hlsl" />
+    <FxCompile Include="Shaders\PS_postprocessing.hlsl" />
   </ItemGroup>
 </Project>

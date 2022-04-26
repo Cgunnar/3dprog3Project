@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "TestRenderPass.h"
+#include "PostProcessingPass.h"
 #include "pix3.h"
 #include <imgui_impl_dx12.h>
 
@@ -70,7 +71,8 @@ Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
 
 	CreateRTVandDSV();
 
-	m_renderPass = std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight);
+	m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight));
+	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -161,9 +163,12 @@ size_t Renderer::Render()
 	int frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
 	BeginFrame();
 
-	PIXBeginEvent(m_directCmdList, 200, "RunRenderPass");
-	m_renderPass->RunRenderPass(m_directCmdList, frameIndex);
-	PIXEndEvent(m_directCmdList);
+	for (auto& renderPass : m_renderPasses)
+	{
+		PIXBeginEvent(m_directCmdList, 200, renderPass->Name().c_str());
+		renderPass->RunRenderPass(m_directCmdList, frameIndex);
+		PIXEndEvent(m_directCmdList);
+	}
 
 	m_directCmdList->SetDescriptorHeaps(1, &m_imguiDescHeap);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdList);
