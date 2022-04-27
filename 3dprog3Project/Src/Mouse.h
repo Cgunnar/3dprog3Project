@@ -35,7 +35,6 @@ public:
 
 	enum class Mode
 	{
-		Hidden = 0,
 		Visible = 1,
 		Confined = 2
 	};
@@ -51,7 +50,6 @@ private:
 
 	bool m_showCursor = false;
 	bool m_windowOutOfFocus = false;
-	bool m_cursorIsConfined = true;
 
 	Mouse(HWND hwnd);
 };

@@ -41,21 +41,37 @@ MouseState Mouse::State() const
 
 void Mouse::SetMode(Mode mode)
 {
+	if ((m_mode & Mode::Visible) != (mode & Mode::Visible))
+	{
+		if ((mode & Mode::Visible) == Mode::Visible)
+		{
+			m_showCursor = true;
+			int count = ShowCursor(true);
+			utl::PrintDebug("ShowCursor(true)" + std::to_string(count));
+		}
+		else
+		{
+			m_showCursor = false;
+			ShowCursor(false);
+			utl::PrintDebug("ShowCursor(false)");
+		}
+	}
+	if ((m_mode & Mode::Confined) != (mode & Mode::Confined))
+	{
+		if ((mode & Mode::Confined) == Mode::Confined)
+		{
+			RECT r;
+			GetClientRect(m_hWnd, &r);
+			MapWindowPoints(m_hWnd, nullptr, (POINT*)&r, 2);
+			ClipCursor(&r);
+		}
+		else
+		{
+			ClipCursor(nullptr);
+		}
+	}
 	m_mode = mode;
-
-	ShowCursor((mode & Mode::Visible) == Mode::Visible);
-
-	if ((mode & Mode::Confined) == Mode::Confined && !m_windowOutOfFocus)
-	{
-		RECT r;
-		GetClientRect(m_hWnd, &r);
-		MapWindowPoints(m_hWnd, nullptr, (POINT*)&r, 2);
-		ClipCursor(&r);
-	}
-	else
-	{
-		ClipCursor(nullptr);
-	}
+	m_showCursor = (m_mode & Mode::Visible) == Mode::Visible;
 }
 
 Mouse::Mode Mouse::GetMode() const

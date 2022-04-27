@@ -1,13 +1,14 @@
 #pragma once
 #include "RenderPass.h"
 #include "FrameResource.h"
+#include "RenderingTypes.h"
 
 class Window;
 class Renderer
 {
 	friend Window;
 public:
-	Renderer(HWND windowHandle);
+	Renderer(HWND windowHandle, RenderingSettings settings);
 	~Renderer();
 	Renderer(const Renderer& other) = delete;
 	Renderer& operator=(const Renderer& other) = delete;
@@ -26,6 +27,7 @@ private:
 	bool m_fullscreen = false;
 	BOOL m_hasVariableRefreshRate = false;
 	DXGI_OUTPUT_DESC1 m_outputDesc;
+	RenderingSettings m_renderingSettings;
 
 	std::vector<std::unique_ptr<RenderPass>> m_renderPasses;
 
@@ -58,7 +60,7 @@ private:
 	void EndFrame();
 	void CreateDeviceAndDirectCmd(IDXGIFactory6* factory);
 	void CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle);
-	void CreateRTVandDSV();
+	void CreateRTV();
 
 	void FlushGPU();
 	void FrameFence();

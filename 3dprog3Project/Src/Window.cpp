@@ -305,11 +305,13 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			//open
 			SetFullscreen(m_fullscreenStateWhenOnOutOfFocus);
+			if(Mouse::s_mouseInstance) Mouse::Get().m_windowOutOfFocus = false;
 		}
 		else
 		{
 			//close
 			m_fullscreenStateWhenOnOutOfFocus = m_fullscreenState;
+			Mouse::Get().m_windowOutOfFocus = true;
 			SetFullscreen(FullscreenState::windowed);
 		}
 		return 0;

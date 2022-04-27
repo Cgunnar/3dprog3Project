@@ -14,8 +14,10 @@ extern "C" {
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
-Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
+Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windowHandle), m_renderingSettings(settings)
 {
+	m_numBackBuffers = settings.numberOfBackbuffers;
+	m_numFramesInFlight = settings.numberOfFramesInFlight;
 	HRESULT hr = S_OK;
 	UINT factoryFlag = 0;
 #ifdef _DEBUG
@@ -41,7 +43,7 @@ Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
 
 	for (int i = 0; i < m_numFramesInFlight; i++)
 	{
-		m_frameResources.emplace_back(m_device, 1920*4, 1080*4);
+		m_frameResources.emplace_back(m_device, settings.renderWidth, settings.renderHeight);
 	}
 
 	CheckMonitorRes();
@@ -65,7 +67,7 @@ Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
 	hr = m_device->CreateDescriptorHeap(&rtvDescHDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_rtvDescHeap));
 	assert(SUCCEEDED(hr));
 
-	CreateRTVandDSV();
+	CreateRTV();
 
 	m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
@@ -237,7 +239,7 @@ void Renderer::OnResize(UINT width, UINT height, bool forceResolution)
 
 	utl::PrintDebug("Swapchain updated to width: " + std::to_string(m_width) + ", height: " + std::to_string(m_height));
 
-	CreateRTVandDSV();
+	CreateRTV();
 }
 
 bool Renderer::SetFullscreen(bool fullscreen, UINT exitFullscreenWidth, UINT exitFullscreenHeight)
@@ -460,7 +462,7 @@ void Renderer::FlushGPU()
 	m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight]++;
 }
 
-void Renderer::CreateRTVandDSV()
+void Renderer::CreateRTV()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE heapHandle;
 	heapHandle = m_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
