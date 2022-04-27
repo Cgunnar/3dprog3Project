@@ -8,12 +8,7 @@ public:
 	Window(const Window& other) = delete;
 	Window& operator=(const Window& other) = delete;
 
-	enum class FullscreenState
-	{
-		windowed,
-		borderLess,
-		fullscreen //this is not full-screen exclusive mode
-	};
+	
 
 	HWND GetHWND() const;
 	void ChangeWindowText(std::string text);

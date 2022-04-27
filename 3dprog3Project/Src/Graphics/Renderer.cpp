@@ -98,6 +98,7 @@ Renderer::~Renderer()
 	m_rtvDescHeap->Release();
 	for (auto& bb : m_backbuffers)
 		bb->Release();
+	m_swapchain->SetFullscreenState(false, nullptr);
 	m_swapchain->Release();
 	m_fence->Release();
 	m_directCmdList->Release();
@@ -317,6 +318,11 @@ void Renderer::DisplayChanged()
 	m_outputDesc = GetOutputCapabilities();
 	OnResize(0, 0, false);
 	
+}
+
+RenderingSettings Renderer::GetRenderingSettings() const
+{
+	return m_renderingSettings;
 }
 
 void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)

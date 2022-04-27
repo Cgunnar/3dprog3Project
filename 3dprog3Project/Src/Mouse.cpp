@@ -44,17 +44,9 @@ void Mouse::SetMode(Mode mode)
 	if ((m_mode & Mode::Visible) != (mode & Mode::Visible))
 	{
 		if ((mode & Mode::Visible) == Mode::Visible)
-		{
-			m_showCursor = true;
 			int count = ShowCursor(true);
-			utl::PrintDebug("ShowCursor(true)" + std::to_string(count));
-		}
 		else
-		{
-			m_showCursor = false;
 			ShowCursor(false);
-			utl::PrintDebug("ShowCursor(false)");
-		}
 	}
 	if ((m_mode & Mode::Confined) != (mode & Mode::Confined))
 	{

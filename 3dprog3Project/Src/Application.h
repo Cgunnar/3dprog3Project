@@ -15,6 +15,7 @@ private:
 	Window* m_window = nullptr;
 	Renderer* m_renderer = nullptr;
 	Scene* m_scene = nullptr;
+	RenderingSettings m_renderSettings;
 
 	void SetUp();
 };

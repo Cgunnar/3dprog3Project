@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "Mouse.h"
+#include "RenderingTypes.h"
 #include <imgui_impl_win32.h>
 
 Window* Window::s_windowInstance = nullptr;
@@ -98,6 +99,10 @@ bool Window::Win32MsgPump()
 void Window::SetRenderer(Renderer* renderer)
 {
 	m_renderer = renderer;
+	if (renderer)
+	{
+		SetFullscreen(renderer->GetRenderingSettings().fullscreemState);
+	}
 }
 
 std::pair<uint32_t, uint32_t> Window::GetWidthAndHeight()
@@ -123,14 +128,14 @@ void Window::SetFullscreen(FullscreenState state)
 
 	switch (m_fullscreenState)
 	{
-	case Window::FullscreenState::windowed:
+	case FullscreenState::windowed:
 	{
 		switch (state)
 		{
-		case Window::FullscreenState::borderLess:
+		case FullscreenState::borderLess:
 			SetBorderLess();
 			break;
-		case Window::FullscreenState::fullscreen:
+		case FullscreenState::fullscreen:
 			GetWindowRect(m_hWnd, &m_windowModeRect);
 			bool fullscreen = m_renderer->SetFullscreen(true);
 			assert(fullscreen);
@@ -139,14 +144,14 @@ void Window::SetFullscreen(FullscreenState state)
 
 		break;
 	}
-	case Window::FullscreenState::borderLess:
+	case FullscreenState::borderLess:
 	{
 		switch (state)
 		{
-		case Window::FullscreenState::windowed:
+		case FullscreenState::windowed:
 			SetWindowed();
 			break;
-		case Window::FullscreenState::fullscreen:
+		case FullscreenState::fullscreen:
 			bool fullscreen = m_renderer->SetFullscreen(true);
 			assert(fullscreen);
 			break;
@@ -154,14 +159,14 @@ void Window::SetFullscreen(FullscreenState state)
 
 		break;
 	}
-	case Window::FullscreenState::fullscreen:
+	case FullscreenState::fullscreen:
 	{
 		switch (state)
 		{
-		case Window::FullscreenState::windowed:
+		case FullscreenState::windowed:
 			SetWindowed();
 			break;
-		case Window::FullscreenState::borderLess:
+		case FullscreenState::borderLess:
 			SetBorderLess();
 			break;
 		}
@@ -290,9 +295,9 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Handle ALT+ENTER:
 		if ((wParam == VK_RETURN) && (lParam & (1 << 29)))
 		{
-			if (m_fullscreenState == Window::FullscreenState::windowed || m_fullscreenState == Window::FullscreenState::borderLess)
+			if (m_fullscreenState == FullscreenState::windowed || m_fullscreenState == FullscreenState::borderLess)
 				SetFullscreen(FullscreenState::fullscreen);
-			else if (m_fullscreenState == Window::FullscreenState::fullscreen)
+			else if (m_fullscreenState == FullscreenState::fullscreen)
 				SetFullscreen(FullscreenState::windowed);
 			return 0;
 		}

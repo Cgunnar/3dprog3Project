@@ -14,7 +14,7 @@ Application::Application()
 {
 	FrameTimer::Init();
 	m_window = new Window();
-	m_renderer = new Renderer(m_window->GetHWND(), RenderingSettings());
+	m_renderer = new Renderer(m_window->GetHWND(), m_renderSettings);
 	m_window->SetRenderer(m_renderer);
 	AssetManager::Init(m_renderer->GetDevice());
 	m_scene = new Scene();
@@ -46,7 +46,7 @@ void Application::Run()
 			AssetManager::Destroy();
 			m_window->SetRenderer(nullptr);
 			delete m_renderer;
-			m_renderer = new Renderer(m_window->GetHWND(), RenderingSettings());
+			m_renderer = new Renderer(m_window->GetHWND(), m_renderSettings);
 			m_window->SetRenderer(m_renderer);
 			AssetManager::Init(m_renderer->GetDevice());
 			m_scene = new Scene();
@@ -68,22 +68,54 @@ void Application::Run()
 			ImGui::NewFrame();
 			ImGui::ShowDemoWindow();
 
+			static RenderingSettings newSettings;
 			ImGui::Begin("Settings");
 			if (ImGui::Button("Windowed"))
-				m_window->SetFullscreen(Window::FullscreenState::windowed);
+				newSettings.fullscreemState = FullscreenState::windowed;
 			if (ImGui::Button("Borderless"))
-				m_window->SetFullscreen(Window::FullscreenState::borderLess);
+				newSettings.fullscreemState = FullscreenState::borderLess;
 			if (ImGui::Button("Fullscreen"))
-				m_window->SetFullscreen(Window::FullscreenState::fullscreen);
+				newSettings.fullscreemState = FullscreenState::fullscreen;
+			if (m_renderSettings.fullscreemState != newSettings.fullscreemState)
+			{
+				m_window->SetFullscreen(newSettings.fullscreemState);
+				m_renderSettings.fullscreemState = newSettings.fullscreemState;
+			}
 			static bool vsync = false;
 			if (ImGui::Checkbox("vsync", &vsync))
 				m_renderer->vsyncEnabled = vsync;
 
-			if (ImGui::Button("Restart renderer"))
+			const char* res[] =
+			{
+				"720",
+				"1440"
+			};
+			static int resIndex = 0;
+			if(ImGui::Combo("select res", &resIndex, res, 2))
+			{
+				std::cout << res[resIndex] << std::endl;
+				switch (resIndex)
+				{
+				case 0:
+					newSettings.renderWidth = 1280;
+					newSettings.renderHeight = 720;
+					break;
+				case 1:
+					newSettings.renderWidth = 2560;
+					newSettings.renderHeight = 1440;
+					break;
+				default:
+					break;
+				}
+			}
+
+			if (ImGui::Button("Apply"))
 			{
 				restartRenderer = true;
 				runApplicationLoop = false;
-				m_window->SetFullscreen(Window::FullscreenState::windowed);
+				m_renderSettings = newSettings;
+				if (m_renderSettings.fullscreemState == FullscreenState::borderLess);
+					m_window->SetFullscreen(FullscreenState::windowed);
 			}
 
 			ImGui::End();

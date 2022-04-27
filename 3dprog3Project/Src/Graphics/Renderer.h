@@ -20,6 +20,7 @@ public:
 	DXGI_MODE_DESC GetBestDisplayMode();
 	int GetNumberOfFramesInFlight() const;
 	void DisplayChanged();
+	RenderingSettings GetRenderingSettings() const;
 	bool vsyncEnabled = false;
 private:
 	UINT m_width;
