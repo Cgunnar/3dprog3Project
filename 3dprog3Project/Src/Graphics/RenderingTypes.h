@@ -15,9 +15,9 @@ enum class FullscreenState
 struct RenderingSettings
 {
 	FullscreenState fullscreemState = FullscreenState::windowed;
-	UINT renderWidth = 1920;
-	UINT renderHeight = 1080;
-	UINT numberOfBackbuffers = 3;
-	UINT numberOfFramesInFlight = 2;
+	UINT renderWidth = 1280;
+	UINT renderHeight = 720;
+	UINT numberOfBackbuffers = 2;
+	UINT numberOfFramesInFlight = 1;
 	bool hasChanged = false;
 };

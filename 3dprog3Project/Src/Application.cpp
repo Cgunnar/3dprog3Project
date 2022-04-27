@@ -7,6 +7,7 @@
 #include "Mouse.h"
 #include "RenderingTypes.h"
 #include "CameraControllerScript.h"
+#include "CommonComponents.h"
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 
@@ -43,6 +44,7 @@ void Application::Run()
 		if (restartRenderer)
 		{
 			delete m_scene;
+			m_renderer->FlushGPU();
 			AssetManager::Destroy();
 			m_window->SetRenderer(nullptr);
 			delete m_renderer;
@@ -85,37 +87,69 @@ void Application::Run()
 			if (ImGui::Checkbox("vsync", &vsync))
 				m_renderer->vsyncEnabled = vsync;
 
-			const char* res[] =
+			UINT width, height;
+			if (m_window->GetFullscreenState() == FullscreenState::windowed)
 			{
-				"720",
-				"1440"
-			};
-			static int resIndex = 0;
-			if(ImGui::Combo("select res", &resIndex, res, 2))
+				std::tie(width, height) = Window::GetWidthAndHeight();
+			}
+			else
 			{
-				std::cout << res[resIndex] << std::endl;
-				switch (resIndex)
-				{
-				case 0:
-					newSettings.renderWidth = 1280;
-					newSettings.renderHeight = 720;
-					break;
-				case 1:
-					newSettings.renderWidth = 2560;
-					newSettings.renderHeight = 1440;
-					break;
-				default:
-					break;
-				}
+				std::tie(width, height) = m_renderer->GetDisplayResolution();
 			}
 
-			if (ImGui::Button("Apply"))
+			std::vector<const char*> res =
 			{
+				"If you don't like pixels",
+				"144",
+				"360",
+				"720",
+				"1080",
+				"1440",
+				"2160",
+				"4320",
+				"If you like to go over the limit"
+			};
+			
+			static int resIndex = 3;
+			if(ImGui::Combo("resolution", &resIndex, res.data(), res.size()))
+			{
+				if (resIndex == 0)
+					newSettings.renderHeight = 4;
+				else if (resIndex == res.size() - 1)
+					newSettings.renderHeight = 10000000000;
+				else
+					newSettings.renderHeight = std::stoi(res[resIndex]);
+				newSettings.renderWidth = newSettings.renderHeight * width / height;
+			}
+			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6"};
+			static int numFramesIndex = 1;
+			if (ImGui::Combo("frames in flight", &numFramesIndex, numframes.data(), numframes.size()))
+			{
+				newSettings.numberOfFramesInFlight = numFramesIndex + 1;
+			}
+			std::vector<const char*> numBackbuffers = { "2", "3", "4", "5", "6", "7" };
+			static int numBackbuffersIndex = 2;
+			if (ImGui::Combo("backbuffers", &numBackbuffersIndex, numBackbuffers.data(), numBackbuffers.size()))
+			{
+				newSettings.numberOfBackbuffers = numBackbuffersIndex + 2;
+			}
+			static bool applySettingsOnce = true; //should realy not do this, but this will give me the imgui settings as default init
+			if (ImGui::Button("Apply") || applySettingsOnce)
+			{
+				applySettingsOnce = false;
 				restartRenderer = true;
 				runApplicationLoop = false;
 				m_renderSettings = newSettings;
-				if (m_renderSettings.fullscreemState == FullscreenState::borderLess);
-					m_window->SetFullscreen(FullscreenState::windowed);
+				
+				//borderLess is not allowed when recreating the renderer
+				if (m_window->GetFullscreenState() == FullscreenState::borderLess
+					|| m_window->GetFullscreenState() == FullscreenState::fullscreen)
+				{
+					if (newSettings.fullscreemState == FullscreenState::windowed)
+						m_window->SetFullscreen(FullscreenState::windowed);
+					else
+						m_window->SetFullscreen(FullscreenState::windowed, true, width, height);
+				}
 			}
 
 			ImGui::End();
@@ -128,6 +162,12 @@ void Application::Run()
 			}
 
 			AssetManager::Get().Update(m_renderer->GetNumberOfFramesInFlight());
+			for (auto& c : rfe::EntityReg::ViewEntities<CameraComp>())
+			{
+				c.GetComponent<CameraComp>()->projectionMatrix
+					= rfm::PerspectiveProjectionMatrix(rfm::PIDIV4,
+						static_cast<float>(width) / static_cast<float>(height), 0.001, 1000);
+			}
 			m_scene->Update(dt);
 
 			ImGui::Render();

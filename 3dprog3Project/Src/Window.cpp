@@ -101,7 +101,7 @@ void Window::SetRenderer(Renderer* renderer)
 	m_renderer = renderer;
 	if (renderer)
 	{
-		SetFullscreen(renderer->GetRenderingSettings().fullscreemState);
+		SetFullscreen(renderer->GetRenderingSettings().fullscreemState, false);
 	}
 }
 
@@ -122,7 +122,7 @@ std::pair<uint32_t, uint32_t> Window::GetWidthAndHeight()
 	}
 }
 
-void Window::SetFullscreen(FullscreenState state)
+void Window::SetFullscreen(FullscreenState state, bool remeberSize, uint32_t width, uint32_t height)
 {
 	if (m_renderer == nullptr) return;
 
@@ -133,10 +133,11 @@ void Window::SetFullscreen(FullscreenState state)
 		switch (state)
 		{
 		case FullscreenState::borderLess:
-			SetBorderLess();
+			SetBorderLess(remeberSize);
 			break;
 		case FullscreenState::fullscreen:
-			GetWindowRect(m_hWnd, &m_windowModeRect);
+			if(remeberSize)
+				GetWindowRect(m_hWnd, &m_windowModeRect);
 			bool fullscreen = m_renderer->SetFullscreen(true);
 			assert(fullscreen);
 			break;
@@ -149,7 +150,7 @@ void Window::SetFullscreen(FullscreenState state)
 		switch (state)
 		{
 		case FullscreenState::windowed:
-			SetWindowed();
+			SetWindowed(width, height);
 			break;
 		case FullscreenState::fullscreen:
 			bool fullscreen = m_renderer->SetFullscreen(true);
@@ -164,10 +165,10 @@ void Window::SetFullscreen(FullscreenState state)
 		switch (state)
 		{
 		case FullscreenState::windowed:
-			SetWindowed();
+			SetWindowed(width, height);
 			break;
 		case FullscreenState::borderLess:
-			SetBorderLess();
+			SetBorderLess(remeberSize);
 			break;
 		}
 
@@ -177,14 +178,19 @@ void Window::SetFullscreen(FullscreenState state)
 	m_fullscreenState = state;
 }
 
-void Window::SetBorderLess()
+FullscreenState Window::GetFullscreenState() const
+{
+	return m_fullscreenState;
+}
+
+void Window::SetBorderLess(bool remeberSize)
 {
 	if (m_fullscreenState == FullscreenState::fullscreen)
 	{
 		bool fullscreen = m_renderer->SetFullscreen(false);
 		assert(!fullscreen);
 	}
-	else
+	else if (remeberSize)
 	{
 		GetWindowRect(m_hWnd, &m_windowModeRect);
 	}
@@ -217,10 +223,10 @@ void Window::SetBorderLess()
 	m_fullscreenState = FullscreenState::borderLess;
 }
 
-void Window::SetWindowed()
+void Window::SetWindowed(uint32_t width, uint32_t height)
 {
-	int width = abs(m_windowModeRect.right - m_windowModeRect.left);
-	int height = abs(m_windowModeRect.bottom - m_windowModeRect.top);
+	if(width == 0) width = abs(m_windowModeRect.right - m_windowModeRect.left);
+	if (height == 0) height = abs(m_windowModeRect.bottom - m_windowModeRect.top);
 	if (m_fullscreenState == FullscreenState::fullscreen)
 	{
 		bool state = m_renderer->SetFullscreen(false, width, height);

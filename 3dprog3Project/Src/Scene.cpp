@@ -83,8 +83,5 @@ void Scene::Update(float dt)
 {
 	rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
 
-	auto [width, height] = Window::GetWidthAndHeight();
-	m_camera.GetComponent<CameraComp>()->projectionMatrix
-		= rfm::PerspectiveProjectionMatrix(rfm::PIDIV4,
-			static_cast<float>(width) / static_cast<float>(height), 0.001, 1000);
+	
 }

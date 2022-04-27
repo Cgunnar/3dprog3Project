@@ -98,7 +98,6 @@ Renderer::~Renderer()
 	m_rtvDescHeap->Release();
 	for (auto& bb : m_backbuffers)
 		bb->Release();
-	m_swapchain->SetFullscreenState(false, nullptr);
 	m_swapchain->Release();
 	m_fence->Release();
 	m_directCmdList->Release();
@@ -285,10 +284,13 @@ bool Renderer::SetFullscreen(bool fullscreen, UINT exitFullscreenWidth, UINT exi
 		hr = m_swapchain->SetFullscreenState(FALSE, nullptr);
 		assert(SUCCEEDED(hr));
 		
-
-		HRESULT hr = m_swapchain->ResizeTarget(&modeDesc);
+		auto displayRect = GetOutputCapabilities().DesktopCoordinates;
+		MoveWindow(m_hWnd, displayRect.left, displayRect.top, modeDesc.Width, modeDesc.Height, false);
+		ShowWindow(m_hWnd, SW_NORMAL);
+		//MoveWindow looks a litle bit nicer
+		/*HRESULT hr = m_swapchain->ResizeTarget(&modeDesc);
 		assert(SUCCEEDED(hr));
-		OnResize(modeDesc.Width, modeDesc.Height, false);
+		OnResize(modeDesc.Width, modeDesc.Height, false);*/
 		m_fullscreen = false;
 		return false;
 	}
@@ -468,6 +470,12 @@ void Renderer::FlushGPU()
 	m_fenceValues[m_currentBackbufferIndex % m_numFramesInFlight]++;
 }
 
+std::pair<UINT, UINT> Renderer::GetDisplayResolution() const
+{
+	auto monitorRect = GetOutputCapabilities().DesktopCoordinates;
+	return std::make_pair(abs(monitorRect.right - monitorRect.left), abs(monitorRect.top - monitorRect.bottom));
+}
+
 void Renderer::CreateRTV()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE heapHandle;
@@ -541,7 +549,7 @@ std::vector<DXGI_MODE_DESC> Renderer::CheckMonitorRes()
 	return modeVec;
 }
 
-DXGI_OUTPUT_DESC1 Renderer::GetOutputCapabilities()
+DXGI_OUTPUT_DESC1 Renderer::GetOutputCapabilities() const
 {
 	IDXGIOutput* output;
 	HRESULT hr = m_swapchain->GetContainingOutput(&output);

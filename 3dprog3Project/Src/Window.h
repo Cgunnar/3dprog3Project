@@ -16,7 +16,8 @@ public:
 
 	void SetRenderer(Renderer* renderer);
 	static std::pair<uint32_t, uint32_t> GetWidthAndHeight();
-	void SetFullscreen(FullscreenState state);
+	void SetFullscreen(FullscreenState state, bool remeberSize = true, uint32_t width = 0, uint32_t height = 0);
+	FullscreenState GetFullscreenState() const;
 private:
 	
 	FullscreenState m_fullscreenState = FullscreenState::windowed;
@@ -33,8 +34,8 @@ private:
 	FullscreenState m_fullscreenStateWhenOnOutOfFocus = FullscreenState::windowed;
 
 	std::vector<std::byte> m_ridData;
-	void SetBorderLess();
-	void SetWindowed();
+	void SetBorderLess(bool remeberSize);
+	void SetWindowed(uint32_t width = 0, uint32_t height = 0);
 	LRESULT CALLBACK HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 

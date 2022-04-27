@@ -22,6 +22,8 @@ public:
 	void DisplayChanged();
 	RenderingSettings GetRenderingSettings() const;
 	bool vsyncEnabled = false;
+	void FlushGPU();
+	std::pair<UINT, UINT> GetDisplayResolution() const;
 private:
 	UINT m_width;
 	UINT m_height;
@@ -43,8 +45,8 @@ private:
 	ID3D12Fence* m_fence = nullptr;
 	std::vector<UINT64> m_fenceValues;
 	HANDLE m_eventHandle;
-	int m_numFramesInFlight = 2;
-	int m_numBackBuffers = 4;
+	int m_numFramesInFlight;
+	int m_numBackBuffers;
 
 	UINT64 m_vramInBytes = 0;
 
@@ -63,10 +65,10 @@ private:
 	void CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle);
 	void CreateRTV();
 
-	void FlushGPU();
+	
 	void FrameFence();
 	MemoryInfo GetVramInfo(IDXGIAdapter4* adapter);
 	std::vector<DXGI_MODE_DESC> CheckMonitorRes();
-	DXGI_OUTPUT_DESC1 GetOutputCapabilities();
+	DXGI_OUTPUT_DESC1 GetOutputCapabilities() const;
 };
 

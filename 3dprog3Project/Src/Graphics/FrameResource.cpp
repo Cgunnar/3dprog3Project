@@ -3,6 +3,7 @@
 
 FrameResource::FrameResource(ID3D12Device* device, UINT width, UINT height) : m_width(width), m_height(height)
 {
+	utl::PrintDebug("Render resolution: " + std::to_string(width) + " x " + std::to_string(height));
 	m_heapDescriptor = std::make_unique<DescriptorVector>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 	m_heapDescriptor->Init(device);
 
