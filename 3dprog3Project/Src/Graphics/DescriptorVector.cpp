@@ -74,6 +74,13 @@ void DescriptorVector::AddFromOther(const DescriptorVector& other, UINT srcIndex
 	size += count;
 }
 
+UINT DescriptorVector::Push(D3D12_CPU_DESCRIPTOR_HANDLE src, ID3D12Device* device)
+{
+	assert(this->Get() && this->size < capacity);
+	device->CopyDescriptorsSimple(1, operator[](size), src, heapDescriptorDesc.Type);
+	return size++;
+}
+
 ID3D12DescriptorHeap* DescriptorVector::Get() const
 {
 	return heapDescriptor;

@@ -15,6 +15,7 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index) const;
 	void Clear();
 	void AddFromOther(const DescriptorVector& other, UINT srcIndex, UINT count, ID3D12Device* device);
+	UINT Push(D3D12_CPU_DESCRIPTOR_HANDLE src, ID3D12Device* device);
 	ID3D12DescriptorHeap* Get() const;
 	void Init(ID3D12Device* device);
 	void Resize(UINT newsize);

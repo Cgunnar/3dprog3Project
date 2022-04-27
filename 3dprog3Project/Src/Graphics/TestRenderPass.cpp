@@ -8,12 +8,6 @@
 TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight) 
 	: m_device(device)
 {
-	m_heapDescriptor.resize(framesInFlight);
-	for (auto& hp : m_heapDescriptor)
-	{
-		hp = new DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
-		hp->Init(device);
-	}
 	m_constantBuffers.resize(framesInFlight);
 	for (auto& cbManager : m_constantBuffers)
 		cbManager = new ConstantBufferManager(device, 10000, 64);
@@ -165,17 +159,28 @@ TestRenderPass::~TestRenderPass()
 {
 	for (auto& cbManager : m_constantBuffers)
 		delete cbManager;
-	for (auto& hp : m_heapDescriptor)
-		delete hp;
 	m_pipelineState->Release();
 	m_rootSignature->Release();
 }
 
-void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frameIndex)
+void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, FrameResource& frameResource, int frameIndex)
 {
-	m_heapDescriptor[frameIndex]->Clear();
-	auto heapDescriptor = m_heapDescriptor[frameIndex]->Get();
-	cmdList->SetDescriptorHeaps(1, &heapDescriptor);
+	auto [width, height] = frameResource.GetResolution();
+	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+	cmdList->RSSetViewports(1, &viewport);
+	D3D12_RECT scissorRect = { 0, 0, static_cast<long>(width), static_cast<long>(height) };
+	cmdList->RSSetScissorRects(1, &scissorRect);
+
+	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
+	cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+	cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
+
 	cmdList->SetGraphicsRootSignature(m_rootSignature);
 	cmdList->SetPipelineState(m_pipelineState);
 
@@ -215,12 +220,13 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, int frame
 
 		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
 
-		UINT tableSlot0 = m_heapDescriptor[frameIndex]->Size();
-		m_heapDescriptor[frameIndex]->AddFromOther(am.GetHeapDescriptors(), vb.descIndex, 1, m_device);
-		m_heapDescriptor[frameIndex]->AddFromOther(am.GetHeapDescriptors(), ib.descIndex, 1, m_device);
-		m_heapDescriptor[frameIndex]->AddFromOther(m_constantBuffers[frameIndex]->GetAllDescriptors(), worldMatrixCB, 1, m_device);
+		auto& heapDescriptor = frameResource.GetHeapDescriptor();
+		UINT tableSlot0 = heapDescriptor.Size();
+		heapDescriptor.AddFromOther(am.GetHeapDescriptors(), vb.descIndex, 1, m_device);
+		heapDescriptor.AddFromOther(am.GetHeapDescriptors(), ib.descIndex, 1, m_device);
+		heapDescriptor.AddFromOther(m_constantBuffers[frameIndex]->GetAllDescriptors(), worldMatrixCB, 1, m_device);
 		
-		cmdList->SetGraphicsRootDescriptorTable(0, m_heapDescriptor[frameIndex]->GetGPUHandle(tableSlot0));
+		cmdList->SetGraphicsRootDescriptorTable(0, heapDescriptor.GetGPUHandle(tableSlot0));
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
 		cmdList->SetGraphicsRootConstantBufferView(2, m_constantBuffers[frameIndex]->GetGPUVirtualAddress(cameraCB));
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);

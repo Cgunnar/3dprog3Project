@@ -41,7 +41,7 @@ Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
 
 	for (int i = 0; i < m_numFramesInFlight; i++)
 	{
-		m_frameResources.emplace_back(m_device, 1920, 1080);
+		m_frameResources.emplace_back(m_device, 1920*4, 1080*4);
 	}
 
 	CheckMonitorRes();
@@ -63,15 +63,6 @@ Renderer::Renderer(HWND windowHandle) : m_hWnd(windowHandle)
 
 	m_rtvDescSize = m_device->GetDescriptorHandleIncrementSize(rtvDescHDesc.Type);
 	hr = m_device->CreateDescriptorHeap(&rtvDescHDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_rtvDescHeap));
-	assert(SUCCEEDED(hr));
-
-	D3D12_DESCRIPTOR_HEAP_DESC dsvDescHDesc;
-	dsvDescHDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvDescHDesc.NumDescriptors = 1;
-	dsvDescHDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	dsvDescHDesc.NodeMask = 0;
-
-	hr = m_device->CreateDescriptorHeap(&dsvDescHDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_dsvDescHeap));
 	assert(SUCCEEDED(hr));
 
 	CreateRTVandDSV();
@@ -102,8 +93,6 @@ Renderer::~Renderer()
 	ImGui_ImplDX12_Shutdown();
 	m_imguiDescHeap->Release();
 
-	m_dsvDescHeap->Release();
-	m_depthBufferResource->Release();
 	m_rtvDescHeap->Release();
 	for (auto& bb : m_backbuffers)
 		bb->Release();
@@ -133,9 +122,9 @@ void Renderer::BeginFrame()
 	assert(SUCCEEDED(hr));
 
 
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_dsvDescHeap->GetCPUDescriptorHandleForHeapStart();
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
-	rtvHandle.ptr += m_rtvDescSize * m_currentBackbufferIndex;
+	
+	D3D12_CPU_DESCRIPTOR_HANDLE backBufferHandle = m_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
+	backBufferHandle.ptr += m_rtvDescSize * m_currentBackbufferIndex;
 
 	D3D12_RESOURCE_BARRIER backbufferTransitionBarrier;
 	backbufferTransitionBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -146,21 +135,11 @@ void Renderer::BeginFrame()
 	backbufferTransitionBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	m_directCmdList->ResourceBarrier(1, &backbufferTransitionBarrier);
 
-	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
-	m_directCmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	m_directCmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	m_directCmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_directCmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
+	m_frameResources[frameIndex].m_backBufferCpuDescHandle = backBufferHandle;
+	m_frameResources[frameIndex].m_heapDescriptor->Clear();
 
-
-	const auto& backbufferDesc = m_backbuffers.front()->GetDesc();
-	UINT width = backbufferDesc.Width;
-	UINT height = backbufferDesc.Height;
-
-	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	m_directCmdList->RSSetViewports(1, &viewport);
-	D3D12_RECT scissorRect = { 0, 0, static_cast<long>(width), static_cast<long>(height) };
-	m_directCmdList->RSSetScissorRects(1, &scissorRect);
+	auto descripterHeap = m_frameResources[frameIndex].m_heapDescriptor->Get();
+	m_directCmdList->SetDescriptorHeaps(1, &descripterHeap);
 }
 
 size_t Renderer::Render()
@@ -171,7 +150,7 @@ size_t Renderer::Render()
 	for (auto& renderPass : m_renderPasses)
 	{
 		PIXBeginEvent(m_directCmdList, 200, renderPass->Name().c_str());
-		renderPass->RunRenderPass(m_directCmdList, frameIndex);
+		renderPass->RunRenderPass(m_directCmdList, m_frameResources[frameIndex], frameIndex);
 		PIXEndEvent(m_directCmdList);
 	}
 
@@ -258,7 +237,6 @@ void Renderer::OnResize(UINT width, UINT height, bool forceResolution)
 
 	utl::PrintDebug("Swapchain updated to width: " + std::to_string(m_width) + ", height: " + std::to_string(m_height));
 
-	m_depthBufferResource->Release();
 	CreateRTVandDSV();
 }
 
@@ -493,35 +471,6 @@ void Renderer::CreateRTVandDSV()
 		m_device->CreateRenderTargetView(m_backbuffers[i], nullptr, heapHandle);
 		heapHandle.ptr += m_rtvDescSize;
 	}
-
-
-	auto backBufferDesc = m_backbuffers.front()->GetDesc();
-
-	D3D12_CLEAR_VALUE depthClarValue;
-	depthClarValue.Format = DXGI_FORMAT_D32_FLOAT;
-	depthClarValue.DepthStencil.Depth = 1.0f;
-	D3D12_HEAP_PROPERTIES heapZProp = {};
-	heapZProp.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-	D3D12_RESOURCE_DESC zResoDesc;
-	zResoDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	zResoDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-	zResoDesc.Width = backBufferDesc.Width;
-	zResoDesc.Height = backBufferDesc.Height;
-	zResoDesc.MipLevels = 1;
-	zResoDesc.DepthOrArraySize = 1;
-	zResoDesc.Format = DXGI_FORMAT_D32_FLOAT;
-	zResoDesc.SampleDesc.Count = 1;
-	zResoDesc.SampleDesc.Quality = 0;
-	zResoDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-	zResoDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-
-	HRESULT hr = m_device->CreateCommittedResource(&heapZProp, D3D12_HEAP_FLAG_NONE, &zResoDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE, &depthClarValue, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_depthBufferResource));
-	assert(SUCCEEDED(hr));
-
-	heapHandle = m_dsvDescHeap->GetCPUDescriptorHandleForHeapStart();
-	m_device->CreateDepthStencilView(m_depthBufferResource, nullptr, heapHandle);
 }
 
 void Renderer::FrameFence()

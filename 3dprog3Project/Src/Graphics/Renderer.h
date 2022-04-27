@@ -52,8 +52,6 @@ private:
 
 	std::vector<FrameResource> m_frameResources;
 
-	ID3D12Resource* m_depthBufferResource = nullptr;
-	ID3D12DescriptorHeap* m_dsvDescHeap = nullptr;
 	ID3D12DescriptorHeap* m_imguiDescHeap = nullptr;
 
 	void BeginFrame();
