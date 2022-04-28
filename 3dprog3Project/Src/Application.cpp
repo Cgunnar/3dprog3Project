@@ -71,13 +71,11 @@ void Application::Run()
 			ImGui::ShowDemoWindow();
 
 			static RenderingSettings newSettings;
+			newSettings.fullscreemState = m_window->GetFullscreenState();
 			ImGui::Begin("Settings");
-			if (ImGui::Button("Windowed"))
-				newSettings.fullscreemState = FullscreenState::windowed;
-			if (ImGui::Button("Borderless"))
-				newSettings.fullscreemState = FullscreenState::borderLess;
-			if (ImGui::Button("Fullscreen"))
-				newSettings.fullscreemState = FullscreenState::fullscreen;
+			std::array<const char*, 3> fullscreenCompo = {"windowed", "borderLess", "fullscreen"};
+			FullscreenState selectedFullscreenState = newSettings.fullscreemState;
+			ImGui::Combo("fullscreen mode", reinterpret_cast<int*>(&newSettings.fullscreemState), fullscreenCompo.data(), fullscreenCompo.size());
 			if (m_renderSettings.fullscreemState != newSettings.fullscreemState)
 			{
 				m_window->SetFullscreen(newSettings.fullscreemState);
