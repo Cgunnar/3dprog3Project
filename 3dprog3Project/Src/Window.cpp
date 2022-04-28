@@ -113,7 +113,10 @@ std::pair<uint32_t, uint32_t> Window::GetWidthAndHeight()
 		GetClientRect(s_windowInstance->m_hWnd, &rect);
 		uint32_t width = rect.right - rect.left;
 		uint32_t height = rect.bottom - rect.top;
-		assert(s_windowInstance->m_renderer == nullptr || (s_windowInstance->m_renderer->m_width == width && s_windowInstance->m_renderer->m_height == height));
+		if (s_windowInstance->m_renderer != nullptr && (s_windowInstance->m_renderer->m_width != width || s_windowInstance->m_renderer->m_height != height))
+		{
+			utl::PrintDebug("Window::GetWidthAndHeight() gives strange result, window might not be open");
+		}
 		return std::make_pair(width, height);
 	}
 	else
