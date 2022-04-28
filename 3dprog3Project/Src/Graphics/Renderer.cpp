@@ -189,7 +189,7 @@ void Renderer::EndFrame()
 	// result of calling SetFullscreenState.
 	
 	
-	if(vsyncEnabled)
+	if(m_renderingSettings.vsync)
 	{
 		hr = m_swapchain->Present(1, 0);
 		assert(SUCCEEDED(hr));
@@ -474,6 +474,31 @@ std::pair<UINT, UINT> Renderer::GetDisplayResolution() const
 {
 	auto monitorRect = GetOutputCapabilities().DesktopCoordinates;
 	return std::make_pair(abs(monitorRect.right - monitorRect.left), abs(monitorRect.top - monitorRect.bottom));
+}
+
+void Renderer::SetRenderResolution(UINT width, UINT height)
+{
+	FlushGPU();
+
+	m_renderingSettings.renderWidth = width;
+	m_renderingSettings.renderHeight = height;
+	m_frameResources.clear();
+	for (int i = 0; i < m_numFramesInFlight; i++)
+	{
+		m_frameResources.emplace_back(m_device, width, height);
+	}
+
+	for (auto& rp : m_renderPasses)
+	{
+		//rip object oriented programming
+		//virual Destructors are fine but how do i create a new object of right type
+		rp->RecreateOnResolutionChange(m_device, m_numFramesInFlight, width, height);
+	}
+}
+
+void Renderer::SetVSync(bool value)
+{
+	m_renderingSettings.vsync = value;
 }
 
 void Renderer::CreateRTV()

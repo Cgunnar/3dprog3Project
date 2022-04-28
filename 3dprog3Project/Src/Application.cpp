@@ -81,9 +81,12 @@ void Application::Run()
 				m_window->SetFullscreen(newSettings.fullscreemState);
 				m_renderSettings.fullscreemState = newSettings.fullscreemState;
 			}
-			static bool vsync = false;
-			if (ImGui::Checkbox("vsync", &vsync))
-				m_renderer->vsyncEnabled = vsync;
+			
+			if (ImGui::Checkbox("vsync", &newSettings.vsync))
+			{
+				m_renderer->SetVSync(newSettings.vsync);
+				m_renderSettings.vsync = newSettings.vsync;
+			}
 
 			UINT width, height;
 			if (m_window->GetFullscreenState() == FullscreenState::windowed)
@@ -118,6 +121,7 @@ void Application::Run()
 				else
 					newSettings.renderHeight = std::stoi(res[resIndex]);
 				newSettings.renderWidth = newSettings.renderHeight * width / height;
+				m_renderer->SetRenderResolution(newSettings.renderWidth, newSettings.renderWidth);
 			}
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6"};
 			static int numFramesIndex = 1;

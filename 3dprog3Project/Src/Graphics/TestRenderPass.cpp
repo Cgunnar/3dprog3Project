@@ -233,6 +233,13 @@ void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, FrameReso
 	}
 }
 
+void TestRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+{
+	return; // no need to recreate this class
+	this->~TestRenderPass();
+	new(this) TestRenderPass(device, framesInFlight);
+}
+
 std::string TestRenderPass::Name() const
 {
 	return "TestRenderPass";

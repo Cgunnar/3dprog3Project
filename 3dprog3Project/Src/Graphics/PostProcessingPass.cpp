@@ -187,6 +187,13 @@ void PostProcessingPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, Frame
 	cmdList->ResourceBarrier(1, &transitionToRTVBarrier);
 }
 
+void PostProcessingPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+{
+	//this class does not need the resolution but the solution is to good to not be used
+	this->~PostProcessingPass();
+	new(this) PostProcessingPass(device, framesInFlight);
+}
+
 std::string PostProcessingPass::Name() const
 {
 	return "PostProcessingPass";

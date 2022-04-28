@@ -21,9 +21,10 @@ public:
 	int GetNumberOfFramesInFlight() const;
 	void DisplayChanged();
 	RenderingSettings GetRenderingSettings() const;
-	bool vsyncEnabled = false;
 	void FlushGPU();
 	std::pair<UINT, UINT> GetDisplayResolution() const;
+	void SetRenderResolution(UINT width, UINT height);
+	void SetVSync(bool value);
 private:
 	UINT m_width;
 	UINT m_height;

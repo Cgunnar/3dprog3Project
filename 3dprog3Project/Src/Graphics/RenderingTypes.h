@@ -20,4 +20,5 @@ struct RenderingSettings
 	UINT numberOfBackbuffers = 2;
 	UINT numberOfFramesInFlight = 1;
 	bool hasChanged = false;
+	bool vsync = false;
 };
