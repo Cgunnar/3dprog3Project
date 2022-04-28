@@ -75,7 +75,9 @@ void Application::Run()
 			ImGui::Begin("Settings");
 			std::array<const char*, 3> fullscreenCompo = {"windowed", "borderLess", "fullscreen"};
 			FullscreenState selectedFullscreenState = newSettings.fullscreemState;
-			ImGui::Combo("fullscreen mode", reinterpret_cast<int*>(&newSettings.fullscreemState), fullscreenCompo.data(), fullscreenCompo.size());
+			ImGui::Text("fullscreen mode");
+			ImGui::SameLine();
+			ImGui::Combo("##1", reinterpret_cast<int*>(&newSettings.fullscreemState), fullscreenCompo.data(), fullscreenCompo.size());
 			if (m_renderSettings.fullscreemState != newSettings.fullscreemState)
 			{
 				m_window->SetFullscreen(newSettings.fullscreemState);
@@ -112,7 +114,9 @@ void Application::Run()
 			};
 			
 			static int resIndex = 3;
-			if(ImGui::Combo("resolution", &resIndex, res.data(), res.size()))
+			ImGui::Text("resolution");
+			ImGui::SameLine();
+			if(ImGui::Combo("##2", &resIndex, res.data(), res.size()))
 			{
 				if (resIndex == 0)
 					newSettings.renderHeight = 4;
@@ -125,18 +129,24 @@ void Application::Run()
 			}
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6"};
 			static int numFramesIndex = 1;
-			if (ImGui::Combo("frames in flight", &numFramesIndex, numframes.data(), numframes.size()))
+			ImGui::Separator();
+			ImGui::Text("Restart renderer to apply");
+			ImGui::Text("frames in flight");
+			ImGui::SameLine();
+			if (ImGui::Combo("##3", &numFramesIndex, numframes.data(), numframes.size()))
 			{
 				newSettings.numberOfFramesInFlight = numFramesIndex + 1;
 			}
 			std::vector<const char*> numBackbuffers = { "2", "3", "4", "5", "6", "7" };
 			static int numBackbuffersIndex = 2;
-			if (ImGui::Combo("backbuffers", &numBackbuffersIndex, numBackbuffers.data(), numBackbuffers.size()))
+			ImGui::Text("backbuffers");
+			ImGui::SameLine();
+			if (ImGui::Combo("##4", &numBackbuffersIndex, numBackbuffers.data(), numBackbuffers.size()))
 			{
 				newSettings.numberOfBackbuffers = numBackbuffersIndex + 2;
 			}
 			static bool applySettingsOnce = true; //should realy not do this, but this will give me the imgui settings as default init
-			if (ImGui::Button("Apply") || applySettingsOnce)
+			if (ImGui::Button("Restart renderer") || applySettingsOnce)
 			{
 				applySettingsOnce = false;
 				restartRenderer = true;
