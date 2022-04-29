@@ -141,11 +141,9 @@ void Renderer::BeginFrame()
 	m_directCmdList->ResourceBarrier(1, &backbufferTransitionBarrier);
 
 	m_frameResources[frameIndex].m_backBufferCpuDescHandle = backBufferHandle;
-	m_frameResources[frameIndex].m_heapDescriptor->Clear();
 
-	auto descripterHeap = m_frameResources[frameIndex].m_heapDescriptor->Get();
+	auto descripterHeap = m_desriptorPool->Get();
 	m_directCmdList->SetDescriptorHeaps(1, &descripterHeap);
-
 	m_desriptorPool->SetNextFrame();
 }
 

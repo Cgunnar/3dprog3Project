@@ -4,8 +4,6 @@
 FrameResource::FrameResource(ID3D12Device* device, UINT width, UINT height) : m_width(width), m_height(height)
 {
 	utl::PrintDebug("Render resolution: " + std::to_string(width) + " x " + std::to_string(height));
-	m_heapDescriptor = std::make_unique<DescriptorVector>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
-	m_heapDescriptor->Init(device);
 
 	D3D12_HEAP_PROPERTIES heapProp = {};
 	heapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -90,9 +88,6 @@ FrameResource::FrameResource(ID3D12Device* device, UINT width, UINT height) : m_
 	assert(SUCCEEDED(hr));
 
 	device->CreateDepthStencilView(depthBuffer, nullptr, m_dsvDescHeap->GetCPUDescriptorHandleForHeapStart());
-
-
-	
 }
 
 FrameResource::~FrameResource()
@@ -115,9 +110,7 @@ FrameResource::FrameResource(FrameResource&& other) noexcept
 	m_rtAsSrvDescHeap = other.m_rtAsSrvDescHeap;
 	m_rtvHeapDescIncremenSize = other.m_rtvHeapDescIncremenSize;
 	m_backBufferCpuDescHandle = other.m_backBufferCpuDescHandle;
-	m_heapDescriptor = std::move(other.m_heapDescriptor);
 
-	other.m_heapDescriptor = nullptr;
 	other.depthBuffer = nullptr;
 	other.renderTarget = nullptr;
 	other.m_dsvDescHeap = nullptr;
@@ -132,7 +125,6 @@ FrameResource& FrameResource::operator=(FrameResource&& other) noexcept
 	if (m_rtAsSrvDescHeap) m_rtAsSrvDescHeap->Release();
 	if (renderTarget) renderTarget->Release();
 	if (depthBuffer) depthBuffer->Release();
-	if (m_heapDescriptor) m_heapDescriptor.reset();
 
 	m_width = other.m_width;
 	m_height = other.m_height;
@@ -143,9 +135,7 @@ FrameResource& FrameResource::operator=(FrameResource&& other) noexcept
 	m_rtAsSrvDescHeap = other.m_rtAsSrvDescHeap;
 	m_rtvHeapDescIncremenSize = other.m_rtvHeapDescIncremenSize;
 	m_backBufferCpuDescHandle = other.m_backBufferCpuDescHandle;
-	m_heapDescriptor = std::move(other.m_heapDescriptor);
 
-	other.m_heapDescriptor = nullptr;
 	other.depthBuffer = nullptr;
 	other.renderTarget = nullptr;
 	other.m_dsvDescHeap = nullptr;
@@ -178,9 +168,4 @@ D3D12_CPU_DESCRIPTOR_HANDLE FrameResource::GetRtSrvCpuHandle() const
 D3D12_CPU_DESCRIPTOR_HANDLE FrameResource::GetBackBufferCpuHandle() const
 {
 	return m_backBufferCpuDescHandle;
-}
-
-DescriptorVector& FrameResource::GetHeapDescriptor()
-{
-	return *m_heapDescriptor;
 }

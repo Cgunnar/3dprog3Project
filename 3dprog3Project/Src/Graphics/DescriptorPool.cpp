@@ -45,3 +45,8 @@ DescriptorHandle DescriptorPool::DynamicAllocate(UINT count)
 	m_count += count;
 	return handle;
 }
+
+ID3D12DescriptorHeap* DescriptorPool::Get() const
+{
+	return m_descriptorHeap;
+}

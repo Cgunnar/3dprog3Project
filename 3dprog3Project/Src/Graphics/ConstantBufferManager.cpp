@@ -67,7 +67,7 @@ void ConstantBufferManager::Clear()
 
 void ConstantBufferManager::UpdateConstantBuffer(UINT index, void* data, UINT size)
 {
-	assert(index < m_numUsedConstantBuffers && data && size <= 256);
+	assert(index < m_numUsedConstantBuffers && data && size <= m_bufferSize);
 
 	std::memcpy(m_beginPtr + m_bufferSize * index, data, size);
 }

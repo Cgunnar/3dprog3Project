@@ -23,7 +23,7 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight)
 	psBlob = LoadCSO("Shaders/compiled/Release/PixelShader.cso");
 #endif // _DEBUG
 
-	std::vector<D3D12_DESCRIPTOR_RANGE> vsDescriptorRanges;
+	std::array<D3D12_DESCRIPTOR_RANGE, m_numDescriptorsInRootTable0> vsDescriptorRanges;
 	D3D12_DESCRIPTOR_RANGE descriptorRange;
 	descriptorRange.NumDescriptors = 1;
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -31,19 +31,19 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight)
 	descriptorRange.RegisterSpace = 0;
 	
 	descriptorRange.BaseShaderRegister = 0;
-	vsDescriptorRanges.push_back(descriptorRange);
+	vsDescriptorRanges[0] = descriptorRange;
 	descriptorRange.BaseShaderRegister = 1;
-	vsDescriptorRanges.push_back(descriptorRange);
+	vsDescriptorRanges[1] = descriptorRange;
 
 	//worldMatrix CB
 	descriptorRange.BaseShaderRegister = 1;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	vsDescriptorRanges.push_back(descriptorRange);
+	vsDescriptorRanges[2] = descriptorRange;
 
 	std::array<D3D12_ROOT_PARAMETER, 3> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[0].DescriptorTable.NumDescriptorRanges = vsDescriptorRanges.size();
+	rootParameters[0].DescriptorTable.NumDescriptorRanges = m_numDescriptorsInRootTable0;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = vsDescriptorRanges.data();
 
 	//material CB
@@ -167,7 +167,7 @@ RenderPassRequirements TestRenderPass::GetRequirements()
 {
 	RenderPassRequirements req;
 	req.cmdListCount = 1;
-	req.descriptorHandleSize = 3 * rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size();
+	req.descriptorHandleSize = m_numDescriptorsInRootTable0 * rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size();
 	req.numDescriptorHandles = 1;
 	return req;
 }
@@ -212,6 +212,9 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	UINT cameraCB = m_constantBuffers[frameIndex]->PushConstantBuffer();
 	m_constantBuffers[frameIndex]->UpdateConstantBuffer(cameraCB, &cameraCBData, sizeof(cameraCBData));
 
+	DescriptorHandle visBaseDescHandle = descriptorHandles.front();
+	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
+
 	const AssetManager& am = AssetManager::Get();
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
@@ -230,13 +233,15 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 
 		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
 
-		auto& heapDescriptor = frameResource.GetHeapDescriptor();
-		UINT tableSlot0 = heapDescriptor.Size();
-		heapDescriptor.AddFromOther(am.GetHeapDescriptors(), vb.descIndex, 1, m_device);
-		heapDescriptor.AddFromOther(am.GetHeapDescriptors(), ib.descIndex, 1, m_device);
-		heapDescriptor.AddFromOther(m_constantBuffers[frameIndex]->GetAllDescriptors(), worldMatrixCB, 1, m_device);
+		m_device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
+		m_device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[ib.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
+		m_device->CopyDescriptorsSimple(1, currentCpuHandle, m_constantBuffers[frameIndex]->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 		
-		cmdList->SetGraphicsRootDescriptorTable(0, heapDescriptor.GetGPUHandle(tableSlot0));
+		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
+		visBaseDescHandle.gpuHandle.ptr += m_numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
 		cmdList->SetGraphicsRootConstantBufferView(2, m_constantBuffers[frameIndex]->GetGPUVirtualAddress(cameraCB));
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);

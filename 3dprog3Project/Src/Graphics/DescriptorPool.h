@@ -19,6 +19,7 @@ public:
 
 	void SetNextFrame();
 	DescriptorHandle DynamicAllocate(UINT count);
+	ID3D12DescriptorHeap* Get() const;
 
 private:
 	ID3D12Device* m_device;

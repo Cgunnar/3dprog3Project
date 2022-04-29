@@ -182,8 +182,9 @@ void PostProcessingPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> c
 	transitionToSRVBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	cmdList->ResourceBarrier(1, &transitionToSRVBarrier);
 
-	UINT srvTableIndex = frameResource.GetHeapDescriptor().Push(frameResource.GetRtSrvCpuHandle(), m_device);
-	cmdList->SetGraphicsRootDescriptorTable(0, frameResource.GetHeapDescriptor().GetGPUHandle(srvTableIndex));
+	m_device->CopyDescriptorsSimple(1, descriptorHandles.front().cpuHandle, frameResource.GetRtSrvCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	//UINT srvTableIndex = frameResource.GetHeapDescriptor().Push(frameResource.GetRtSrvCpuHandle(), m_device);
+	cmdList->SetGraphicsRootDescriptorTable(0, descriptorHandles.front().gpuHandle);
 
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
