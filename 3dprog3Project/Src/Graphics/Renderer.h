@@ -2,6 +2,7 @@
 #include "RenderPass.h"
 #include "FrameResource.h"
 #include "RenderingTypes.h"
+#include "DescriptorPool.h"
 
 class Window;
 class Renderer
@@ -32,7 +33,7 @@ private:
 	BOOL m_hasVariableRefreshRate = false;
 	DXGI_OUTPUT_DESC1 m_outputDesc;
 	RenderingSettings m_renderingSettings;
-
+	std::unique_ptr<DescriptorPool> m_desriptorPool = nullptr;
 	std::vector<std::unique_ptr<RenderPass>> m_renderPasses;
 
 	HWND m_hWnd;

@@ -100,6 +100,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Graphics\DescriptorPool.cpp" />
     <ClCompile Include="Src\Graphics\FrameResource.cpp" />
     <ClCompile Include="Src\Graphics\PostProcessingPass.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\CameraControllerScript.cpp" />
@@ -133,6 +134,7 @@
     <ClCompile Include="Src\Graphics\TestRenderPass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\Graphics\DescriptorPool.h" />
     <ClInclude Include="Src\Graphics\FrameResource.h" />
     <ClInclude Include="Src\Graphics\PostProcessingPass.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\CameraControllerScript.h" />
