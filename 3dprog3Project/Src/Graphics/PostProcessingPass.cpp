@@ -145,8 +145,18 @@ PostProcessingPass::~PostProcessingPass()
 	m_pipelineState->Release();
 }
 
-void PostProcessingPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, FrameResource& frameResource, int frameIndex)
+RenderPassRequirements PostProcessingPass::GetRequirements()
 {
+	RenderPassRequirements req;
+	req.cmdListCount = 1;
+	req.numDescriptorHandles = 1;
+	req.descriptorHandleSize = 1;
+	return req;
+}
+
+void PostProcessingPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
+{
+	ID3D12GraphicsCommandList* cmdList = cmdLists.front();
 	auto [width, height] = Window::GetWidthAndHeight();
 	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 	cmdList->RSSetViewports(1, &viewport);

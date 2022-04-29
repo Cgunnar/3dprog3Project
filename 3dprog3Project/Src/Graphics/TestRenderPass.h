@@ -7,8 +7,8 @@ class TestRenderPass : public RenderPass
 public:
 	TestRenderPass(ID3D12Device* device, int framesInFlight);
 	~TestRenderPass();
-
-	void RunRenderPass(ID3D12GraphicsCommandList* cmdList, FrameResource& frameResource, int frameIndex) override;
+	RenderPassRequirements GetRequirements() override;
+	void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) override;
 	void RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height) override;
 	std::string Name() const override;
 private:

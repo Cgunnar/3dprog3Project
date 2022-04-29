@@ -163,8 +163,18 @@ TestRenderPass::~TestRenderPass()
 	m_rootSignature->Release();
 }
 
-void TestRenderPass::RunRenderPass(ID3D12GraphicsCommandList* cmdList, FrameResource& frameResource, int frameIndex)
+RenderPassRequirements TestRenderPass::GetRequirements()
 {
+	RenderPassRequirements req;
+	req.cmdListCount = 1;
+	req.descriptorHandleSize = 3 * rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size();
+	req.numDescriptorHandles = 1;
+	return req;
+}
+
+void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
+{
+	ID3D12GraphicsCommandList* cmdList = cmdLists.front();
 	auto [width, height] = frameResource.GetResolution();
 	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 	cmdList->RSSetViewports(1, &viewport);

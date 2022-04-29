@@ -145,6 +145,8 @@ void Renderer::BeginFrame()
 
 	auto descripterHeap = m_frameResources[frameIndex].m_heapDescriptor->Get();
 	m_directCmdList->SetDescriptorHeaps(1, &descripterHeap);
+
+	m_desriptorPool->SetNextFrame();
 }
 
 size_t Renderer::Render()
@@ -154,8 +156,16 @@ size_t Renderer::Render()
 
 	for (auto& renderPass : m_renderPasses)
 	{
+		auto req = renderPass->GetRequirements();
+		std::vector<DescriptorHandle> handles;
+		for (int i = 0; i < req.numDescriptorHandles; i++)
+		{
+			handles.push_back(m_desriptorPool->DynamicAllocate(req.descriptorHandleSize));
+		}
+
+
 		PIXBeginEvent(m_directCmdList, 200, renderPass->Name().c_str());
-		renderPass->RunRenderPass(m_directCmdList, m_frameResources[frameIndex], frameIndex);
+		renderPass->RunRenderPass({ m_directCmdList }, handles, m_frameResources[frameIndex], frameIndex);
 		PIXEndEvent(m_directCmdList);
 	}
 
