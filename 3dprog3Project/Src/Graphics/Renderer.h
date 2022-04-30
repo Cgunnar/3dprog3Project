@@ -41,8 +41,13 @@ private:
 	IDXGISwapChain3* m_swapchain = nullptr;
 	IDXGIAdapter4* m_adapter = nullptr;
 	ID3D12CommandQueue* m_directCmdQueue = nullptr;
-	std::vector<ID3D12CommandAllocator*> m_directCmdAllocator;
-	ID3D12GraphicsCommandList* m_directCmdList = nullptr;
+	std::vector<ID3D12CommandAllocator*> m_directCmdAllocatorStart;
+	std::vector<ID3D12CommandAllocator*> m_directCmdAllocatorEnd;
+	ID3D12GraphicsCommandList* m_directCmdListStart = nullptr;
+	ID3D12GraphicsCommandList* m_directCmdListEnd = nullptr;
+	std::vector<std::vector<ID3D12CommandAllocator*>> m_3dRenderPassesCmdAllocators;
+	std::vector<ID3D12GraphicsCommandList*> m_3dRenderPassesCmdLists;
+	int m_activeRenderPassCmdListsCount = 0;
 
 	ID3D12Fence* m_fence = nullptr;
 	std::vector<UINT64> m_fenceValues;
