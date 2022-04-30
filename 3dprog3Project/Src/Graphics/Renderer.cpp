@@ -39,7 +39,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	CreateSwapChain(factory6, windowHandle);
 
 
-	int maxCountOfListPerFram = 10;
+	int maxCountOfListPerFram = 12;
 	m_3dRenderPassesCmdLists.resize(maxCountOfListPerFram);
 	m_3dRenderPassesCmdAllocators.resize(maxCountOfListPerFram);
 	for (int i = 0; i < maxCountOfListPerFram; i++)
