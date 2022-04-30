@@ -185,33 +185,17 @@ RenderPassRequirements TestRenderPass::GetRequirements()
 	return req;
 }
 
-void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle descHandle,
+void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
-	ConstantBufferManager* cbManager, int frameIndex);
+	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
+	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera);
 
 void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
-	ID3D12GraphicsCommandList* cmdList = cmdLists.front();
-	auto [width, height] = frameResource.GetResolution();
-	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	cmdList->RSSetViewports(1, &viewport);
-	D3D12_RECT scissorRect = { 0, 0, static_cast<long>(width), static_cast<long>(height) };
-	cmdList->RSSetScissorRects(1, &scissorRect);
-
-	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
-
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
-	cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
-
-	cmdList->SetGraphicsRootSignature(m_rootSignature);
-	cmdList->SetPipelineState(m_pipelineState);
-
-	m_constantBuffers[0][frameIndex]->Clear();
+	for (int i = 0; i < m_numThreads; i++)
+	{
+		m_constantBuffers[i][frameIndex]->Clear();
+	}
 
 	auto camera = rfe::EntityReg::ViewEntities<CameraComp>().front();
 	struct CameraCBData
@@ -229,14 +213,14 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	UINT cameraCB = m_constantBuffers[0][frameIndex]->PushConstantBuffer();
 	m_constantBuffers[0][frameIndex]->UpdateConstantBuffer(cameraCB, &cameraCBData, sizeof(cameraCBData));
 
-	cmdList->SetGraphicsRootConstantBufferView(2, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB));
-
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
+	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
+	cmdLists.front()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+	cmdLists.front()->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
-
-	/*Draw(m_device, cmdLists[0], descriptorHandles[0], entities, frameResource,
-		m_constantBuffers[0][frameIndex], frameIndex);*/
 
 	std::vector<std::thread> recorderThreads;
 	int segmentSize = entities.size() / m_numThreads;
@@ -246,21 +230,41 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 		if (i == m_numThreads - 1)
 			rest = entities.size() % m_numThreads;
 
-		std::vector<rfe::Entity> entitiesPerThread(entities.begin() + i * segmentSize, entities.begin() + (i + 1) * (segmentSize + rest));
-		
-		
-		recorderThreads.emplace_back(Draw, m_device, cmdLists[i], descriptorHandles[i], entitiesPerThread, std::ref(frameResource),
-		m_constantBuffers[i][frameIndex], frameIndex);
+		std::vector<rfe::Entity> entitiesPerThread(entities.begin() + i * segmentSize, entities.begin() + (i + 1) * segmentSize + rest);
+
+
+		recorderThreads.emplace_back(Draw, m_device, cmdLists[i], std::ref(descriptorHandles[i]), entitiesPerThread, std::ref(frameResource),
+		m_constantBuffers[i][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB));
 	}
 
 	for (auto& t : recorderThreads)
 		t.join();
 }
 
-void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle descHandle,
+void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
-	ConstantBufferManager* cbManager, int frameIndex)
+	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
+	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera)
 {
+
+	auto [width, height] = frameResource.GetResolution();
+	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+	cmdList->RSSetViewports(1, &viewport);
+	D3D12_RECT scissorRect = { 0, 0, static_cast<long>(width), static_cast<long>(height) };
+	cmdList->RSSetScissorRects(1, &scissorRect);
+
+	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
+	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
+
+
+	cmdList->SetGraphicsRootSignature(rootSignature);
+	cmdList->SetPipelineState(pipelineState);
+
+	cmdList->SetGraphicsRootConstantBufferView(2, camera);
+
 	const AssetManager& am = AssetManager::Get();
 
 	DescriptorHandle visBaseDescHandle = descHandle;

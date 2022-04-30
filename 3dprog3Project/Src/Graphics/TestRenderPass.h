@@ -16,7 +16,7 @@ private:
 	ID3D12Device* m_device = nullptr;
 	ID3D12RootSignature* m_rootSignature = nullptr;
 	ID3D12PipelineState* m_pipelineState = nullptr;
-	int m_numThreads = 1;
+	int m_numThreads = 2;
 	std::vector<std::vector<ConstantBufferManager*>> m_constantBuffers;
 };
 

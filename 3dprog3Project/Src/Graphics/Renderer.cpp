@@ -268,7 +268,11 @@ void Renderer::EndFrame()
 
 	m_directCmdQueue->ExecuteCommandLists(tmpCmdList.size(), tmpCmdList.data());
 	//for (auto& cmdList : tmpCmdList)
+	//{
+	//	//Sleep(1);
 	//	m_directCmdQueue->ExecuteCommandLists(1, &cmdList);
+	//}
+
 
 	// this comment is from microsofts smmple repo
 	// When using sync interval 0, it is recommended to always pass the tearing
