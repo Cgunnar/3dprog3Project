@@ -39,7 +39,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	CreateSwapChain(factory6, windowHandle);
 
 
-	int maxCountOfListPerFram = 12;
+	int maxCountOfListPerFram = 30;
 	m_3dRenderPassesCmdLists.resize(maxCountOfListPerFram);
 	m_3dRenderPassesCmdAllocators.resize(maxCountOfListPerFram);
 	for (int i = 0; i < maxCountOfListPerFram; i++)
@@ -69,7 +69,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	factory6->Release();
 
 	m_desriptorPool = std::make_unique<DescriptorPool>(m_device, m_numFramesInFlight,
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 1000000);
 
 	for (int i = 0; i < m_numFramesInFlight; i++)
 	{
@@ -267,11 +267,6 @@ void Renderer::EndFrame()
 	tmpCmdList.push_back(m_directCmdListEnd);
 
 	m_directCmdQueue->ExecuteCommandLists(tmpCmdList.size(), tmpCmdList.data());
-	//for (auto& cmdList : tmpCmdList)
-	//{
-	//	//Sleep(1);
-	//	m_directCmdQueue->ExecuteCommandLists(1, &cmdList);
-	//}
 
 
 	// this comment is from microsofts smmple repo

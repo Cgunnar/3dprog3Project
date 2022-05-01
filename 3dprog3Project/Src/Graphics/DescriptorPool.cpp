@@ -32,6 +32,10 @@ void DescriptorPool::SetNextFrame()
 DescriptorHandle DescriptorPool::DynamicAllocate(UINT count)
 {
 	assert(m_count + count < m_perFramePoolSize);
+	if (m_count + count < m_perFramePoolSize)
+	{
+		std::runtime_error("out of memory in descriptor pool");
+	}
 	DescriptorHandle handle;
 	handle.gpuHandle = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handle.gpuHandle.ptr += (m_frameIndex * m_perFramePoolSize + m_count) * m_incrementSize;

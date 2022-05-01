@@ -68,11 +68,13 @@ void Application::Run()
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
-			ImGui::ShowDemoWindow();
+			
+			//ImGui::ShowDemoWindow();
 
 			static RenderingSettings newSettings;
 			newSettings.fullscreemState = m_window->GetFullscreenState();
 			ImGui::Begin("Settings");
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			std::array<const char*, 3> fullscreenCompo = {"windowed", "borderLess", "fullscreen"};
 			FullscreenState selectedFullscreenState = newSettings.fullscreemState;
 			ImGui::Text("fullscreen mode");
