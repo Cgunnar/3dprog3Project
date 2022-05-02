@@ -53,11 +53,11 @@ Scene::Scene()
 	std::uniform_int_distribution<> dist1(0, 2);
 	std::uniform_int_distribution<> dist2(0, 1);
 	
-	for (int i = 0; i < 30; i++)
+	for (int i = 0; i < 10; i++)
 	{
-		for (int j = 0; j < 30; j++)
+		for (int j = 0; j < 10; j++)
 		{
-			for (int k = 0; k < 30; k++)
+			for (int k = 0; k < 10; k++)
 			{
 				rfm::Vector3 pos = rfm::Vector3( 2*i, 2*j, 2*k );
 				Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
