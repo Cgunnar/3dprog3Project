@@ -71,8 +71,8 @@ public:
 	void MoveMeshToGPU(uint64_t id);
 	void MoveMaterialToGPU(uint64_t id);
 
-	MeshAsset GetMesh(uint64_t id) const;
-	MaterialAsset GetMaterial(uint64_t id) const;
+	const MeshAsset& GetMesh(uint64_t id) const;
+	const MaterialAsset& GetMaterial(uint64_t id) const;
 
 	void RemoveMesh(uint64_t id);
 	void RemoveMaterial(uint64_t id);

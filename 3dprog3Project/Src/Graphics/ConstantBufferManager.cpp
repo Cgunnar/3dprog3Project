@@ -65,7 +65,7 @@ void ConstantBufferManager::Clear()
 	m_numUsedConstantBuffers = 0;
 }
 
-void ConstantBufferManager::UpdateConstantBuffer(UINT index, void* data, UINT size)
+void ConstantBufferManager::UpdateConstantBuffer(UINT index, const void* data, UINT size)
 {
 	assert(index < m_numUsedConstantBuffers && data && size <= m_bufferSize);
 

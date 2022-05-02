@@ -87,28 +87,14 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	materialAsset.constantBuffer.valid = true;
 }
 
-MeshAsset AssetManager::GetMesh(uint64_t id) const
+const MeshAsset& AssetManager::GetMesh(uint64_t id) const
 {
-	if (m_meshes.contains(id))
-	{
-		return m_meshes.at(id);
-	}
-	else
-	{
-		return MeshAsset();
-	}
+	return m_meshes.at(id);
 }
 
-MaterialAsset AssetManager::GetMaterial(uint64_t id) const
+const MaterialAsset& AssetManager::GetMaterial(uint64_t id) const
 {
-	if (m_materials.contains(id))
-	{
-		return m_materials.at(id);
-	}
-	else
-	{
-		return MaterialAsset();
-	}
+	return m_materials.at(id);
 }
 
 void AssetManager::RemoveMesh(uint64_t id)

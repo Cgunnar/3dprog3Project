@@ -185,7 +185,7 @@ RenderPassRequirements TestRenderPass::GetRequirements()
 	return req;
 }
 
-bool Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
+void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
 	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera);
@@ -222,7 +222,7 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
 
-	std::vector<std::future<bool>> asyncJobs;
+	std::vector<std::future<void>> asyncJobs;
 	int segmentSize = entities.size() / m_numThreads;
 	for (int i = 0; i < m_numThreads; i++)
 	{
@@ -231,8 +231,6 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 			rest = entities.size() % m_numThreads;
 
 		std::vector<rfe::Entity> entitiesPerThread(entities.begin() + i * segmentSize, entities.begin() + (i + 1) * segmentSize + rest);
-		//Draw(i, m_device, cmdLists[i], std::ref(descriptorHandles[i]), entitiesPerThread, std::ref(frameResource),
-		//	m_constantBuffers[i][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB));
 
 		asyncJobs.push_back(std::async(std::launch::async, Draw, i, m_device, cmdLists[i], std::ref(descriptorHandles[i]), entitiesPerThread, std::ref(frameResource),
 			m_constantBuffers[i][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB)));
@@ -241,12 +239,11 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 		j.wait();
 }
 
-bool Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
+void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
 	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera)
 {
-	//std::cout << id << std::endl;
 	auto [width, height] = frameResource.GetResolution();
 	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 	cmdList->RSSetViewports(1, &viewport);
@@ -272,16 +269,16 @@ bool Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Desc
 
 	for (auto& entity : entitiesToDraw)
 	{
-		auto mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
-		auto material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
-		auto& transform = entity.GetComponent<TransformComp>()->transform;
+		const auto& mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
+		const auto& material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
+		const auto& transform = entity.GetComponent<TransformComp>()->transform;
 
 		UINT worldMatrixCB = cbManager->PushConstantBuffer();
 		cbManager->UpdateConstantBuffer(worldMatrixCB, &transform, 64);
 
-		GPUAsset vb = mesh.vertexBuffer;
-		GPUAsset ib = mesh.indexBuffer;
-		GPUAsset colorBuffer = material.constantBuffer;
+		const GPUAsset& vb = mesh.vertexBuffer;
+		const GPUAsset& ib = mesh.indexBuffer;
+		const GPUAsset& colorBuffer = material.constantBuffer;
 
 		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
 
@@ -298,7 +295,6 @@ bool Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Desc
 		
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}
-	return true;
 }
 
 void TestRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)

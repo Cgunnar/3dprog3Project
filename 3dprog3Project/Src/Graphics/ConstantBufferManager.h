@@ -10,7 +10,7 @@ public:
 	UINT PushConstantBuffer();
 	void PopConstantBuffer();
 	void Clear();
-	void UpdateConstantBuffer(UINT index, void* data, UINT size);
+	void UpdateConstantBuffer(UINT index, const void* data, UINT size);
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT index) const;
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index) const;
 	D3D12_GPU_VIRTUAL_ADDRESS GetGPUVirtualAddress(UINT index) const;
