@@ -140,7 +140,7 @@ void Application::Run()
 				newSettings.numberOfFramesInFlight = numFramesIndex + 1;
 			}
 			std::vector<const char*> numBackbuffers = { "2", "3", "4", "5", "6", "7" };
-			static int numBackbuffersIndex = 2;
+			static int numBackbuffersIndex = 0;
 			ImGui::Text("backbuffers");
 			ImGui::SameLine();
 			if (ImGui::Combo("##4", &numBackbuffersIndex, numBackbuffers.data(), numBackbuffers.size()))
