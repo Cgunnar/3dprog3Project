@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "TestRenderPass.h"
+#include "MainRenderPass.h"
 #include "rfEntity.hpp"
 #include "CommonComponents.h"
 #include "AssetManager.h"
 
 
-TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight) 
+MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	: m_device(device)
 {
 	m_constantBuffers.resize(m_numThreads);
@@ -16,7 +16,7 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight)
 		for (auto& cbManager : t)
 			cbManager = new ConstantBufferManager(device, 100000, 64);
 	}
-	
+
 
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -35,7 +35,7 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight)
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange.RegisterSpace = 0;
-	
+
 	descriptorRange.BaseShaderRegister = 0;
 	vsDescriptorRanges[0] = descriptorRange;
 	descriptorRange.BaseShaderRegister = 1;
@@ -161,19 +161,19 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight)
 
 }
 
-TestRenderPass::~TestRenderPass()
+MainRenderPass::~MainRenderPass()
 {
 	for (auto& t : m_constantBuffers)
 	{
 		for (auto& cbManager : t)
 			delete cbManager;
 	}
-	
+
 	m_pipelineState->Release();
 	m_rootSignature->Release();
 }
 
-RenderPassRequirements TestRenderPass::GetRequirements()
+RenderPassRequirements MainRenderPass::GetRequirements()
 {
 
 	int perThreadSize = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() / m_numThreads;
@@ -190,7 +190,7 @@ static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdLis
 	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
 	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera);
 
-void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
+void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
 	for (int i = 0; i < m_numThreads; i++)
 	{
@@ -239,7 +239,7 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 		j.wait();
 }
 
-static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
+static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdList, DescriptorHandle & descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
 	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera)
@@ -290,99 +290,21 @@ static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdLis
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 
 		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
-		visBaseDescHandle.gpuHandle.ptr += TestRenderPass::m_numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
+		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::m_numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
-		
+
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}
 }
 
-void TestRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+void MainRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
 {
 	return; // no need to recreate this class
-	this->~TestRenderPass();
-	new(this) TestRenderPass(device, framesInFlight);
+	this->~MainRenderPass();
+	new(this) MainRenderPass(device, framesInFlight);
 }
 
-std::string TestRenderPass::Name() const
+std::string MainRenderPass::Name() const
 {
-	return "TestRenderPass";
+	return "MainRenderPass";
 }
-
-
-
-//void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
-//{
-//	ID3D12GraphicsCommandList* cmdList = cmdLists.front();
-//	auto [width, height] = frameResource.GetResolution();
-//	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-//	cmdList->RSSetViewports(1, &viewport);
-//	D3D12_RECT scissorRect = { 0, 0, static_cast<long>(width), static_cast<long>(height) };
-//	cmdList->RSSetScissorRects(1, &scissorRect);
-//
-//	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-//
-//	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
-//
-//	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
-//	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
-//	cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-//	cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-//	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
-//
-//	cmdList->SetGraphicsRootSignature(m_rootSignature);
-//	cmdList->SetPipelineState(m_pipelineState);
-//
-//	m_constantBuffers[0][frameIndex]->Clear();
-//
-//	auto camera = rfe::EntityReg::ViewEntities<CameraComp>().front();
-//	struct CameraCBData
-//	{
-//		rfm::Matrix proj;
-//		rfm::Matrix view;
-//		rfm::Matrix viewProj;
-//		rfm::Vector3 pos;
-//	} cameraCBData;
-//	cameraCBData.proj = camera.GetComponent<CameraComp>()->projectionMatrix;
-//	cameraCBData.view = rfm::inverse(camera.GetComponent<TransformComp>()->transform);
-//	cameraCBData.viewProj = cameraCBData.proj * cameraCBData.view;
-//	cameraCBData.pos = camera.GetComponent<TransformComp>()->transform.getTranslation();
-//
-//	UINT cameraCB = m_constantBuffers[0][frameIndex]->PushConstantBuffer();
-//	m_constantBuffers[0][frameIndex]->UpdateConstantBuffer(cameraCB, &cameraCBData, sizeof(cameraCBData));
-//
-//	DescriptorHandle visBaseDescHandle = descriptorHandles.front();
-//	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
-//
-//	const AssetManager& am = AssetManager::Get();
-//	//fix a better way of allocating memory
-//	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
-//	for (auto& entity : entities)
-//	{
-//		auto mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
-//		auto material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
-//		auto& transform = entity.GetComponent<TransformComp>()->transform;
-//
-//		UINT worldMatrixCB = m_constantBuffers[0][frameIndex]->PushConstantBuffer();
-//		m_constantBuffers[0][frameIndex]->UpdateConstantBuffer(worldMatrixCB, &transform, 64);
-//
-//		GPUAsset vb = mesh.vertexBuffer;
-//		GPUAsset ib = mesh.indexBuffer;
-//		GPUAsset colorBuffer = material.constantBuffer;
-//
-//		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
-//
-//		m_device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-//		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-//		m_device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[ib.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-//		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-//		m_device->CopyDescriptorsSimple(1, currentCpuHandle, m_constantBuffers[0][frameIndex]->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-//		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-//
-//		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
-//		visBaseDescHandle.gpuHandle.ptr += m_numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
-//		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
-//		cmdList->SetGraphicsRootConstantBufferView(2, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB));
-//		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
-//	}
-//}
