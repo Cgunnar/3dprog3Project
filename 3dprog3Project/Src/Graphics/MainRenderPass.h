@@ -18,5 +18,7 @@ private:
 	ID3D12PipelineState* m_pipelineState = nullptr;
 	int m_numThreads = 12;
 	std::vector<std::vector<ConstantBufferManager*>> m_constantBuffers;
+
+	
 };
 

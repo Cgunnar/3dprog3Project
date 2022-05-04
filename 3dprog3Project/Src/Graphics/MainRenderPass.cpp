@@ -23,10 +23,10 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 
 #ifdef _DEBUG
 	vsBlob = LoadCSO("Shaders/compiled/Debug/VertexShader.cso");
-	psBlob = LoadCSO("Shaders/compiled/Debug/PixelShader.cso");
+	psBlob = LoadCSO("Shaders/compiled/Debug/PS_MainRenderPass.cso");
 #else
 	vsBlob = LoadCSO("Shaders/compiled/Release/VertexShader.cso");
-	psBlob = LoadCSO("Shaders/compiled/Release/PixelShader.cso");
+	psBlob = LoadCSO("Shaders/compiled/Release/PS_MainRenderPass.cso");
 #endif // _DEBUG
 
 	std::array<D3D12_DESCRIPTOR_RANGE, m_numDescriptorsInRootTable0> vsDescriptorRanges;
@@ -46,7 +46,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	vsDescriptorRanges[2] = descriptorRange;
 
-	std::array<D3D12_ROOT_PARAMETER, 3> rootParameters;
+	std::array<D3D12_ROOT_PARAMETER, 4> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = m_numDescriptorsInRootTable0;
@@ -63,6 +63,12 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	rootParameters[2].Descriptor.ShaderRegister = 0;
 	rootParameters[2].Descriptor.RegisterSpace = 0;
+
+	//table with pointlightSRV
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParameters[3].Descriptor.ShaderRegister = 0;
+	rootParameters[3].Descriptor.RegisterSpace = 0;
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
