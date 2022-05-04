@@ -29,7 +29,9 @@ namespace rfm
 		void rotateW(float x, float y, float z);
 		void rotateL(float x, float y, float z);
 		void rotateW(const Matrix& rotationMatrix);
+		void rotateDegW(Vector3 rot);
 		void rotateDegW(float x, float y, float z);
+		void rotateDegL(Vector3 rot);
 		void rotateDegL(float x, float y, float z);
 
 		void setScale(float x, float y, float z);

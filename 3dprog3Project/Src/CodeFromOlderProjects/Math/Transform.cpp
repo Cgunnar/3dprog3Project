@@ -94,9 +94,19 @@ namespace rfm
 		m_matrix = T * R * S;
 	}
 
+	void Transform::rotateDegW(Vector3 rot)
+	{
+		rotateW(DirectX::XMConvertToRadians(rot.x), DirectX::XMConvertToRadians(rot.y), DirectX::XMConvertToRadians(rot.z));
+	}
+
 	void Transform::rotateDegW(float x, float y, float z)
 	{
 		rotateW(DirectX::XMConvertToRadians(x), DirectX::XMConvertToRadians(y), DirectX::XMConvertToRadians(z));
+	}
+
+	void Transform::rotateDegL(Vector3 rot)
+	{
+		rotateL(DirectX::XMConvertToRadians(rot.x), DirectX::XMConvertToRadians(rot.y), DirectX::XMConvertToRadians(rot.z));
 	}
 
 	void Transform::rotateDegL(float x, float y, float z)

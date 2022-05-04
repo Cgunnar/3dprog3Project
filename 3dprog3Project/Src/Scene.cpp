@@ -78,6 +78,8 @@ Scene::Scene()
 					newEntity.AddComponent<MaterialComp>()->materialID = m_blueMaterial;
 				else
 					newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
+
+				newEntity.AddComponent<SpinnComp>();
 			}
 		}
 	}
@@ -99,5 +101,11 @@ void Scene::Update(float dt)
 {
 	rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
 
-	
+	const auto& spinningEntities = EntityReg::GetComponentArray<SpinnComp>();
+	for (const auto& spinnComp : spinningEntities)
+	{
+		TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(spinnComp.GetEntityID());
+		if (transformComp)
+			transformComp->transform.rotateDegL(dt * spinnComp.rotSpeed);
+	}
 }

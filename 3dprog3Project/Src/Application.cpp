@@ -23,6 +23,7 @@ Application::Application()
 
 Application::~Application()
 {
+	m_renderer->FlushGPU();
 	delete m_scene;
 	AssetManager::Destroy();
 	m_window->SetRenderer(nullptr);

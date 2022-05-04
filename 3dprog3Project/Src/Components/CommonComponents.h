@@ -28,6 +28,11 @@ struct CameraComp : public rfe::Component<CameraComp>
 	rfm::Matrix projectionMatrix = rfm::PerspectiveProjectionMatrix(rfm::PIDIV4, 16.0f / 9.0f, 0.001f, 1000.0f);
 };
 
+struct SpinnComp : public rfe::Component<SpinnComp>
+{
+	rfm::Vector3 rotSpeed{0, 15, 0};
+};
+
 struct PointLightComp : public rfe::Component<PointLightComp>
 {
 	rfm::Vector3 position;

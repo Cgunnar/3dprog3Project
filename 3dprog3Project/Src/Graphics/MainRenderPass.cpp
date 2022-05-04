@@ -222,21 +222,29 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
 
-	std::vector<std::future<void>> asyncJobs;
-	int segmentSize = entities.size() / m_numThreads;
-	for (int i = 0; i < m_numThreads; i++)
+	if (m_numThreads == 1)
 	{
-		int rest = 0;
-		if (i == m_numThreads - 1)
-			rest = entities.size() % m_numThreads;
-
-		std::vector<rfe::Entity> entitiesPerThread(entities.begin() + i * segmentSize, entities.begin() + (i + 1) * segmentSize + rest);
-
-		asyncJobs.push_back(std::async(std::launch::async, Draw, i, m_device, cmdLists[i], std::ref(descriptorHandles[i]), entitiesPerThread, std::ref(frameResource),
-			m_constantBuffers[i][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB)));
+		Draw(0, m_device, cmdLists[0], std::ref(descriptorHandles[0]), entities, std::ref(frameResource),
+			m_constantBuffers[0][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB));
 	}
-	for (auto& j : asyncJobs)
-		j.wait();
+	else
+	{
+		std::vector<std::future<void>> asyncJobs;
+		int segmentSize = entities.size() / m_numThreads;
+		for (int i = 0; i < m_numThreads; i++)
+		{
+			int rest = 0;
+			if (i == m_numThreads - 1)
+				rest = entities.size() % m_numThreads;
+
+			std::vector<rfe::Entity> entitiesPerThread(entities.begin() + i * segmentSize, entities.begin() + (i + 1) * segmentSize + rest);
+
+			asyncJobs.push_back(std::async(std::launch::async, Draw, i, m_device, cmdLists[i], std::ref(descriptorHandles[i]), entitiesPerThread, std::ref(frameResource),
+				m_constantBuffers[i][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB)));
+		}
+		for (auto& j : asyncJobs)
+			j.wait();
+	}
 }
 
 static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdList, DescriptorHandle & descHandle,
