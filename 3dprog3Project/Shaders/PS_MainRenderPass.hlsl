@@ -32,5 +32,13 @@ StructuredBuffer<PointLight> dynamicPointLights : register(t0);
 
 float4 main(VS_OUT input) : SV_TARGET
 {
-	return color;
+	float3 outputColor = float3(0,0,0);
+	unsigned int lightSize = 0;
+	unsigned int numLights = 0;
+	dynamicPointLights.GetDimensions(numLights, lightSize);
+	for (int i = 0; i < numLights; i++)
+	{
+		outputColor += color * dynamicPointLights[i].color;
+	}
+	return float4(outputColor, 1.0f);
 }

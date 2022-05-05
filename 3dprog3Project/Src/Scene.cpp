@@ -84,6 +84,13 @@ Scene::Scene()
 		}
 	}
 
+	Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+	newEntity.AddComponent<TransformComp>();
+	newEntity.AddComponent<PointLightComp>()->pointLight.color = { 1,0,0 };
+
+	newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+	newEntity.AddComponent<TransformComp>();
+	newEntity.AddComponent<PointLightComp>()->pointLight.color = { 0.2,0.2,0.2 };
 
 	m_camera = EntityReg::CreateEntity();
 	m_camera.AddComponent<TransformComp>()->transform.setTranslation(10, 0, -10);

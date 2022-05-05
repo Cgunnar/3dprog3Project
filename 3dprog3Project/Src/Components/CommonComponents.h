@@ -33,7 +33,7 @@ struct SpinnComp : public rfe::Component<SpinnComp>
 	rfm::Vector3 rotSpeed{0, 15, 0};
 };
 
-struct PointLightComp : public rfe::Component<PointLightComp>
+struct PointLight
 {
 	rfm::Vector3 position;
 	float strength;
@@ -41,4 +41,9 @@ struct PointLightComp : public rfe::Component<PointLightComp>
 	float constAtt;
 	float linAtt;
 	float expAtt;
+};
+struct PointLightComp : public rfe::Component<PointLightComp>
+{
+	bool lit = true;
+	PointLight pointLight;
 };

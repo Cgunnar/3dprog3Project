@@ -29,7 +29,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	psBlob = LoadCSO("Shaders/compiled/Release/PS_MainRenderPass.cso");
 #endif // _DEBUG
 
-	std::array<D3D12_DESCRIPTOR_RANGE, m_numDescriptorsInRootTable0> vsDescriptorRanges;
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable0> vsDescriptorRanges;
 	D3D12_DESCRIPTOR_RANGE descriptorRange;
 	descriptorRange.NumDescriptors = 1;
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -46,10 +46,20 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	vsDescriptorRanges[2] = descriptorRange;
 
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable3> tableSlot3;
+	descriptorRange.NumDescriptors = 1;
+	descriptorRange.BaseShaderRegister = 0;
+	descriptorRange.RegisterSpace = 0;
+	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+	//dynamicPointLights buffer
+	tableSlot3[0] = descriptorRange;
+
 	std::array<D3D12_ROOT_PARAMETER, 4> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[0].DescriptorTable.NumDescriptorRanges = m_numDescriptorsInRootTable0;
+	rootParameters[0].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable0;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = vsDescriptorRanges.data();
 
 	//material CB
@@ -65,10 +75,10 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	rootParameters[2].Descriptor.RegisterSpace = 0;
 
 	//table with pointlightSRV
-	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParameters[3].Descriptor.ShaderRegister = 0;
-	rootParameters[3].Descriptor.RegisterSpace = 0;
+	rootParameters[3].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable3;
+	rootParameters[3].DescriptorTable.pDescriptorRanges = tableSlot3.data();
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -165,6 +175,12 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	hr = device->CreateGraphicsPipelineState(&pipelineStateDesc, __uuidof(ID3D12PipelineState), reinterpret_cast<void**>(&m_pipelineState));
 	assert(SUCCEEDED(hr));
 
+
+	m_dynamicPointLightBuffer.resize(framesInFlight);
+	for (auto& lightBuffer : m_dynamicPointLightBuffer)
+	{
+		lightBuffer = std::make_unique<StructuredBuffer<PointLight>>(device, 100, true, true);
+	}
 }
 
 MainRenderPass::~MainRenderPass()
@@ -186,18 +202,19 @@ RenderPassRequirements MainRenderPass::GetRequirements()
 	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
-	req.descriptorHandleSize = m_numDescriptorsInRootTable0 * perThreadSize;
+	req.descriptorHandleSize = numDescriptorsInRootTable0 * perThreadSize + numDescriptorsInRootTable3;
 	req.numDescriptorHandles = m_numThreads;
 	return req;
 }
 
 static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
-	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
-	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera);
+	ConstantBufferManager* cbManager, int frameIndex);
 
 void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
+	UpdateDynamicLights(frameIndex);
+
 	for (int i = 0; i < m_numThreads; i++)
 	{
 		m_constantBuffers[i][frameIndex]->Clear();
@@ -225,13 +242,27 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	cmdLists.front()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	cmdLists.front()->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
+	//we use one of the descriptors that we requaseted for thread0, to bind the lights
+	m_device->CopyDescriptorsSimple(1, descriptorHandles.front().cpuHandle, m_dynamicPointLightBuffer[frameIndex]->CpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	descriptorHandles.front().cpuHandle.ptr += descriptorHandles.front().incrementSize;
+
+	for (auto& cmdList : cmdLists)
+	{
+		cmdList->SetGraphicsRootSignature(m_rootSignature);
+		cmdList->SetPipelineState(m_pipelineState);
+		cmdList->SetGraphicsRootConstantBufferView(2, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB));
+		cmdList->SetGraphicsRootDescriptorTable(3, descriptorHandles.front().gpuHandle);
+	}
+	descriptorHandles.front().gpuHandle.ptr += descriptorHandles.front().incrementSize;
+
+
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
 
 	if (m_numThreads == 1)
 	{
 		Draw(0, m_device, cmdLists[0], std::ref(descriptorHandles[0]), entities, std::ref(frameResource),
-			m_constantBuffers[0][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB));
+			m_constantBuffers[0][frameIndex], frameIndex);
 	}
 	else
 	{
@@ -246,7 +277,7 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 			std::vector<rfe::Entity> entitiesPerThread(entities.begin() + i * segmentSize, entities.begin() + (i + 1) * segmentSize + rest);
 
 			asyncJobs.push_back(std::async(std::launch::async, Draw, i, m_device, cmdLists[i], std::ref(descriptorHandles[i]), entitiesPerThread, std::ref(frameResource),
-				m_constantBuffers[i][frameIndex], frameIndex, m_rootSignature, m_pipelineState, m_constantBuffers[0][frameIndex]->GetGPUVirtualAddress(cameraCB)));
+				m_constantBuffers[i][frameIndex], frameIndex));
 		}
 		for (auto& j : asyncJobs)
 			j.wait();
@@ -255,8 +286,7 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 
 static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdList, DescriptorHandle & descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
-	ConstantBufferManager* cbManager, int frameIndex, ID3D12RootSignature* rootSignature,
-	ID3D12PipelineState* pipelineState, D3D12_GPU_VIRTUAL_ADDRESS camera)
+	ConstantBufferManager* cbManager, int frameIndex)
 {
 	auto [width, height] = frameResource.GetResolution();
 	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
@@ -271,10 +301,9 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
 
 
-	cmdList->SetGraphicsRootSignature(rootSignature);
-	cmdList->SetPipelineState(pipelineState);
+	
 
-	cmdList->SetGraphicsRootConstantBufferView(2, camera);
+	
 
 	const AssetManager& am = AssetManager::Get();
 
@@ -304,7 +333,7 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 
 		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
-		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::m_numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
+		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
 
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
@@ -321,4 +350,20 @@ void MainRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int frames
 std::string MainRenderPass::Name() const
 {
 	return "MainRenderPass";
+}
+
+void MainRenderPass::UpdateDynamicLights(int frameIndex)
+{
+	const auto& lightComps = rfe::EntityReg::GetComponentArray<PointLightComp>();
+
+	std::vector<PointLight> lights;
+	lights.reserve(lightComps.size());
+	for (const auto& c : lightComps)
+		if (c.lit) lights.push_back(c.pointLight);
+
+	//this could be done better, we uppdate all lights even if they have not changed
+	if (!lights.empty())
+	{
+		m_dynamicPointLightBuffer[frameIndex]->Update(lights.data(), lights.size());
+	}
 }
