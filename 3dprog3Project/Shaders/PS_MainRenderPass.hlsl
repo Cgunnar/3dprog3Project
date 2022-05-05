@@ -2,6 +2,7 @@ struct VS_OUT
 {
 	float4 position : SV_POSITION;
 	float4 posWorld : WORLD_POS;
+	float4 normal : NORMAL;
 	float2 uv : UV;
 };
 
@@ -38,7 +39,10 @@ float4 main(VS_OUT input) : SV_TARGET
 	dynamicPointLights.GetDimensions(numLights, lightSize);
 	for (int i = 0; i < numLights; i++)
 	{
-		outputColor += color * dynamicPointLights[i].color;
+		float3 dirToLight = normalize(dynamicPointLights[i].position - input.posWorld.xyz);
+		float diffFactor = dot(input.normal.xyz, dirToLight);
+
+		outputColor += diffFactor * color * dynamicPointLights[i].color;
 	}
 	return float4(outputColor, 1.0f);
 }

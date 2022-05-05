@@ -201,5 +201,6 @@
     <FxCompile Include="Shaders\VS_quad.hlsl" />
     <FxCompile Include="Shaders\PS_postprocessing.hlsl" />
     <FxCompile Include="Shaders\PS_MainRenderPass.hlsl" />
+    <FxCompile Include="Shaders\VS_MainRenderPass.hlsl" />
   </ItemGroup>
 </Project>

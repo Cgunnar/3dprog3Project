@@ -22,10 +22,10 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	ID3DBlob* psBlob = nullptr;
 
 #ifdef _DEBUG
-	vsBlob = LoadCSO("Shaders/compiled/Debug/VertexShader.cso");
+	vsBlob = LoadCSO("Shaders/compiled/Debug/VS_MainRenderPass.cso");
 	psBlob = LoadCSO("Shaders/compiled/Debug/PS_MainRenderPass.cso");
 #else
-	vsBlob = LoadCSO("Shaders/compiled/Release/VertexShader.cso");
+	vsBlob = LoadCSO("Shaders/compiled/Release/VS_MainRenderPass.cso");
 	psBlob = LoadCSO("Shaders/compiled/Release/PS_MainRenderPass.cso");
 #endif // _DEBUG
 
