@@ -56,7 +56,11 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	//dynamicPointLights buffer
 	tableSlot3[0] = descriptorRange;
 
-	std::array<D3D12_ROOT_PARAMETER, 4> rootParameters;
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable0> psPerDrawCallDescriptors;
+	descriptorRange.BaseShaderRegister = 1;
+	psPerDrawCallDescriptors[0] = descriptorRange;
+
+	std::array<D3D12_ROOT_PARAMETER, 5> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable0;
@@ -80,6 +84,12 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	rootParameters[3].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable3;
 	rootParameters[3].DescriptorTable.pDescriptorRanges = tableSlot3.data();
 
+	//pixelshader texture table
+	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParameters[4].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable4;
+	rootParameters[4].DescriptorTable.pDescriptorRanges = psPerDrawCallDescriptors.data();
+
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
 	//rasterState.CullMode = D3D12_CULL_MODE_NONE;
@@ -93,6 +103,21 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	rasterState.AntialiasedLineEnable = false;
 	rasterState.ForcedSampleCount = 0;
 	rasterState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+	D3D12_STATIC_SAMPLER_DESC staticSampler;
+	staticSampler.Filter = D3D12_FILTER_ANISOTROPIC;
+	staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSampler.MipLODBias = 0.0f;
+	staticSampler.MaxAnisotropy = 16;
+	staticSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	staticSampler.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+	staticSampler.MinLOD = 0;
+	staticSampler.MaxLOD = D3D12_FLOAT32_MAX;
+	staticSampler.ShaderRegister = 0;
+	staticSampler.RegisterSpace = 0;
+	staticSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	D3D12_RENDER_TARGET_BLEND_DESC rtvBlendDesc;
 	rtvBlendDesc.BlendEnable = false;
@@ -133,8 +158,8 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 	rootSignDesc.NumParameters = rootParameters.size();
 	rootSignDesc.pParameters = rootParameters.data();
-	rootSignDesc.NumStaticSamplers = 0;
-	rootSignDesc.pStaticSamplers = nullptr;
+	rootSignDesc.NumStaticSamplers = 1;
+	rootSignDesc.pStaticSamplers = &staticSampler;
 
 	ID3DBlob* rootSignatureBlob = nullptr;
 	ID3DBlob* errorBlob = nullptr;
@@ -202,7 +227,7 @@ RenderPassRequirements MainRenderPass::GetRequirements()
 	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
-	req.descriptorHandleSize = numDescriptorsInRootTable0 * perThreadSize + numDescriptorsInRootTable3;
+	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable4) * perThreadSize + numDescriptorsInRootTable3;
 	req.numDescriptorHandles = m_numThreads;
 	return req;
 }
@@ -322,8 +347,9 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 		const GPUAsset& vb = mesh.vertexBuffer;
 		const GPUAsset& ib = mesh.indexBuffer;
 		const GPUAsset& colorBuffer = material.constantBuffer;
+		const GPUAsset& albedoTexture = material.albedoTexture;
 
-		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
+		if (!vb.valid || !ib.valid || !colorBuffer.valid || !albedoTexture.valid) continue;
 
 		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
@@ -331,9 +357,13 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 		device->CopyDescriptorsSimple(1, currentCpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
+		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[albedoTexture.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 
 		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
 		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
+		cmdList->SetGraphicsRootDescriptorTable(4, visBaseDescHandle.gpuHandle);
+		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable4 * visBaseDescHandle.incrementSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
 
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);

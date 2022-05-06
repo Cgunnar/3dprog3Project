@@ -28,8 +28,9 @@ struct PointLight
 	float linAtt;
 	float expAtt;
 };
+SamplerState anisotropicSampler : register(s0);
 StructuredBuffer<PointLight> dynamicPointLights : register(t0);
-
+Texture2D albedoMap : register(t1);
 
 float4 main(VS_OUT input) : SV_TARGET
 {
@@ -42,7 +43,8 @@ float4 main(VS_OUT input) : SV_TARGET
 		float3 dirToLight = normalize(dynamicPointLights[i].position - input.posWorld.xyz);
 		float diffFactor = dot(input.normal.xyz, dirToLight);
 
-		outputColor += diffFactor * color * dynamicPointLights[i].color;
+		outputColor += diffFactor * albedoMap.Sample(anisotropicSampler, input.uv).rgb * dynamicPointLights[i].color;
+		//outputColor += diffFactor * color * dynamicPointLights[i].color;
 	}
 	return float4(outputColor, 1.0f);
 }
