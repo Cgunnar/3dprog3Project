@@ -1,6 +1,14 @@
 #include "pch.h"
+
+#pragma warning(push, 0)
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#pragma warning(pop)
+
 #include "AssetManager.h"
 #include "FrameTimer.h"
+
+
 
 AssetManager* AssetManager::s_instance = nullptr;
 
@@ -34,6 +42,28 @@ uint64_t AssetManager::AddMaterial(const Material& material)
 {
 	uint64_t id = utl::GenerateRandomID();
 	m_materials[id] = MaterialAsset(material);
+
+	if (m_textures.contains(material.albedoID))
+	{
+		m_materials[id].albedoTexture = m_textures[material.albedoID];
+	}
+	return id;
+}
+
+uint64_t AssetManager::AddTextureFromFile(const std::string& path, bool mipmapping, bool linearColorSpace)
+{
+	Image image = AssetManager::LoadImageFromFile(path);
+	uint64_t id = utl::GenerateRandomID();
+	m_textures[id] = GPUAsset();
+
+	CreateTexture2D(m_textures[id], image.width, image.height, mipmapping, linearColorSpace);
+	RecordUpload();
+	UploadTextureStaged(m_textures[id], image.dataPtr);
+	ExecuteUpload();
+	m_textures[id].descIndex = m_heapDescriptor.CreateShaderResource(m_device, m_textures[id].resource.Get());
+	m_textures[id].valid = true;
+	m_textures[id].flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::TEXTURE_2D | GPUAsset::Flag::SRV);
+	stbi_image_free(image.dataPtr);
 	return id;
 }
 
@@ -97,6 +127,11 @@ const MaterialAsset& AssetManager::GetMaterial(uint64_t id) const
 	return m_materials.at(id);
 }
 
+const GPUAsset& AssetManager::GetTexture(uint64_t id) const
+{
+	return m_textures.at(id);
+}
+
 void AssetManager::RemoveMesh(uint64_t id)
 {
 	if (m_meshes.contains(id))
@@ -112,7 +147,17 @@ void AssetManager::RemoveMaterial(uint64_t id)
 	if (m_materials.contains(id))
 	{
 		m_gpuAssetsToRemove.emplace(std::make_pair(m_materials[id].constantBuffer, FrameTimer::Frame()));
+		m_gpuAssetsToRemove.emplace(std::make_pair(m_materials[id].albedoTexture, FrameTimer::Frame()));
 		m_materials.erase(id);
+	}
+}
+
+void AssetManager::RemoveTexture(uint64_t id)
+{
+	if (m_textures.contains(id))
+	{
+		m_gpuAssetsToRemove.emplace(std::make_pair(m_textures[id].resource, FrameTimer::Frame()));
+		m_textures.erase(id);
 	}
 }
 
@@ -178,7 +223,7 @@ AssetManager::AssetManager(ID3D12Device* device) : m_device(device)
 	assert(SUCCEEDED(hr));
 
 
-	m_uploadHeapSize = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT * 100; //we will se if this is big enught
+	m_uploadHeapSize = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT * 400; //we will se if this is big enught
 
 	D3D12_HEAP_PROPERTIES uploadHeapProp;
 	uploadHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -228,6 +273,23 @@ AssetManager::~AssetManager()
 	m_cpyCmdQueue->Release();
 	m_cpyCmdList->Release();
 	m_fence->Release();
+}
+
+AssetManager::Image AssetManager::LoadImageFromFile(const std::string& path)
+{
+	if (!std::filesystem::exists(path))
+	{
+		//assert wont catch if we have wrong path only in release mode
+		throw std::runtime_error(path + " does not exist");
+		return Image();
+	}
+	int numChannels;
+	Image image;
+	image.dataPtr = reinterpret_cast<std::byte*>(stbi_load(path.c_str(), &image.width, &image.height, &numChannels, STBI_rgb_alpha));
+	assert(image.dataPtr);
+
+
+	return image;
 }
 
 void AssetManager::RecordUpload()
@@ -295,6 +357,40 @@ void AssetManager::CreateBuffer(GPUAsset& buffer)
 	}
 }
 
+constexpr UINT CalcMipNumber(UINT w, UINT h)
+{
+	UINT n = 0u;
+	UINT d = std::max(w, h);
+	while (d > 0u)
+	{
+		d = d >> 1;
+		n++;
+	}
+	return n;
+}
+
+void AssetManager::CreateTexture2D(GPUAsset& texture, uint32_t width, uint32_t height, bool mipmapping, bool linearColorSpace)
+{
+	D3D12_RESOURCE_DESC desc;
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	desc.Format = linearColorSpace ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+	desc.Height = width;
+	desc.Width = height;
+	desc.MipLevels = mipmapping ? CalcMipNumber(desc.Width, desc.Height) : 1;
+	desc.DepthOrArraySize = 1;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	D3D12_HEAP_PROPERTIES heapProp = {};
+	heapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+	HRESULT hr = m_device->CreateCommittedResource(&heapProp, D3D12_HEAP_FLAG_NONE, &desc,
+		D3D12_RESOURCE_STATE_COMMON, nullptr, __uuidof(ID3D12Resource), &texture.resource);
+	assert(SUCCEEDED(hr));
+}
+
 void AssetManager::UploadBufferStaged(const GPUAsset& target, const void* data)
 {
 	D3D12_RESOURCE_DESC targetDesc = target.resource->GetDesc();
@@ -314,4 +410,53 @@ void AssetManager::UploadBufferStaged(const GPUAsset& target, const void* data)
 	m_cpyCmdList->CopyBufferRegion(target.resource.Get(), 0, m_uploadBuffer, m_uploadBufferOffset, targetFootPrint.Footprint.Width);
 	m_uploadBufferOffset += targetFootPrint.Footprint.RowPitch;
 	m_uploadBuffer->Unmap(0, nullptr);
+}
+
+void AssetManager::UploadTextureStaged(const GPUAsset& target, const void* data)
+{
+	D3D12_RESOURCE_DESC targetDesc = target.resource->GetDesc();
+	UINT numRows = 0;
+	UINT64 rowSizeInBytes = 0;
+	UINT64 totalBytes = 0;
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT targetFootPrint;
+	m_device->GetCopyableFootprints(&targetDesc, 0, 1, 0, &targetFootPrint, &numRows, &rowSizeInBytes, &totalBytes);
+
+	D3D12_RANGE emptyRange = { 0, 0 };
+	std::byte* mappedMemory = nullptr;
+	HRESULT hr = m_uploadBuffer->Map(0, &emptyRange, reinterpret_cast<void**>(&mappedMemory));
+	assert(SUCCEEDED(hr));
+	m_uploadBufferOffset = utl::AlignSize(m_uploadBufferOffset, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+	mappedMemory += m_uploadBufferOffset;
+
+	for (UINT i = 0; i < numRows; i++)
+	{
+		std::memcpy(mappedMemory + i * targetFootPrint.Footprint.RowPitch, reinterpret_cast<const std::byte*>(data) + i * rowSizeInBytes, rowSizeInBytes);
+	}
+	m_uploadBufferOffset += numRows * targetFootPrint.Footprint.RowPitch;
+	m_uploadBuffer->Unmap(0, nullptr);
+
+	D3D12_TEXTURE_COPY_LOCATION cpyDstTexLocation;
+	cpyDstTexLocation.pResource = target.resource.Get();
+	cpyDstTexLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	cpyDstTexLocation.SubresourceIndex = 0;
+
+	D3D12_TEXTURE_COPY_LOCATION cpySrcTexLocation;
+	cpySrcTexLocation.pResource = m_uploadBuffer;
+	cpySrcTexLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	cpySrcTexLocation.PlacedFootprint.Offset = m_uploadBufferOffset;
+	cpySrcTexLocation.PlacedFootprint.Footprint = targetFootPrint.Footprint;
+
+
+	m_cpyCmdList->CopyTextureRegion(&cpyDstTexLocation, 0, 0, 0, &cpySrcTexLocation, nullptr);
+
+
+	D3D12_RESOURCE_BARRIER barrier;
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = target.resource.Get();
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+
+	m_cpyCmdList->ResourceBarrier(1, &barrier);
 }

@@ -9,6 +9,11 @@ using namespace rfe;
 
 Scene::Scene()
 {
+	Material texturedMaterial;
+	texturedMaterial.albedo = { 1, 1, 1, 1 };
+	texturedMaterial.albedoID = AssetManager::Get().AddTextureFromFile("Assets/Hej.png", false, false);
+
+
 	Geometry::Sphere_POS_NOR_UV sphere = Geometry::Sphere_POS_NOR_UV(32, 0.5f);
 	Geometry::AABB_POS_NOR_UV box = Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
 	Mesh newSphereMesh = Mesh(reinterpret_cast<const float*>(sphere.VertexData().data()), sphere.ArraySize(), sphere.IndexData(), MeshType::POS_NOR_UV);

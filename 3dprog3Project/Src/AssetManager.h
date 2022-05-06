@@ -56,6 +56,7 @@ struct MaterialAsset
 	}
 	std::shared_ptr<Material> material;
 	GPUAsset constantBuffer;
+	GPUAsset albedoTexture;
 };
 
 class AssetManager
@@ -67,15 +68,18 @@ public:
 
 	uint64_t AddMesh(const Mesh& mesh);
 	uint64_t AddMaterial(const Material &material);
+	uint64_t AddTextureFromFile(const std::string& path, bool mipmapping, bool linearColorSpace);
 
 	void MoveMeshToGPU(uint64_t id);
 	void MoveMaterialToGPU(uint64_t id);
 
 	const MeshAsset& GetMesh(uint64_t id) const;
 	const MaterialAsset& GetMaterial(uint64_t id) const;
+	const GPUAsset& GetTexture(uint64_t id) const;
 
 	void RemoveMesh(uint64_t id);
 	void RemoveMaterial(uint64_t id);
+	void RemoveTexture(uint64_t id);
 
 	void Update(int numberOfFramesInFlight);
 
@@ -91,6 +95,7 @@ private:
 
 	std::unordered_map<uint64_t, MeshAsset> m_meshes;
 	std::unordered_map<uint64_t, MaterialAsset> m_materials;
+	std::unordered_map<uint64_t, GPUAsset> m_textures;
 	std::queue<std::pair<GPUAsset, uint64_t>> m_gpuAssetsToRemove; //the uint is the frame the remove was requested on
 	DescriptorVector m_heapDescriptor = DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 
@@ -107,9 +112,20 @@ private:
 	UINT64 m_uploadHeapSize = 0;
 	UINT64 m_uploadBufferOffset = 0;
 
+	struct Image
+	{
+		std::byte* dataPtr = nullptr;
+		int width;
+		int height;
+		std::string filePath;
+	};
+
+	static Image LoadImageFromFile(const std::string& path);
 	void RecordUpload();
 	void ExecuteUpload();
 
 	void CreateBuffer(GPUAsset& buffer);
+	void CreateTexture2D(GPUAsset& texture, uint32_t width, uint32_t height, bool mipmapping, bool linearColorSpace);
 	void UploadBufferStaged(const GPUAsset& target, const void* data);
+	void UploadTextureStaged(const GPUAsset& target, const void* data);
 };

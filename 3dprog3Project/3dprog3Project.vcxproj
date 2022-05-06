@@ -60,7 +60,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;USE_PIX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/CodeFromOlderProjects;Src/CodeFromOlderProjects/Math;Src/Components;$(SolutionDir)imgui;$(SolutionDir)Include/WinPixEventRuntime;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/CodeFromOlderProjects;Src/CodeFromOlderProjects/Math;Src/Components;$(SolutionDir)imgui;$(SolutionDir)Include/WinPixEventRuntime;$(SolutionDir)Include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -83,7 +83,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/CodeFromOlderProjects;Src/CodeFromOlderProjects/Math;Src/Components;$(SolutionDir)imgui;$(SolutionDir)Include/WinPixEventRuntime;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Src;Src/Graphics;Src/CodeFromOlderProjects;Src/CodeFromOlderProjects/Math;Src/Components;$(SolutionDir)imgui;$(SolutionDir)Include/WinPixEventRuntime;$(SolutionDir)Include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
