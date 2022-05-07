@@ -11,7 +11,7 @@ struct DescriptorHandle
 class DescriptorPool
 {
 public:
-	DescriptorPool(ID3D12Device* device, UINT framesInFlight, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT maxSize = 2048 * 8);
+	DescriptorPool(ID3D12Device* device, UINT framesInFlight, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT dynamicMaxSize = 2048 * 8, UINT staticMaxSize = 2048 * 8);
 	~DescriptorPool();
 
 	DescriptorPool(const DescriptorPool& other) = delete;
@@ -19,14 +19,17 @@ public:
 
 	void SetNextFrame();
 	DescriptorHandle DynamicAllocate(UINT count);
+	DescriptorHandle StaticAllocate(UINT count);
 	ID3D12DescriptorHeap* Get() const;
 
 private:
 	ID3D12Device* m_device;
-	UINT m_count = 0;
+	UINT m_dynamicCount = 0;
+	UINT m_staticCount = 0;
+	UINT m_staticEnd = 0;
 	UINT m_perFramePoolSize = 0;
 	UINT m_framesInFlight = 0;
-	UINT m_capacity = 0;
+	UINT m_staticBegin = 0;
 	UINT m_incrementSize = 0;
 	int m_frameIndex = 0;
 	ID3D12DescriptorHeap* m_descriptorHeap = nullptr;
