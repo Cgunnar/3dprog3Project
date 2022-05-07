@@ -33,6 +33,11 @@ FrameResource::FrameResource(ID3D12Device* device, UINT width, UINT height) : m_
 		D3D12_RESOURCE_STATE_RENDER_TARGET, &rtClarValue, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&renderTarget));
 	assert(SUCCEEDED(hr));
 
+	if (FAILED(hr)) //troll resolution settings will fail here
+	{
+		throw std::runtime_error("Failed to create render target");
+	}
+
 	D3D12_DESCRIPTOR_HEAP_DESC rtvDescHDesc;
 	rtvDescHDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvDescHDesc.NumDescriptors = 1;
