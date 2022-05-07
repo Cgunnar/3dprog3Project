@@ -9,11 +9,6 @@ using namespace rfe;
 
 Scene::Scene()
 {
-	Material texturedMaterial;
-	texturedMaterial.albedo = { 1, 1, 1, 1 };
-	texturedMaterial.albedoID = AssetManager::Get().AddTextureFromFile("Assets/Hej.png", false, false);
-
-
 	Geometry::Sphere_POS_NOR_UV sphere = Geometry::Sphere_POS_NOR_UV(32, 0.5f);
 	Geometry::AABB_POS_NOR_UV box = Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
 	Mesh newSphereMesh = Mesh(reinterpret_cast<const float*>(sphere.VertexData().data()), sphere.ArraySize(), sphere.IndexData(), MeshType::POS_NOR_UV);
@@ -25,47 +20,45 @@ Scene::Scene()
 	m_boxMesh = AssetManager::Get().AddMesh(newBoxMesh);
 	AssetManager::Get().MoveMeshToGPU(m_boxMesh);
 
+	Material whiteEmissiveMat;
+	whiteEmissiveMat.albedoFactor = { 0, 0, 0, 1 };
+	whiteEmissiveMat.emissionFactor = { 1, 1, 1, 1 };
 	Material matRed;
-	matRed.albedo = { 1, 0, 0, 1 };
-	matRed.albedoID = texturedMaterial.albedoID;
+	matRed.albedoFactor = { 1, 0, 0, 1 };
 	Material matGreen;
-	matGreen.albedo = { 0, 1, 0, 1 };
+	matGreen.albedoFactor = { 0, 1, 0, 1 };
 	Material matBlue;
-	matBlue.albedo = { 0, 0, 1, 1 };
-	
+	matBlue.albedoFactor = { 0, 0, 1, 1 };
+	Material texturedMaterial;
+	texturedMaterial.albedoFactor = { 1, 1, 1, 1 };
+	texturedMaterial.albedoID = AssetManager::Get().AddTextureFromFile("Assets/Hej.png", false, false);
+
 	m_redMaterial = AssetManager::Get().AddMaterial(matRed);
 	AssetManager::Get().MoveMaterialToGPU(m_redMaterial);
 	m_greenMaterial = AssetManager::Get().AddMaterial(matGreen);
 	AssetManager::Get().MoveMaterialToGPU(m_greenMaterial);
 	m_blueMaterial = AssetManager::Get().AddMaterial(matBlue);
 	AssetManager::Get().MoveMaterialToGPU(m_blueMaterial);
-
-	/*Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
-	newEntity.AddComponent<TransformComp>()->transform.translateW({ 0.5, 0, 1 });
-	newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
-	newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;*/
+	m_hejMaterial = AssetManager::Get().AddMaterial(texturedMaterial);
+	AssetManager::Get().MoveMaterialToGPU(m_hejMaterial);
 
 
-	/*newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
-	auto& transform = newEntity.AddComponent<TransformComp>()->transform;
-	transform.setTranslation({ 0, 0.4f, 0.6f });
-	transform.setRotationDeg(30, 20, 0);
-	transform.setScale(0.4f);
-	newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
-	newEntity.AddComponent<MaterialComp>()->materialID = m_redMaterial;*/
-
-	//std::random_device d;
 	std::default_random_engine eng(4);
-	std::uniform_int_distribution<> dist1(0, 2);
+	std::uniform_int_distribution<> dist1(0, 3);
 	std::uniform_int_distribution<> dist2(0, 1);
 	
-	for (int i = 0; i < 10; i++)
+	int l = 15;
+#ifdef _DEBUG
+	l = 8;
+#endif // _DEBUG
+
+	for (int i = 0; i < l; i++)
 	{
-		for (int j = 0; j < 10; j++)
+		for (int j = 0; j < l; j++)
 		{
-			for (int k = 0; k < 10; k++)
+			for (int k = 0; k < l; k++)
 			{
-				rfm::Vector3 pos = rfm::Vector3( 2*i, 2*j, 2*k );
+				rfm::Vector3 pos = rfm::Vector3( 2*i, 2*j, 2*k ) - rfm::Vector3(l);
 				Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 				auto& transform = newEntity.AddComponent<TransformComp>()->transform;
 				transform.setTranslation(pos);
@@ -73,8 +66,11 @@ Scene::Scene()
 				int r = dist1(eng);
 				int r2 = dist2(eng);
 
-				if(r2 == 0)
+				if (r2 == 0)
+				{
 					newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
+					newEntity.AddComponent<SpinnComp>()->rotSpeed = pos;
+				}
 				else
 					newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
 
@@ -82,24 +78,51 @@ Scene::Scene()
 					newEntity.AddComponent<MaterialComp>()->materialID = m_redMaterial;
 				else if(r == 1)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_blueMaterial;
-				else
+				else if(r == 2)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
-
-				newEntity.AddComponent<SpinnComp>();
+				else
+					newEntity.AddComponent<MaterialComp>()->materialID = m_hejMaterial;
 			}
 		}
 	}
 
-	Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
-	newEntity.AddComponent<TransformComp>();
-	newEntity.AddComponent<PointLightComp>()->pointLight.color = { 1,0,0 };
+	int numLight = 200;
+#ifdef _DEBUG
+	numLight = 1;
+#endif // _DEBUG
+	for (int i = 0; i < numLight; i++)
+	{
+		std::mt19937 eng0(12 + i);
+		std::mt19937 eng1(313235 + i);
+		std::mt19937 eng2(52121 + i);
+		std::uniform_real_distribution<> posDist(-15, 15);
+		std::uniform_real_distribution<> lightDist(0, 1);
+		rfm::Vector3 pos(posDist(eng0), posDist(eng1), posDist(eng2));
+		rfm::Vector3 light(lightDist(eng0), lightDist(eng1), lightDist(eng2));
 
-	newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
-	newEntity.AddComponent<TransformComp>();
-	newEntity.AddComponent<PointLightComp>()->pointLight.color = { 0.2,0.2,0.2 };
+
+		Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+		auto& tr0 = newEntity.AddComponent<TransformComp>()->transform;
+		tr0.setScale(0.2);
+		tr0.setTranslation(pos);
+		auto& pl0 = newEntity.AddComponent<PointLightComp>()->pointLight;
+		pl0.color = light;
+		pl0.strength = 40.0f / numLight;
+
+		Material lightMat;
+		lightMat.albedoFactor = { 0, 0, 0, 1 };
+		lightMat.emissionFactor = rfm::Vector4(light, 1);
+
+		uint64_t matId = AssetManager::Get().AddMaterial(lightMat);
+		AssetManager::Get().MoveMaterialToGPU(matId);
+
+		newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
+		newEntity.AddComponent<MaterialComp>()->materialID = matId;
+	}
+
 
 	m_camera = EntityReg::CreateEntity();
-	m_camera.AddComponent<TransformComp>()->transform.setTranslation(10, 0, -10);
+	m_camera.AddComponent<TransformComp>()->transform.setTranslation(0, 0, -20);
 	m_camera.AddComponent<CameraComp>();
 	auto controller = m_camera.AddComponent<CameraControllerScript>();
 	controller->ToggleCameraLock();
@@ -114,11 +137,32 @@ void Scene::Update(float dt)
 {
 	rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
 
+	//system to rotate the cubes
 	const auto& spinningEntities = EntityReg::GetComponentArray<SpinnComp>();
 	for (const auto& spinnComp : spinningEntities)
 	{
 		TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(spinnComp.GetEntityID());
 		if (transformComp)
 			transformComp->transform.rotateDegL(dt * spinnComp.rotSpeed);
+	}
+
+
+	//system for making the lights orbit
+	rfm::Vector3 orbitPoint = { 0,0,0 };
+	auto& pointLightsEntities = EntityReg::GetComponentArray<PointLightComp>();
+	for (auto& plComp : pointLightsEntities)
+	{
+		TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(plComp.GetEntityID());
+		if (transformComp)
+		{
+			rfm::Transform& tr = transformComp->transform;
+			if ((orbitPoint - tr.getTranslation()).length() == 0) orbitPoint += {0.1, 0, 0};
+			rfm::Vector3 rotNormal = rfm::cross(tr.right(), tr.getTranslation() - orbitPoint);
+			if(rotNormal.length() == 0) rotNormal = rfm::cross(tr.up(), tr.getTranslation() - orbitPoint);
+			tr.translateW(-orbitPoint);
+			tr = rfm::rotationMatrixFromNormal( rfm::normalize(rotNormal), rfm::DegToRad(30.0f * dt)) * tr;
+			tr.translateW(orbitPoint);
+			plComp.pointLight.position = tr.getTranslation();
+		}
 	}
 }

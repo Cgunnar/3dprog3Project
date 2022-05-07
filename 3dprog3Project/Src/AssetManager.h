@@ -51,7 +51,7 @@ struct MaterialAsset
 	{
 		this->material = std::make_shared<Material>(material);
 		constantBuffer.elementCount = 1;
-		constantBuffer.elementSize = sizeof(rfm::Vector4);
+		constantBuffer.elementSize = 2 * sizeof(rfm::Vector4) + sizeof(int);
 		constantBuffer.flag = GPUAsset::Flag::CBV;
 	}
 	std::shared_ptr<Material> material;

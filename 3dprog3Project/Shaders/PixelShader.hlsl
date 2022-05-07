@@ -15,10 +15,11 @@ cbuffer CameraCB : register(b0)
 
 cbuffer ColorBuffer : register(b1)
 {
-	float4 color;
+	float4 albedo;
+	float4 emission;
 }
 
 float4 main(VS_OUT input) : SV_TARGET
 {
-	return color;
+	return albedo;
 }

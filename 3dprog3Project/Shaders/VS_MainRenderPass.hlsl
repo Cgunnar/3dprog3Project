@@ -34,7 +34,7 @@ VS_OUT main(uint vertexID : SV_VERTEXID)
 	VS_OUT output;
 	Vertex vertex = vertices[indices[vertexID]];
 	output.posWorld = mul(worldMatrix, float4(vertex.position, 1.0f));
-	output.normal = mul(worldMatrix, float4(vertex.normal, 0.0f));
+	output.normal = normalize(mul(worldMatrix, float4(vertex.normal, 0.0f)));
 	output.position = mul(viewProjectionMatrix, output.posWorld);
 	output.uv = vertex.uv;
 	return output;

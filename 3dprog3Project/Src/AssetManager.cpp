@@ -108,7 +108,20 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	MaterialAsset &materialAsset = m_materials[id];
 	CreateBuffer(materialAsset.constantBuffer);
 	RecordUpload();
-	UploadBufferStaged(materialAsset.constantBuffer, &materialAsset.material->albedo);
+	struct MaterialCB
+	{
+		rfm::Vector4 albedoFactor;
+		rfm::Vector4 emissionFactor;
+		int albedoTextureIndex = 0;
+	} cbData;
+	cbData.albedoFactor = materialAsset.material->albedoFactor;
+	cbData.emissionFactor = materialAsset.material->emissionFactor;
+	if (!materialAsset.albedoTexture.valid)
+	{
+		cbData.albedoTextureIndex = -1;
+	}
+
+	UploadBufferStaged(materialAsset.constantBuffer, &cbData);
 	ExecuteUpload();
 	D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc;
 	viewDesc.BufferLocation = materialAsset.constantBuffer.resource->GetGPUVirtualAddress();

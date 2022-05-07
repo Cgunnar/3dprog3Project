@@ -36,11 +36,11 @@ struct SpinnComp : public rfe::Component<SpinnComp>
 struct PointLight
 {
 	rfm::Vector3 position;
-	float strength;
-	rfm::Vector3 color;
-	float constAtt;
-	float linAtt;
-	float expAtt;
+	float strength = 1.0f;
+	rfm::Vector3 color = { 1.0f, 1.0f, 1.0f };
+	float constAtt = 1.0f;
+	float linAtt = 0.1f;
+	float expAtt = 0.01f;
 };
 struct PointLightComp : public rfe::Component<PointLightComp>
 {
