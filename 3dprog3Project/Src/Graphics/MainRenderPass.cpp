@@ -283,6 +283,12 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
+	rfm::Vector3 cameraPos = cameraCBData.pos;
+	std::sort(entities.begin(), entities.end(), [&cameraPos](auto& a, auto& b) {
+		rfm::Vector3 distA = a.GetComponent<TransformComp>()->transform.getTranslation() - cameraPos;
+		rfm::Vector3 distB = b.GetComponent<TransformComp>()->transform.getTranslation() - cameraPos;
+		return rfm::dot(distA, distB) < rfm::dot(distB, distB);
+		});
 
 	if (m_numThreads == 1)
 	{
