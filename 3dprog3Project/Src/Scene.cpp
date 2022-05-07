@@ -27,6 +27,7 @@ Scene::Scene()
 
 	Material matRed;
 	matRed.albedo = { 1, 0, 0, 1 };
+	matRed.albedoID = texturedMaterial.albedoID;
 	Material matGreen;
 	matGreen.albedo = { 0, 1, 0, 1 };
 	Material matBlue;

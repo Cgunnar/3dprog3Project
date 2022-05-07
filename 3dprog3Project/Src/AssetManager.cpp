@@ -223,7 +223,7 @@ AssetManager::AssetManager(ID3D12Device* device) : m_device(device)
 	assert(SUCCEEDED(hr));
 
 
-	m_uploadHeapSize = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT * 400; //we will se if this is big enught
+	m_uploadHeapSize = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT * 1024; //we will se if this is big enught
 
 	D3D12_HEAP_PROPERTIES uploadHeapProp;
 	uploadHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -287,7 +287,7 @@ AssetManager::Image AssetManager::LoadImageFromFile(const std::string& path)
 	Image image;
 	image.dataPtr = reinterpret_cast<std::byte*>(stbi_load(path.c_str(), &image.width, &image.height, &numChannels, STBI_rgb_alpha));
 	assert(image.dataPtr);
-
+	image.filePath = path;
 
 	return image;
 }
@@ -432,7 +432,7 @@ void AssetManager::UploadTextureStaged(const GPUAsset& target, const void* data)
 	{
 		std::memcpy(mappedMemory + i * targetFootPrint.Footprint.RowPitch, reinterpret_cast<const std::byte*>(data) + i * rowSizeInBytes, rowSizeInBytes);
 	}
-	m_uploadBufferOffset += numRows * targetFootPrint.Footprint.RowPitch;
+	
 	m_uploadBuffer->Unmap(0, nullptr);
 
 	D3D12_TEXTURE_COPY_LOCATION cpyDstTexLocation;
@@ -446,6 +446,7 @@ void AssetManager::UploadTextureStaged(const GPUAsset& target, const void* data)
 	cpySrcTexLocation.PlacedFootprint.Offset = m_uploadBufferOffset;
 	cpySrcTexLocation.PlacedFootprint.Footprint = targetFootPrint.Footprint;
 
+	m_uploadBufferOffset += numRows * targetFootPrint.Footprint.RowPitch;
 
 	m_cpyCmdList->CopyTextureRegion(&cpyDstTexLocation, 0, 0, 0, &cpySrcTexLocation, nullptr);
 
