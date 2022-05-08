@@ -26,16 +26,11 @@ struct Transform
 	float4x4 worldMatrix;
 };
 
-struct RootConstant
-{
-	
-};
-
 cbuffer MaterialBuffer : register(b2, space3)
 {
 	int startOffset;
 }
-ConstantBuffer<Transform> transform[] : register(b1);
+
 ConstantBuffer<Transform> transformIns[] : register(b0, space1);
 
 

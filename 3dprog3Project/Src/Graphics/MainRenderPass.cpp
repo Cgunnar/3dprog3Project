@@ -41,11 +41,11 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	descriptorRange.BaseShaderRegister = 1;
 	vsDescriptorRanges[1] = descriptorRange;
 
-	//worldMatrix CB
-	descriptorRange.BaseShaderRegister = 1;
-	descriptorRange.RegisterSpace = 0;
-	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	vsDescriptorRanges[2] = descriptorRange;
+	////worldMatrix CB
+	//descriptorRange.BaseShaderRegister = 1;
+	//descriptorRange.RegisterSpace = 0;
+	//descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	//vsDescriptorRanges[2] = descriptorRange;
 
 	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable3> tableSlot3;
 	descriptorRange.NumDescriptors = 1;
@@ -258,7 +258,7 @@ RenderPassRequirements MainRenderPass::GetRequirements()
 	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
-	req.descriptorHandleSize = (numDescriptorsInRootTable0) * perThreadSize + numDescriptorsInRootTable3;
+	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * perThreadSize + numDescriptorsInRootTable3;
 	req.numDescriptorHandles = m_numThreads;
 	return req;
 }
@@ -310,6 +310,7 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 		cmdList->SetGraphicsRootDescriptorTable(3, descriptorHandles.front().gpuHandle);
 	}
 	descriptorHandles.front().gpuHandle.ptr += descriptorHandles.front().incrementSize;
+	descriptorHandles.front().index++;
 
 
 	//fix a better way of allocating memory
@@ -366,39 +367,47 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
 	
 
-	DescriptorHandle visBaseDescHandle = descHandle;
-	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
+	
+	
 
+	int counter = 0;
 	for (auto& entity : entitiesToDraw)
 	{
-		const auto& mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
-		const auto& material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
 		const auto& transform = entity.GetComponent<TransformComp>()->transform;
 
 		UINT worldMatrixCB = cbManager->PushConstantBuffer();
 		cbManager->UpdateConstantBuffer(worldMatrixCB, &transform, 64);
+
+		device->CopyDescriptorsSimple(1, descHandle[counter].cpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		counter++;
+	}
+	cmdList->SetGraphicsRootDescriptorTable(5, descHandle.gpuHandle);
+	DescriptorHandle visBaseDescHandle = descHandle[counter];
+	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
+	counter = 0;
+	for (auto& entity : entitiesToDraw)
+	{
+		const auto& mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
+		const auto& material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
 
 		const GPUAsset& vb = mesh.vertexBuffer;
 		const GPUAsset& ib = mesh.indexBuffer;
 		const GPUAsset& colorBuffer = material.constantBuffer;
 		const GPUAsset& albedoTexture = material.albedoTexture;
 
-		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
+		if (!vb.valid || !ib.valid || !colorBuffer.valid) assert(false);
 
 		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[ib.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-		device->CopyDescriptorsSimple(1, currentCpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-
-		cmdList->SetGraphicsRootDescriptorTable(5, visBaseDescHandle[2].gpuHandle);
 
 		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
 		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
-		cmdList->SetGraphicsRoot32BitConstant(6, 0, 0);
+		cmdList->SetGraphicsRoot32BitConstant(6, counter, 0);
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
+		counter++;
 	}
 }
 
