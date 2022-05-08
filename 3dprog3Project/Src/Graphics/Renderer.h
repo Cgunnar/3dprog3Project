@@ -61,7 +61,7 @@ private:
 	ID3D12DescriptorHeap* m_rtvDescHeap = nullptr;
 	UINT m_rtvDescSize = 0;
 
-	std::vector<FrameResource> m_frameResources;
+	std::unique_ptr<FrameResource> m_frameResource;
 
 	ID3D12DescriptorHeap* m_imguiDescHeap = nullptr;
 

@@ -71,10 +71,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	m_desriptorPool = std::make_unique<DescriptorPool>(m_device, m_numFramesInFlight,
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 900000, 100000);
 
-	for (int i = 0; i < m_numFramesInFlight; i++)
-	{
-		m_frameResources.emplace_back(m_device, settings.renderWidth, settings.renderHeight);
-	}
+		m_frameResource = std::make_unique<FrameResource>(m_device, settings.renderWidth, settings.renderHeight);
 
 	CheckMonitorRes();
 
@@ -184,7 +181,7 @@ void Renderer::BeginFrame()
 	backbufferTransitionBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	m_directCmdListStart->ResourceBarrier(1, &backbufferTransitionBarrier);
 
-	m_frameResources[frameIndex].m_backBufferCpuDescHandle = backBufferHandle;
+	m_frameResource->m_backBufferCpuDescHandle = backBufferHandle;
 
 	auto descripterHeap = m_desriptorPool->Get();
 	m_directCmdListStart->SetDescriptorHeaps(1, &descripterHeap);
@@ -225,11 +222,11 @@ size_t Renderer::Render()
 		m_activeRenderPassCmdListsCount += req.cmdListCount;
 
 		//PIXBeginEvent(m_directCmdList, 200, renderPass->Name().c_str());
-		renderPass->RunRenderPass(cmdLists, handles, m_frameResources[frameIndex], frameIndex);
+		renderPass->RunRenderPass(cmdLists, handles, *m_frameResource, frameIndex);
 		//PIXEndEvent(m_directCmdList);
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_frameResources[frameIndex].GetBackBufferCpuHandle();
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_frameResource->GetBackBufferCpuHandle();
 	m_directCmdListEnd->OMSetRenderTargets(1, &rtvHandle, true, nullptr);
 	m_directCmdListEnd->SetDescriptorHeaps(1, &m_imguiDescHeap);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdListEnd);
@@ -596,11 +593,8 @@ void Renderer::SetRenderResolution(UINT width, UINT height)
 
 	m_renderingSettings.renderWidth = width;
 	m_renderingSettings.renderHeight = height;
-	m_frameResources.clear();
-	for (int i = 0; i < m_numFramesInFlight; i++)
-	{
-		m_frameResources.emplace_back(m_device, width, height);
-	}
+	m_frameResource.reset();
+	m_frameResource = std::make_unique<FrameResource>(m_device, width, height);
 
 	for (auto& rp : m_renderPasses)
 	{
