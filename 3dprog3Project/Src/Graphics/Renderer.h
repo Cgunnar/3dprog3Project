@@ -30,7 +30,6 @@ private:
 	UINT m_width;
 	UINT m_height;
 	bool m_fullscreen = false;
-	BOOL m_hasVariableRefreshRate = false;
 	DXGI_OUTPUT_DESC1 m_outputDesc;
 	RenderingSettings m_renderingSettings;
 	std::unique_ptr<DescriptorPool> m_desriptorPool = nullptr;

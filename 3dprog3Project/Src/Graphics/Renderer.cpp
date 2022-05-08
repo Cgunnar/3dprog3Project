@@ -283,7 +283,7 @@ void Renderer::EndFrame()
 	}
 	else
 	{
-		hr = m_swapchain->Present(0, !m_fullscreen && m_hasVariableRefreshRate ? DXGI_PRESENT_ALLOW_TEARING : 0); // this is for variable rate displayes
+		hr = m_swapchain->Present(0, !m_fullscreen ? DXGI_PRESENT_ALLOW_TEARING : 0);
 		assert(SUCCEEDED(hr));
 	}
 	
@@ -395,18 +395,9 @@ int Renderer::GetNumberOfFramesInFlight() const
 
 void Renderer::DisplayChanged()
 {
-	IDXGIFactory6* factory;
-	HRESULT hr = m_swapchain->GetParent(__uuidof(IDXGIFactory6), reinterpret_cast<void**>(&factory));
-	assert(SUCCEEDED(hr));
-	hr = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &m_hasVariableRefreshRate, sizeof(BOOL));
-	assert(SUCCEEDED(hr));
-	factory->Release();
-	utl::PrintDebug("Display has VariableRefreshRate: " + std::to_string(m_hasVariableRefreshRate));
-
 	m_currentBackbufferIndex = m_swapchain->GetCurrentBackBufferIndex();
 	m_outputDesc = GetOutputCapabilities();
 	OnResize(0, 0, false);
-	
 }
 
 RenderingSettings Renderer::GetRenderingSettings() const
@@ -427,7 +418,7 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 	utl::PrintDebug(L"Adapter: " + std::wstring(adapterDesc.Description));
 	utl::PrintDebug(std::to_string(m_vramInBytes / 1000000) + " MB");
 
-	hr = D3D12CreateDevice(m_adapter, D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&m_device));
+	hr = D3D12CreateDevice(m_adapter, D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), reinterpret_cast<void**>(&m_device));
 	assert(SUCCEEDED(hr));
 
 
@@ -463,7 +454,16 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 	assert(SUCCEEDED(hr));
 	if (shaderModelSupported.HighestShaderModel < D3D_SHADER_MODEL_6_6)
 	{
-		utl::PrintDebug("SHADER_MODEL_6_6 is not supported");
+		utl::PrintDebug("D3D_SHADER_MODEL_6_6 is not supported");
+	}
+
+	D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupport5{};
+
+	hr = m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupport5, sizeof(featureSupport5));
+	assert(SUCCEEDED(hr));
+	if (featureSupport5.RaytracingTier < D3D12_RAYTRACING_TIER_1_1)
+	{
+		utl::PrintDebug("D3D12_RAYTRACING_TIER_1_1 is not supported");
 	}
 
 
@@ -521,8 +521,6 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 
 void Renderer::CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle)
 {
-	HRESULT hr = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &m_hasVariableRefreshRate, sizeof(BOOL));
-	utl::PrintDebug("Display has VariableRefreshRate: " + std::to_string(m_hasVariableRefreshRate) + "this always seems to be true even when it should not");
 	m_backbuffers.resize(m_numBackBuffers);
 	DXGI_SWAP_CHAIN_DESC1 desc;
 	desc.Width = 0;
@@ -539,7 +537,7 @@ void Renderer::CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle)
 	//it does not seem to be illigal to allow tearing on non VariableRefreshRate displayes
 	//if (m_hasVariableRefreshRate) desc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-	hr = factory->CreateSwapChainForHwnd(m_directCmdQueue, windowHandle, &desc, nullptr,
+	HRESULT hr = factory->CreateSwapChainForHwnd(m_directCmdQueue, windowHandle, &desc, nullptr,
 		nullptr, reinterpret_cast<IDXGISwapChain1**>(&m_swapchain));
 	assert(SUCCEEDED(hr));
 
