@@ -156,6 +156,8 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignDesc;
 	rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+	//rtx 2070 mobile does only have shader model 6.5
+	//rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
 	rootSignDesc.NumParameters = rootParameters.size();
 	rootSignDesc.pParameters = rootParameters.data();
 	rootSignDesc.NumStaticSamplers = 1;
@@ -167,7 +169,11 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	HRESULT hr = D3D12SerializeRootSignature(&rootSignDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, &rootSignatureBlob, &errorBlob);
 	if (FAILED(hr))
 	{
-		errorBlob->Release();
+		if (errorBlob)
+		{
+			std::cout << static_cast<char*>(errorBlob->GetBufferPointer()) << std::endl;
+			errorBlob->Release();
+		}
 		assert(SUCCEEDED(hr));
 	}
 

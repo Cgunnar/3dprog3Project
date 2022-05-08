@@ -457,6 +457,15 @@ void Renderer::CreateDeviceAndDirectCmd(IDXGIFactory6* factory)
 	}
 	}
 
+	D3D12_FEATURE_DATA_SHADER_MODEL shaderModelSupported;
+	shaderModelSupported.HighestShaderModel = D3D_SHADER_MODEL_6_6;
+	hr = m_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModelSupported, sizeof(shaderModelSupported));
+	assert(SUCCEEDED(hr));
+	if (shaderModelSupported.HighestShaderModel < D3D_SHADER_MODEL_6_6)
+	{
+		utl::PrintDebug("SHADER_MODEL_6_6 is not supported");
+	}
+
 
 	D3D12_COMMAND_QUEUE_DESC desc;
 	desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
