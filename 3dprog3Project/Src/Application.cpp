@@ -69,7 +69,7 @@ void Application::Run()
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
-			
+
 			//ImGui::ShowDemoWindow();
 
 			static RenderingSettings newSettings;
@@ -86,7 +86,7 @@ void Application::Run()
 				m_window->SetFullscreen(newSettings.fullscreemState);
 				m_renderSettings.fullscreemState = newSettings.fullscreemState;
 			}
-			
+
 			if (ImGui::Checkbox("vsync", &newSettings.vsync))
 			{
 				m_renderer->SetVSync(newSettings.vsync);
@@ -115,7 +115,7 @@ void Application::Run()
 				"4320",
 				"If you like to go over the limit"
 			};
-			
+
 			static int resIndex = 3;
 			ImGui::Text("resolution");
 			ImGui::SameLine();
@@ -155,7 +155,7 @@ void Application::Run()
 				restartRenderer = true;
 				runApplicationLoop = false;
 				m_renderSettings = newSettings;
-				
+
 				//borderLess is not allowed when recreating the renderer
 				if (m_window->GetFullscreenState() == FullscreenState::borderLess
 					|| m_window->GetFullscreenState() == FullscreenState::fullscreen)

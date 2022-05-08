@@ -236,7 +236,7 @@ RenderPassRequirements MainRenderPass::GetRequirements()
 	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
-	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable4) * perThreadSize + numDescriptorsInRootTable3;
+	req.descriptorHandleSize = (numDescriptorsInRootTable0) * perThreadSize + numDescriptorsInRootTable3;
 	req.numDescriptorHandles = m_numThreads;
 	return req;
 }
