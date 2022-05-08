@@ -14,6 +14,7 @@ public:
 	void RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height) override;
 	std::string Name() const override;
 	static constexpr UINT numDescriptorsInRootTable0 = 3; //per draw call vertexshader
+	static constexpr UINT numDescriptorsInRootTable5 = 1; //bindless transforms vertexshader
 	static constexpr UINT numDescriptorsInRootTable4 = 1; //bindless pixelshader
 	static constexpr UINT numDescriptorsInRootTable3 = 1; //per frame pixelshader
 private:

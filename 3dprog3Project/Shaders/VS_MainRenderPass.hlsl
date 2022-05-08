@@ -21,21 +21,50 @@ cbuffer CameraCB : register(b0)
 	float3 cameraPosition;
 }
 
-cbuffer TransformCB : register(b1)
+struct Transform
 {
 	float4x4 worldMatrix;
+};
+
+struct RootConstant
+{
+	
+};
+
+cbuffer MaterialBuffer : register(b2, space3)
+{
+	int startOffset;
 }
+ConstantBuffer<Transform> transform[] : register(b1);
+ConstantBuffer<Transform> transformIns[] : register(b0, space1);
+
 
 StructuredBuffer<Vertex> vertices : register(t0);
 StructuredBuffer<unsigned int> indices : register(t1);
 
-VS_OUT main(uint vertexID : SV_VERTEXID)
+struct VS_IN
 {
+	uint vertexID : SV_VERTEXID;
+	uint instanceID : SV_INSTANCEID;
+};
+
+VS_OUT main(VS_IN input)
+{
+
 	VS_OUT output;
-	Vertex vertex = vertices[indices[vertexID]];
-	output.posWorld = mul(worldMatrix, float4(vertex.position, 1.0f));
-	output.normal = normalize(mul(worldMatrix, float4(vertex.normal, 0.0f)));
+	Vertex vertex = vertices[indices[input.vertexID]];
+	output.posWorld = mul(transformIns[startOffset].worldMatrix, float4(vertex.position, 1.0f));
+	output.normal = normalize(mul(transformIns[startOffset].worldMatrix, float4(vertex.normal, 0.0f)));
 	output.position = mul(viewProjectionMatrix, output.posWorld);
 	output.uv = vertex.uv;
 	return output;
+
+
+	/*VS_OUT output;
+	Vertex vertex = vertices[indices[input.vertexID]];
+	output.posWorld = mul(transform[0].worldMatrix, float4(vertex.position, 1.0f));
+	output.normal = normalize(mul(transform[0].worldMatrix, float4(vertex.normal, 0.0f)));
+	output.position = mul(viewProjectionMatrix, output.posWorld);
+	output.uv = vertex.uv;
+	return output;*/
 }

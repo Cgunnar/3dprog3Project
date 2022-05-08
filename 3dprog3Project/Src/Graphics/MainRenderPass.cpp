@@ -43,6 +43,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 
 	//worldMatrix CB
 	descriptorRange.BaseShaderRegister = 1;
+	descriptorRange.RegisterSpace = 0;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	vsDescriptorRanges[2] = descriptorRange;
 
@@ -63,7 +64,15 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	descriptorRange.NumDescriptors = AssetManager::maxNumAlbedoTextures;
 	psPerDrawCallDescriptors[0] = descriptorRange; //this need to be the last in the table def
 
-	std::array<D3D12_ROOT_PARAMETER, 5> rootParameters;
+	//bindless transforms
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable5> tableSlot5;
+	descriptorRange.BaseShaderRegister = 0;
+	descriptorRange.RegisterSpace = 1;
+	descriptorRange.NumDescriptors = -1;
+	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	tableSlot5[0] = descriptorRange;
+
+	std::array<D3D12_ROOT_PARAMETER, 7> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable0;
@@ -92,6 +101,19 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
 	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[4].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable4;
 	rootParameters[4].DescriptorTable.pDescriptorRanges = psPerDrawCallDescriptors.data();
+
+	//vertex transform table
+	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[5].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable5;
+	rootParameters[5].DescriptorTable.pDescriptorRanges = tableSlot5.data();
+
+	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[6].Constants.ShaderRegister = 2;
+	rootParameters[6].Constants.RegisterSpace = 3;
+	rootParameters[6].Constants.Num32BitValues = 1;
+
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -342,7 +364,7 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 
 	const AssetManager& am = AssetManager::Get();
 	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
-
+	
 
 	DescriptorHandle visBaseDescHandle = descHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
@@ -370,10 +392,12 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 		device->CopyDescriptorsSimple(1, currentCpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 
+		cmdList->SetGraphicsRootDescriptorTable(5, visBaseDescHandle[2].gpuHandle);
+
 		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
 		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
-
+		cmdList->SetGraphicsRoot32BitConstant(6, 0, 0);
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}
 }
