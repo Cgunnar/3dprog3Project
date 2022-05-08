@@ -17,7 +17,7 @@ Application::Application()
 	m_window = new Window();
 	m_renderer = new Renderer(m_window->GetHWND(), m_renderSettings);
 	m_window->SetRenderer(m_renderer);
-	AssetManager::Init(m_renderer->GetDevice());
+	AssetManager::Init(m_renderer);
 	m_scene = new Scene();
 }
 
@@ -51,7 +51,7 @@ void Application::Run()
 			delete m_renderer;
 			m_renderer = new Renderer(m_window->GetHWND(), m_renderSettings);
 			m_window->SetRenderer(m_renderer);
-			AssetManager::Init(m_renderer->GetDevice());
+			AssetManager::Init(m_renderer);
 			m_scene = new Scene();
 			restartRenderer = false;
 		}

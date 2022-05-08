@@ -271,8 +271,7 @@ void Renderer::EndFrame()
 	// flag when it is supported, even when presenting in windowed mode.
 	// However, this flag cannot be used if the app is in fullscreen mode as a
 	// result of calling SetFullscreenState.
-	
-	
+
 	if(m_renderingSettings.vsync)
 	{
 		hr = m_swapchain->Present(1, 0);
@@ -283,7 +282,6 @@ void Renderer::EndFrame()
 		hr = m_swapchain->Present(0, !m_fullscreen ? DXGI_PRESENT_ALLOW_TEARING : 0);
 		assert(SUCCEEDED(hr));
 	}
-	
 
 	FrameFence();
 }
@@ -609,6 +607,11 @@ void Renderer::SetVSync(bool value)
 	m_renderingSettings.vsync = value;
 }
 
+DescriptorPool& Renderer::GetResourceDescriptorHeap()
+{
+	return *m_desriptorPool;
+}
+
 void Renderer::CreateRTV()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE heapHandle;
@@ -661,8 +664,6 @@ std::vector<DXGI_MODE_DESC> Renderer::CheckMonitorRes()
 			(float)(b.RefreshRate.Numerator / (float)b.RefreshRate.Denominator);
 		});
 
-	
-
 #ifdef _DEBUG
 	UINT monitorWidth = modeVec.front().Width;
 	UINT monitorHeight = modeVec.front().Height;
@@ -698,4 +699,3 @@ DXGI_OUTPUT_DESC1 Renderer::GetOutputCapabilities() const
 	output6->Release();
 	return desc;
 }
-

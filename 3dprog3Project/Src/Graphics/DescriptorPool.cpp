@@ -46,7 +46,7 @@ DescriptorHandle DescriptorPool::DynamicAllocate(UINT count)
 
 	handle.incrementSize = m_incrementSize;
 	handle.count = count;
-
+	handle.index = m_frameIndex * m_perFramePoolSize + m_dynamicCount;
 	m_dynamicCount += count;
 	return handle;
 }
@@ -67,7 +67,7 @@ DescriptorHandle DescriptorPool::StaticAllocate(UINT count)
 
 	handle.incrementSize = m_incrementSize;
 	handle.count = count;
-
+	handle.index = m_staticBegin + m_staticCount;
 	m_staticCount += count;
 	return handle;
 }

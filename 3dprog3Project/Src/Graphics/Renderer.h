@@ -26,6 +26,8 @@ public:
 	std::pair<UINT, UINT> GetDisplayResolution() const;
 	void SetRenderResolution(UINT width, UINT height);
 	void SetVSync(bool value);
+	DescriptorPool& GetResourceDescriptorHeap();
+
 private:
 	UINT m_width;
 	UINT m_height;

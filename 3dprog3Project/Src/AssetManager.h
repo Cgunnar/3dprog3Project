@@ -3,7 +3,7 @@
 #include "Mesh.h"
 #include "Material.h"
 #include "DescriptorVector.h"
-
+#include "Renderer.h"
 
 
 struct GPUAsset
@@ -62,7 +62,9 @@ struct MaterialAsset
 class AssetManager
 {
 public:
-	static void Init(ID3D12Device* device);
+	static constexpr int maxNumAlbedoTextures = 100;
+
+	static void Init(Renderer* renderer);
 	static void Destroy();
 	static AssetManager& Get();
 
@@ -84,9 +86,10 @@ public:
 	void Update(int numberOfFramesInFlight);
 
 	const DescriptorVector& GetHeapDescriptors() const;
+	DescriptorHandle GetBindlessAlbedoTexturesStart() const;
 
 private:
-	AssetManager(ID3D12Device* device);
+	AssetManager(Renderer* renderer);
 	~AssetManager();
 	AssetManager(const AssetManager& other) = delete;
 	AssetManager& operator=(const AssetManager& other) = delete;
@@ -98,8 +101,10 @@ private:
 	std::unordered_map<uint64_t, GPUAsset> m_textures;
 	std::queue<std::pair<GPUAsset, uint64_t>> m_gpuAssetsToRemove; //the uint is the frame the remove was requested on
 	DescriptorVector m_heapDescriptor = DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+	DescriptorHandle m_albedoViewsHandle;
+	int m_albedoViewCount = 0;
 
-	ID3D12Device* m_device = nullptr;
+	Renderer* m_renderer = nullptr;
 	ID3D12CommandQueue* m_cpyCmdQueue = nullptr;
 	ID3D12CommandAllocator* m_cpyCmdAllocator = nullptr;
 	ID3D12GraphicsCommandList* m_cpyCmdList = nullptr;

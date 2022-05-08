@@ -12,10 +12,10 @@
 
 AssetManager* AssetManager::s_instance = nullptr;
 
-void AssetManager::Init(ID3D12Device* device)
+void AssetManager::Init(Renderer* renderer)
 {
 	assert(!s_instance);
-	s_instance = new AssetManager(device);
+	s_instance = new AssetManager(renderer);
 }
 
 void AssetManager::Destroy()
@@ -60,7 +60,9 @@ uint64_t AssetManager::AddTextureFromFile(const std::string& path, bool mipmappi
 	RecordUpload();
 	UploadTextureStaged(m_textures[id], image.dataPtr);
 	ExecuteUpload();
-	m_textures[id].descIndex = m_heapDescriptor.CreateShaderResource(m_device, m_textures[id].resource.Get());
+	DescriptorHandle handle = m_albedoViewsHandle[m_albedoViewCount];
+	m_renderer->GetDevice()->CreateShaderResourceView(m_textures[id].resource.Get(), nullptr, handle.cpuHandle);
+	m_textures[id].descIndex = m_albedoViewCount++;
 	m_textures[id].valid = true;
 	m_textures[id].flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::TEXTURE_2D | GPUAsset::Flag::SRV);
 	stbi_image_free(image.dataPtr);
@@ -89,12 +91,12 @@ void AssetManager::MoveMeshToGPU(uint64_t id)
 
 	viewDesc.Buffer.NumElements = meshAsset.vertexBuffer.elementCount;
 	viewDesc.Buffer.StructureByteStride = meshAsset.vertexBuffer.elementSize;
-	meshAsset.vertexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_device,
+	meshAsset.vertexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_renderer->GetDevice(),
 		meshAsset.vertexBuffer.resource.Get(), &viewDesc);
 
 	viewDesc.Buffer.NumElements = meshAsset.indexBuffer.elementCount;
 	viewDesc.Buffer.StructureByteStride = meshAsset.indexBuffer.elementSize;
-	meshAsset.indexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_device,
+	meshAsset.indexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_renderer->GetDevice(),
 		meshAsset.indexBuffer.resource.Get(), &viewDesc);
 
 	meshAsset.vertexBuffer.valid = true;
@@ -112,11 +114,16 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	{
 		rfm::Vector4 albedoFactor;
 		rfm::Vector4 emissionFactor;
-		int albedoTextureIndex = 0;
+		int albedoTextureIndex = -1;
 	} cbData;
 	cbData.albedoFactor = materialAsset.material->albedoFactor;
 	cbData.emissionFactor = materialAsset.material->emissionFactor;
-	if (!materialAsset.albedoTexture.valid)
+
+	if (materialAsset.albedoTexture.valid)
+	{
+		cbData.albedoTextureIndex = materialAsset.albedoTexture.descIndex;
+	}
+	else
 	{
 		cbData.albedoTextureIndex = -1;
 	}
@@ -126,7 +133,7 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc;
 	viewDesc.BufferLocation = materialAsset.constantBuffer.resource->GetGPUVirtualAddress();
 	viewDesc.SizeInBytes = materialAsset.constantBuffer.resource->GetDesc().Width;
-	materialAsset.constantBuffer.descIndex = m_heapDescriptor.CreateConstantBuffer(m_device, &viewDesc);
+	materialAsset.constantBuffer.descIndex = m_heapDescriptor.CreateConstantBuffer(m_renderer->GetDevice(), &viewDesc);
 	materialAsset.constantBuffer.valid = true;
 }
 
@@ -202,10 +209,16 @@ const DescriptorVector& AssetManager::GetHeapDescriptors() const
 	return m_heapDescriptor;
 }
 
-AssetManager::AssetManager(ID3D12Device* device) : m_device(device)
+DescriptorHandle AssetManager::GetBindlessAlbedoTexturesStart() const
 {
-	m_heapDescriptor.Init(device);
+	return m_albedoViewsHandle;
+}
 
+AssetManager::AssetManager(Renderer* renderer) : m_renderer(renderer)
+{
+	ID3D12Device* device = renderer->GetDevice();
+	m_heapDescriptor.Init(device);
+	m_albedoViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumAlbedoTextures);
 
 	HRESULT hr = device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));
 	assert(SUCCEEDED(hr));
@@ -278,7 +291,6 @@ AssetManager::~AssetManager()
 	{
 		m_gpuAssetsToRemove.pop();
 	}
-	
 
 	m_uploadBuffer->Release();
 	m_uploadHeap->Release();
@@ -356,7 +368,7 @@ void AssetManager::CreateBuffer(GPUAsset& buffer)
 	{
 		D3D12_HEAP_PROPERTIES heapProps{};
 		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-		HRESULT hr = m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+		HRESULT hr = m_renderer->GetDevice()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 			&desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), &buffer.resource);
 		assert(SUCCEEDED(hr));
 	}
@@ -364,7 +376,7 @@ void AssetManager::CreateBuffer(GPUAsset& buffer)
 	{
 		D3D12_HEAP_PROPERTIES heapProps{};
 		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		HRESULT hr = m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+		HRESULT hr = m_renderer->GetDevice()->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 			&desc, D3D12_RESOURCE_STATE_COMMON, nullptr, __uuidof(ID3D12Resource), &buffer.resource);
 		assert(SUCCEEDED(hr));
 	}
@@ -399,7 +411,7 @@ void AssetManager::CreateTexture2D(GPUAsset& texture, uint32_t width, uint32_t h
 
 	D3D12_HEAP_PROPERTIES heapProp = {};
 	heapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
-	HRESULT hr = m_device->CreateCommittedResource(&heapProp, D3D12_HEAP_FLAG_NONE, &desc,
+	HRESULT hr = m_renderer->GetDevice()->CreateCommittedResource(&heapProp, D3D12_HEAP_FLAG_NONE, &desc,
 		D3D12_RESOURCE_STATE_COMMON, nullptr, __uuidof(ID3D12Resource), &texture.resource);
 	assert(SUCCEEDED(hr));
 }
@@ -411,7 +423,7 @@ void AssetManager::UploadBufferStaged(const GPUAsset& target, const void* data)
 	UINT64 rowSizeInBytes = 0;
 	UINT64 totalBytes = 0;
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT targetFootPrint;
-	m_device->GetCopyableFootprints(&targetDesc, 0, 1, 0, &targetFootPrint, &numRows, &rowSizeInBytes, &totalBytes);
+	m_renderer->GetDevice()->GetCopyableFootprints(&targetDesc, 0, 1, 0, &targetFootPrint, &numRows, &rowSizeInBytes, &totalBytes);
 
 	D3D12_RANGE emptyRange = { 0, 0 };
 	std::byte* mappedMemory = nullptr;
@@ -432,7 +444,7 @@ void AssetManager::UploadTextureStaged(const GPUAsset& target, const void* data)
 	UINT64 rowSizeInBytes = 0;
 	UINT64 totalBytes = 0;
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT targetFootPrint;
-	m_device->GetCopyableFootprints(&targetDesc, 0, 1, 0, &targetFootPrint, &numRows, &rowSizeInBytes, &totalBytes);
+	m_renderer->GetDevice()->GetCopyableFootprints(&targetDesc, 0, 1, 0, &targetFootPrint, &numRows, &rowSizeInBytes, &totalBytes);
 
 	D3D12_RANGE emptyRange = { 0, 0 };
 	std::byte* mappedMemory = nullptr;

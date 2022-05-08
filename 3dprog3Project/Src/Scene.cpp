@@ -32,6 +32,9 @@ Scene::Scene()
 	Material texturedMaterial;
 	texturedMaterial.albedoFactor = { 1, 1, 1, 1 };
 	texturedMaterial.albedoID = AssetManager::Get().AddTextureFromFile("Assets/Hej.png", false, false);
+	Material rustedIron;
+	rustedIron.albedoFactor = { 1, 1, 1, 1 };
+	rustedIron.albedoID = AssetManager::Get().AddTextureFromFile("Assets/rusted_iron_albedo.png", false, false);
 
 	m_redMaterial = AssetManager::Get().AddMaterial(matRed);
 	AssetManager::Get().MoveMaterialToGPU(m_redMaterial);
@@ -41,10 +44,12 @@ Scene::Scene()
 	AssetManager::Get().MoveMaterialToGPU(m_blueMaterial);
 	m_hejMaterial = AssetManager::Get().AddMaterial(texturedMaterial);
 	AssetManager::Get().MoveMaterialToGPU(m_hejMaterial);
+	m_rustedIronMaterial = AssetManager::Get().AddMaterial(rustedIron);
+	AssetManager::Get().MoveMaterialToGPU(m_rustedIronMaterial);
 
 
 	std::default_random_engine eng(4);
-	std::uniform_int_distribution<> dist1(0, 3);
+	std::uniform_int_distribution<> dist1(0, 4);
 	std::uniform_int_distribution<> dist2(0, 1);
 	
 	int l = 15;
@@ -63,10 +68,10 @@ Scene::Scene()
 				auto& transform = newEntity.AddComponent<TransformComp>()->transform;
 				transform.setTranslation(pos);
 				transform.setScale(0.5f);
-				int r = dist1(eng);
-				int r2 = dist2(eng);
+				int randMat = dist1(eng);
+				int randMesh = dist2(eng);
 
-				if (r2 == 0)
+				if (randMesh == 0)
 				{
 					newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
 					newEntity.AddComponent<SpinnComp>()->rotSpeed = pos;
@@ -74,12 +79,14 @@ Scene::Scene()
 				else
 					newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
 
-				if(r == 0)
+				if(randMat == 0)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_redMaterial;
-				else if(r == 1)
+				else if(randMat == 1)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_blueMaterial;
-				else if(r == 2)
+				else if(randMat == 2)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
+				else if (randMat == 3)
+					newEntity.AddComponent<MaterialComp>()->materialID = m_rustedIronMaterial;
 				else
 					newEntity.AddComponent<MaterialComp>()->materialID = m_hejMaterial;
 			}

@@ -22,4 +22,5 @@ private:
 	uint64_t m_greenMaterial;
 	uint64_t m_blueMaterial;
 	uint64_t m_hejMaterial;
+	uint64_t m_rustedIronMaterial;
 };

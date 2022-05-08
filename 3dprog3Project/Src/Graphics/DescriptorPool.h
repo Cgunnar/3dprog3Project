@@ -2,10 +2,19 @@
 
 struct DescriptorHandle
 {
+	DescriptorHandle operator[](int index) const
+	{
+		DescriptorHandle handle = *this;
+		handle.cpuHandle.ptr += index * incrementSize;
+		handle.gpuHandle.ptr += index * incrementSize;
+		handle.index += index;
+		return handle;
+	}
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 	UINT incrementSize;
 	UINT count;
+	UINT index;
 };
 
 class DescriptorPool
