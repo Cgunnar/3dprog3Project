@@ -48,8 +48,8 @@ VS_OUT main(VS_IN input)
 
 	VS_OUT output;
 	Vertex vertex = vertices[indices[input.vertexID]];
-	output.posWorld = mul(transformIns[startOffset].worldMatrix, float4(vertex.position, 1.0f));
-	output.normal = normalize(mul(transformIns[startOffset].worldMatrix, float4(vertex.normal, 0.0f)));
+	output.posWorld = mul(transformIns[startOffset + input.instanceID].worldMatrix, float4(vertex.position, 1.0f));
+	output.normal = normalize(mul(transformIns[startOffset + input.instanceID].worldMatrix, float4(vertex.normal, 0.0f)));
 	output.position = mul(viewProjectionMatrix, output.posWorld);
 	output.uv = vertex.uv;
 	return output;

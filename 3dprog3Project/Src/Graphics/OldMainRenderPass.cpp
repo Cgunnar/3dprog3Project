@@ -5,9 +5,10 @@
 #include "AssetManager.h"
 
 
-OldMainRenderPass::OldMainRenderPass(ID3D12Device* device, int framesInFlight)
+OldMainRenderPass::OldMainRenderPass(ID3D12Device* device, int framesInFlight, int numThreads)
 	: m_device(device)
 {
+	m_numThreads = std::max(1, numThreads);
 	m_constantBuffers.resize(m_numThreads);
 
 	for (auto& t : m_constantBuffers)
@@ -382,7 +383,7 @@ void OldMainRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int fra
 {
 	return; // no need to recreate this class
 	this->~OldMainRenderPass();
-	new(this) OldMainRenderPass(device, framesInFlight);
+	new(this) OldMainRenderPass(device, framesInFlight, m_numThreads);
 }
 
 std::string OldMainRenderPass::Name() const

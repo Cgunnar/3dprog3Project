@@ -5,9 +5,10 @@
 #include "AssetManager.h"
 
 
-MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight)
+MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, int numThreads)
 	: m_device(device)
 {
+	m_numThreads = std::max(1, numThreads);
 	m_constantBuffers.resize(m_numThreads);
 
 	for (auto& t : m_constantBuffers)
@@ -316,10 +317,18 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
 	rfm::Vector3 cameraPos = cameraCBData.pos;
-	std::sort(entities.begin(), entities.end(), [&cameraPos](rfe::Entity& a, rfe::Entity& b) {
-		rfm::Vector3 distA = a.GetComponent<TransformComp>()->transform.getTranslation() - cameraPos;
-		rfm::Vector3 distB = b.GetComponent<TransformComp>()->transform.getTranslation() - cameraPos;
-		return rfm::dot(distA, distA) < rfm::dot(distB, distB);
+
+	std::sort(entities.begin(), entities.end(), [](rfe::Entity& a, rfe::Entity& b) {
+		uint64_t meshIDA = a.GetComponent<MeshComp>()->meshID;
+		uint64_t meshIDB = b.GetComponent<MeshComp>()->meshID;
+		if (meshIDA == meshIDB)
+		{
+			return a.GetComponent<MaterialComp>()->materialID < b.GetComponent<MaterialComp>()->materialID;
+		}
+		else
+		{
+			return meshIDA < meshIDB;
+		}
 		});
 
 	if (m_numThreads == 1)
@@ -365,10 +374,6 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 
 	const AssetManager& am = AssetManager::Get();
 	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
-	
-
-	
-	
 
 	int counter = 0;
 	for (auto& entity : entitiesToDraw)
@@ -385,29 +390,51 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	DescriptorHandle visBaseDescHandle = descHandle[counter];
 	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
 	counter = 0;
-	for (auto& entity : entitiesToDraw)
+	int numInstances = 1;
+	uint64_t nextMeshID = 0;
+	uint64_t nextMaterialID = 0;
+	int numEntitiesToDraw = entitiesToDraw.size();
+
+	for (int i = 0; i < numEntitiesToDraw; i++)
 	{
-		const auto& mesh = am.GetMesh(entity.GetComponent<MeshComp>()->meshID);
-		const auto& material = am.GetMaterial(entity.GetComponent<MaterialComp>()->materialID);
+		auto& entity = entitiesToDraw[i];
 
-		const GPUAsset& vb = mesh.vertexBuffer;
-		const GPUAsset& ib = mesh.indexBuffer;
-		const GPUAsset& colorBuffer = material.constantBuffer;
-		const GPUAsset& albedoTexture = material.albedoTexture;
+		uint64_t meshID = i == 0 ? entity.GetComponent<MeshComp>()->meshID : nextMeshID;
+		uint64_t materialID = i == 0 ? entity.GetComponent<MaterialComp>()->materialID : nextMaterialID;
+		if (i < numEntitiesToDraw - 1)
+		{
+			nextMeshID = entitiesToDraw[i + 1].GetComponent<MeshComp>()->meshID;
+			nextMaterialID = entitiesToDraw[i + 1].GetComponent<MaterialComp>()->materialID;
+		}
 
-		if (!vb.valid || !ib.valid || !colorBuffer.valid) assert(false);
+		if (meshID != nextMeshID || materialID != nextMaterialID || i == numEntitiesToDraw - 1)
+		{
+			const auto& mesh = am.GetMesh(meshID);
+			const auto& material = am.GetMaterial(materialID);
 
-		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[ib.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
+			const GPUAsset& vb = mesh.vertexBuffer;
+			const GPUAsset& ib = mesh.indexBuffer;
+			const GPUAsset& colorBuffer = material.constantBuffer;
 
-		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
-		visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
-		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
-		cmdList->SetGraphicsRoot32BitConstant(6, counter, 0);
-		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
-		counter++;
+			if (!vb.valid || !ib.valid || !colorBuffer.valid) assert(false);
+
+			device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
+			device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[ib.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
+
+			cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
+			visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
+			cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
+			cmdList->SetGraphicsRoot32BitConstant(6, counter, 0);
+			cmdList->DrawInstanced(ib.elementCount, numInstances, 0, 0);
+			counter += numInstances;
+			numInstances = 1;
+		}
+		else
+		{
+			numInstances++;
+		}
 	}
 }
 
@@ -415,7 +442,7 @@ void MainRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int frames
 {
 	return; // no need to recreate this class
 	this->~MainRenderPass();
-	new(this) MainRenderPass(device, framesInFlight);
+	new(this) MainRenderPass(device, framesInFlight, m_numThreads);
 }
 
 std::string MainRenderPass::Name() const

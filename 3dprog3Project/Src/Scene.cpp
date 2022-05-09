@@ -52,7 +52,7 @@ Scene::Scene()
 	std::uniform_int_distribution<> dist1(0, 4);
 	std::uniform_int_distribution<> dist2(0, 1);
 	
-	int l = 15;
+	int l = 12;
 #ifdef _DEBUG
 	l = 8;
 #endif // _DEBUG
@@ -93,7 +93,7 @@ Scene::Scene()
 		}
 	}
 
-	int numLight = 200;
+	int numLight = 8;
 #ifdef _DEBUG
 	numLight = 1;
 #endif // _DEBUG
