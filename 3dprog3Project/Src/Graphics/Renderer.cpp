@@ -97,7 +97,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 
 	CreateRTV();
 
-	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, 4));
+	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, 12));
 	m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, 1));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
 
@@ -223,9 +223,9 @@ size_t Renderer::Render()
 		}
 		m_activeRenderPassCmdListsCount += req.cmdListCount;
 
-		//PIXBeginEvent(m_directCmdList, 200, renderPass->Name().c_str());
+		PIXBeginEvent(cmdLists.front(), 200, renderPass->Name().c_str());
 		renderPass->RunRenderPass(cmdLists, handles, *m_frameResource, frameIndex);
-		//PIXEndEvent(m_directCmdList);
+		PIXEndEvent(cmdLists.front());
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_frameResource->GetBackBufferCpuHandle();
