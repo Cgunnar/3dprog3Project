@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "MainRenderPass.h"
+#include "OldMainRenderPass.h"
 #include "PostProcessingPass.h"
 #include "pix3.h"
 #include <imgui_impl_dx12.h>
@@ -96,6 +97,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 
 	CreateRTV();
 
+	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight));
 	m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
 
