@@ -133,7 +133,9 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc;
 	viewDesc.BufferLocation = materialAsset.constantBuffer.resource->GetGPUVirtualAddress();
 	viewDesc.SizeInBytes = materialAsset.constantBuffer.resource->GetDesc().Width;
-	materialAsset.constantBuffer.descIndex = m_heapDescriptor.CreateConstantBuffer(m_renderer->GetDevice(), &viewDesc);
+	DescriptorHandle handle = m_materialViewsHandle[m_materialViewCount];
+	m_renderer->GetDevice()->CreateConstantBufferView(&viewDesc, handle.cpuHandle);
+	materialAsset.constantBuffer.descIndex = m_materialViewCount++;
 	materialAsset.constantBuffer.valid = true;
 }
 
@@ -214,10 +216,16 @@ DescriptorHandle AssetManager::GetBindlessAlbedoTexturesStart() const
 	return m_albedoViewsHandle;
 }
 
+DescriptorHandle AssetManager::GetBindlessMaterialStart() const
+{
+	return m_materialViewsHandle;
+}
+
 AssetManager::AssetManager(Renderer* renderer) : m_renderer(renderer)
 {
 	ID3D12Device* device = renderer->GetDevice();
 	m_heapDescriptor.Init(device);
+	m_materialViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumMaterials);
 	m_albedoViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumAlbedoTextures);
 
 	HRESULT hr = device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));

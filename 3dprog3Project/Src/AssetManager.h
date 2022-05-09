@@ -62,6 +62,7 @@ struct MaterialAsset
 class AssetManager
 {
 public:
+	static constexpr int maxNumMaterials = 20000;
 	static constexpr int maxNumAlbedoTextures = 100;
 
 	static void Init(Renderer* renderer);
@@ -87,6 +88,7 @@ public:
 
 	const DescriptorVector& GetHeapDescriptors() const;
 	DescriptorHandle GetBindlessAlbedoTexturesStart() const;
+	DescriptorHandle GetBindlessMaterialStart() const;
 
 private:
 	AssetManager(Renderer* renderer);
@@ -103,6 +105,8 @@ private:
 	DescriptorVector m_heapDescriptor = DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 	DescriptorHandle m_albedoViewsHandle;
 	int m_albedoViewCount = 0;
+	DescriptorHandle m_materialViewsHandle;
+	int m_materialViewCount = 0;
 
 	Renderer* m_renderer = nullptr;
 	ID3D12CommandQueue* m_cpyCmdQueue = nullptr;

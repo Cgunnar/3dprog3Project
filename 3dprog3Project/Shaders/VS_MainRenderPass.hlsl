@@ -11,6 +11,7 @@ struct VS_OUT
 	float4 posWorld : WORLD_POS;
 	float4 normal : NORMAL;
 	float2 uv : UV;
+	int materialID : MATERIAL_ID;
 };
 
 cbuffer CameraCB : register(b0)
@@ -21,9 +22,10 @@ cbuffer CameraCB : register(b0)
 	float3 cameraPosition;
 }
 
-struct Transform
+struct InstancedData
 {
 	float4x4 worldMatrix;
+	int materialID;
 };
 
 cbuffer MaterialBuffer : register(b2, space3)
@@ -31,7 +33,7 @@ cbuffer MaterialBuffer : register(b2, space3)
 	int startOffset;
 }
 
-ConstantBuffer<Transform> transformIns[] : register(b0, space1);
+ConstantBuffer<InstancedData> transformIns[] : register(b0, space1);
 
 
 StructuredBuffer<Vertex> vertices : register(t0);
@@ -45,21 +47,12 @@ struct VS_IN
 
 VS_OUT main(VS_IN input)
 {
-
 	VS_OUT output;
 	Vertex vertex = vertices[indices[input.vertexID]];
 	output.posWorld = mul(transformIns[startOffset + input.instanceID].worldMatrix, float4(vertex.position, 1.0f));
 	output.normal = normalize(mul(transformIns[startOffset + input.instanceID].worldMatrix, float4(vertex.normal, 0.0f)));
 	output.position = mul(viewProjectionMatrix, output.posWorld);
 	output.uv = vertex.uv;
+	output.materialID = transformIns[startOffset + input.instanceID].materialID;
 	return output;
-
-
-	/*VS_OUT output;
-	Vertex vertex = vertices[indices[input.vertexID]];
-	output.posWorld = mul(transform[0].worldMatrix, float4(vertex.position, 1.0f));
-	output.normal = normalize(mul(transform[0].worldMatrix, float4(vertex.normal, 0.0f)));
-	output.position = mul(viewProjectionMatrix, output.posWorld);
-	output.uv = vertex.uv;
-	return output;*/
 }

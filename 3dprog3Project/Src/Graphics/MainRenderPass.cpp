@@ -15,7 +15,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, int num
 	{
 		t.resize(framesInFlight);
 		for (auto& cbManager : t)
-			cbManager = new ConstantBufferManager(device, 100000, 64);
+			cbManager = new ConstantBufferManager(device, 100000, 256);
 	}
 
 
@@ -73,6 +73,14 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, int num
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	tableSlot5[0] = descriptorRange;
 
+	//bindless materialCB
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable1> tableSlot1;
+	descriptorRange.BaseShaderRegister = 0;
+	descriptorRange.RegisterSpace = 2;
+	descriptorRange.NumDescriptors = AssetManager::maxNumMaterials;
+	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	tableSlot1[0] = descriptorRange;
+
 	std::array<D3D12_ROOT_PARAMETER, 7> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -80,10 +88,10 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, int num
 	rootParameters[0].DescriptorTable.pDescriptorRanges = vsDescriptorRanges.data();
 
 	//material CB
-	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParameters[1].Descriptor.ShaderRegister = 1;
-	rootParameters[1].Descriptor.RegisterSpace = 0;
+	rootParameters[1].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable1;
+	rootParameters[1].DescriptorTable.pDescriptorRanges = tableSlot1.data();
 
 	//camera CB
 	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -319,16 +327,7 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	rfm::Vector3 cameraPos = cameraCBData.pos;
 
 	std::sort(entities.begin(), entities.end(), [](rfe::Entity& a, rfe::Entity& b) {
-		uint64_t meshIDA = a.GetComponent<MeshComp>()->meshID;
-		uint64_t meshIDB = b.GetComponent<MeshComp>()->meshID;
-		if (meshIDA == meshIDB)
-		{
-			return a.GetComponent<MaterialComp>()->materialID < b.GetComponent<MaterialComp>()->materialID;
-		}
-		else
-		{
-			return meshIDA < meshIDB;
-		}
+			return a.GetComponent<MeshComp>()->meshID < b.GetComponent<MeshComp>()->meshID;
 		});
 
 	if (m_numThreads == 1)
@@ -373,26 +372,34 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
 
 	const AssetManager& am = AssetManager::Get();
+	cmdList->SetGraphicsRootDescriptorTable(1, am.GetBindlessMaterialStart().gpuHandle);
 	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
 
 	int counter = 0;
 	for (auto& entity : entitiesToDraw)
 	{
 		const auto& transform = entity.GetComponent<TransformComp>()->transform;
-
+		uint64_t matID = entity.GetComponent<MaterialComp>()->materialID;
+		int matDescIndex = am.GetMaterial(matID).constantBuffer.descIndex;
 		UINT worldMatrixCB = cbManager->PushConstantBuffer();
-		cbManager->UpdateConstantBuffer(worldMatrixCB, &transform, 64);
+		struct PerInstanceData
+		{
+			rfm::Matrix worldMatrix;
+			int materialDescriptorIndex;
+		};
+		PerInstanceData instanceData{ transform, matDescIndex };
+		cbManager->UpdateConstantBuffer(worldMatrixCB, &instanceData, 256);
 
 		device->CopyDescriptorsSimple(1, descHandle[counter].cpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		counter++;
 	}
+
 	cmdList->SetGraphicsRootDescriptorTable(5, descHandle.gpuHandle);
 	DescriptorHandle visBaseDescHandle = descHandle[counter];
 	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
 	counter = 0;
 	int numInstances = 1;
 	uint64_t nextMeshID = 0;
-	uint64_t nextMaterialID = 0;
 	int numEntitiesToDraw = entitiesToDraw.size();
 
 	for (int i = 0; i < numEntitiesToDraw; i++)
@@ -400,32 +407,25 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 		auto& entity = entitiesToDraw[i];
 
 		uint64_t meshID = i == 0 ? entity.GetComponent<MeshComp>()->meshID : nextMeshID;
-		uint64_t materialID = i == 0 ? entity.GetComponent<MaterialComp>()->materialID : nextMaterialID;
 		if (i < numEntitiesToDraw - 1)
 		{
 			nextMeshID = entitiesToDraw[i + 1].GetComponent<MeshComp>()->meshID;
-			nextMaterialID = entitiesToDraw[i + 1].GetComponent<MaterialComp>()->materialID;
 		}
 
-		if (meshID != nextMeshID || materialID != nextMaterialID || i == numEntitiesToDraw - 1)
+		if (meshID != nextMeshID || i == numEntitiesToDraw - 1)
 		{
 			const auto& mesh = am.GetMesh(meshID);
-			const auto& material = am.GetMaterial(materialID);
 
 			const GPUAsset& vb = mesh.vertexBuffer;
 			const GPUAsset& ib = mesh.indexBuffer;
-			const GPUAsset& colorBuffer = material.constantBuffer;
 
-			if (!vb.valid || !ib.valid || !colorBuffer.valid) assert(false);
+			if (!vb.valid || !ib.valid) assert(false);
 
-			device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-			device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[ib.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
+			device->CopyDescriptorsSimple(2, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			currentCpuHandle.ptr += 2 * visBaseDescHandle.incrementSize;
 
 			cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
 			visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
-			cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
 			cmdList->SetGraphicsRoot32BitConstant(6, counter, 0);
 			cmdList->DrawInstanced(ib.elementCount, numInstances, 0, 0);
 			counter += numInstances;

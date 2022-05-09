@@ -4,6 +4,7 @@ struct VS_OUT
 	float4 posWorld : WORLD_POS;
 	float4 normal : NORMAL;
 	float2 uv : UV;
+	int materialID : MATERIAL_ID;
 };
 
 cbuffer CameraCB : register(b0)
@@ -14,12 +15,14 @@ cbuffer CameraCB : register(b0)
 	float3 cameraPosition;
 }
 
-cbuffer MaterialBuffer : register(b1)
+struct Material
 {
 	float4 albedoFactor;
 	float4 emissionFactor;
 	int albedoTextureIndex;
-}
+};
+
+ConstantBuffer<Material> materials[]: register(b0, space2);
 
 struct PointLight
 {
@@ -39,15 +42,15 @@ float Attenuate(float length, float constAtt, float linAtt , float expAtt)
 	return 1.0f / (constAtt + linAtt * length + expAtt * length * length);
 }
 
-float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv)
+float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int matID)
 {
 	float3 outputColor = float3(0, 0, 0);
 	float4 albedo;
 
-	if(albedoTextureIndex != -1)
-		albedo = albedoFactor * albedoMap[albedoTextureIndex].Sample(anisotropicSampler, uv).rgba;
+	if(materials[matID].albedoTextureIndex != -1)
+		albedo = materials[matID].albedoFactor * albedoMap[materials[matID].albedoTextureIndex].Sample(anisotropicSampler, uv).rgba;
 	else
-		albedo = albedoFactor;
+		albedo = materials[matID].albedoFactor;
 
 	unsigned int lightSize = 0;
 	unsigned int numLights = 0;
@@ -69,7 +72,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv)
 
 		outputColor += (diff + spec) * Attenuate(length(vecToLight), pl.constAtt, pl.linAtt, pl.expAtt);
 	}
-	outputColor += emissionFactor.rgb;
+	outputColor += materials[matID].emissionFactor.rgb;
 	outputColor += 0.2f * albedo.rgb;
 	return float4(saturate(outputColor), albedo.a);
 }
@@ -78,6 +81,6 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv)
 float4 main(VS_OUT input) : SV_TARGET
 {
 	float4 outputColor = float4(0,0,0,0);
-	outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, input.normal.xyz, input.uv);
+	outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, input.normal.xyz, input.uv, input.materialID);
 	return outputColor;
 }
