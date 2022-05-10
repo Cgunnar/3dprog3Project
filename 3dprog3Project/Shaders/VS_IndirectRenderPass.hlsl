@@ -22,6 +22,9 @@ struct Vertex
     float2 uv;
 };
 
+StructuredBuffer<Vertex> vertices[] : register(t0, space1);
+StructuredBuffer<unsigned int> indices[] : register(t0, space2);
+
 VS_OUT main(VS_IN input)
 {
     VS_OUT output;

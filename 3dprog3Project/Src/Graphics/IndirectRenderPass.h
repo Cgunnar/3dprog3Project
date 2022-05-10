@@ -11,6 +11,10 @@ public:
 	std::string Name() const override;
 
 private:
+	constexpr static size_t meshIndexRP = 0;
+	constexpr static size_t vbBindlessRP = 1;
+	constexpr static size_t ibBindlessRP = 2;
+
 	int m_framesInFlight;
 	ID3D12Device* m_device = nullptr;
 
