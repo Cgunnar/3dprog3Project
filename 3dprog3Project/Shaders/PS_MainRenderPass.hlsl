@@ -46,11 +46,12 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 {
 	float3 outputColor = float3(0, 0, 0);
 	float4 albedo;
-
-	if(materials[matID].albedoTextureIndex != -1)
-		albedo = materials[matID].albedoFactor * albedoMap[materials[matID].albedoTextureIndex].Sample(anisotropicSampler, uv).rgba;
+	Material mat = materials[NonUniformResourceIndex(matID)];
+	
+	if(mat.albedoTextureIndex != -1)
+		albedo = mat.albedoFactor * albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
 	else
-		albedo = materials[matID].albedoFactor;
+		albedo = mat.albedoFactor;
 
 	unsigned int lightSize = 0;
 	unsigned int numLights = 0;
@@ -72,7 +73,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 
 		outputColor += (diff + spec) * Attenuate(length(vecToLight), pl.constAtt, pl.linAtt, pl.expAtt);
 	}
-	outputColor += materials[matID].emissionFactor.rgb;
+	outputColor += mat.emissionFactor.rgb;
 	outputColor += 0.2f * albedo.rgb;
 	return float4(saturate(outputColor), albedo.a);
 }
