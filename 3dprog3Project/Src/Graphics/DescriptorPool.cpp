@@ -56,7 +56,7 @@ DescriptorHandle DescriptorPool::StaticAllocate(UINT count)
 	assert(m_staticBegin + m_staticCount + count < m_staticEnd);
 	if (!(m_staticBegin + m_staticCount + count < m_staticEnd))
 	{
-		std::runtime_error("out of memory in descriptor pool");
+		throw std::runtime_error("out of memory in descriptor pool");
 	}
 	DescriptorHandle handle;
 	handle.gpuHandle = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
