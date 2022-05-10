@@ -121,6 +121,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Src\Graphics\zPreRenderPass.cpp">
+     <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Graphics\IndirectRenderPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -242,6 +245,9 @@
     <ClInclude Include="Src\Graphics\zPreRenderPass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Graphics\IndirectRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\VertexShader.hlsl" />
@@ -256,6 +262,9 @@
     <FxCompile Include="Shaders\VS_RayTracedRenderPass.hlsl" />
     <FxCompile Include="Shaders\PS_empty.hlsl" />
     <FxCompile Include="Shaders\VS_zPrePass.hlsl" />
+    <FxCompile Include="Shaders\CS_IndirectRenderPass.hlsl" />
+    <FxCompile Include="Shaders\VS_IndirectRenderPass.hlsl" />
+    <FxCompile Include="Shaders\PS_IndirectRenderPass.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

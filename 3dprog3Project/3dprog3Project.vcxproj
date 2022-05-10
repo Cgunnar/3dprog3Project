@@ -109,6 +109,7 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
     <ClCompile Include="Src\CodeFromOlderProjects\boundingVolumes.cpp" />
     <ClCompile Include="Src\Graphics\AccelerationStructure.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\Timer.cpp" />
+    <ClCompile Include="Src\Graphics\IndirectRenderPass.cpp" />
     <ClCompile Include="Src\Graphics\MainRenderPass.cpp" />
     <ClCompile Include="Src\Graphics\DescriptorPool.cpp" />
     <ClCompile Include="Src\Graphics\FrameResource.cpp" />
@@ -153,6 +154,7 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
     <ClInclude Include="Src\CodeFromOlderProjects\boundingVolumes.h" />
     <ClInclude Include="Src\Graphics\AccelerationStructure.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\Timer.hpp" />
+    <ClInclude Include="Src\Graphics\IndirectRenderPass.h" />
     <ClInclude Include="Src\Graphics\MainRenderPass.h" />
     <ClInclude Include="Src\Graphics\DescriptorPool.h" />
     <ClInclude Include="Src\Graphics\FrameResource.h" />
@@ -189,6 +191,14 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
     <ClInclude Include="Src\Graphics\zPreRenderPass.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Shaders\CS_IndirectRenderPass.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
     <FxCompile Include="Shaders\PixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
@@ -204,6 +214,14 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Shaders\PS_IndirectRenderPass.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Shaders\PS_MainRenderPass.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -245,6 +263,14 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\VS_IndirectRenderPass.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(projectDir)Shaders\compiled\$(Configuration)\%(Filename).cso</ObjectFileOutput>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Shaders\VS_MainRenderPass.hlsl">
