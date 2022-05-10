@@ -2,6 +2,7 @@
 #include "IndirectRenderPass.h"
 #include "rfEntity.hpp"
 #include "CommonComponents.h"
+#include "AssetManager.h"
 
 IndirectRenderPass::IndirectRenderPass(ID3D12Device* device, int framesInFlight)
 	: m_device(device), m_framesInFlight(framesInFlight)
@@ -26,10 +27,10 @@ IndirectRenderPass::IndirectRenderPass(ID3D12Device* device, int framesInFlight)
 
 IndirectRenderPass::~IndirectRenderPass()
 {
-    m_pipelineState->Release();
+	m_pipelineState->Release();
 	m_rootSignature->Release();
-    m_pipelineStateCompute->Release();
-    m_rootSignatureCompute->Release();
+	m_pipelineStateCompute->Release();
+	m_rootSignatureCompute->Release();
 }
 
 RenderPassRequirements IndirectRenderPass::GetRequirements()
@@ -43,7 +44,35 @@ RenderPassRequirements IndirectRenderPass::GetRequirements()
 
 void IndirectRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
+	//cmdLists cant run compute work, add compute list
 
+	DescriptorHandle descHandle = descriptorHandles.front();
+	
+
+	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
+	if (entities.empty()) return;
+
+	uint64_t meshID = entities.front().GetComponent<MeshComp>()->meshID;
+	const auto& mesh = AssetManager::Get().GetMesh(meshID);
+	const GPUAsset& vb = mesh.vertexBuffer;
+	const GPUAsset& ib = mesh.indexBuffer;
+
+	auto currentCpuHandle = descHandle.cpuHandle;
+	m_device->CopyDescriptorsSimple(2, currentCpuHandle, AssetManager::Get().GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	currentCpuHandle.ptr += 2 * descHandle.incrementSize;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
+	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
+	cmdLists.front()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+	cmdLists.front()->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	cmdLists.front()->SetGraphicsRootSignature(m_rootSignature);
+	cmdLists.front()->SetPipelineState(m_pipelineState);
+
+	cmdLists.front()->SetGraphicsRoot32BitConstant(meshIndexRP, 0, 0);
+	cmdLists.front()->SetGraphicsRootDescriptorTable(vbBindlessRP, descHandle.gpuHandle);
+	cmdLists.front()->SetGraphicsRootDescriptorTable(ibBindlessRP, descHandle[1].gpuHandle);
 }
 
 void IndirectRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
@@ -53,17 +82,44 @@ void IndirectRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int fr
 
 std::string IndirectRenderPass::Name() const
 {
-    return "IndirectRenderPass";
+	return "IndirectRenderPass";
 }
 
 void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 {
-	std::array<D3D12_ROOT_PARAMETER, 1> rootParameters;
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[0].Constants.RegisterSpace = 0;
-	rootParameters[0].Constants.ShaderRegister = 0;
-	rootParameters[0].Constants.Num32BitValues = 1;
+
+	std::array<D3D12_ROOT_PARAMETER, 3> rootParameters;
+	//root constant
+	rootParameters[meshIndexRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParameters[meshIndexRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[meshIndexRP].Constants.RegisterSpace = 0;
+	rootParameters[meshIndexRP].Constants.ShaderRegister = 0;
+	rootParameters[meshIndexRP].Constants.Num32BitValues = 1;
+
+	//bindless vb
+	D3D12_DESCRIPTOR_RANGE vbRange;
+	vbRange.BaseShaderRegister = 0;
+	vbRange.RegisterSpace = 1;
+	vbRange.NumDescriptors = -1;
+	vbRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	vbRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+	rootParameters[vbBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[vbBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[vbBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[vbBindlessRP].DescriptorTable.pDescriptorRanges = &vbRange;
+
+	D3D12_DESCRIPTOR_RANGE ibRange;
+	ibRange.BaseShaderRegister = 0;
+	ibRange.RegisterSpace = 2;
+	ibRange.NumDescriptors = -1;
+	ibRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	ibRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+	rootParameters[ibBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[ibBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[ibBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[ibBindlessRP].DescriptorTable.pDescriptorRanges = &ibRange;
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
