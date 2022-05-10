@@ -105,6 +105,9 @@
     <ClCompile Include="Src\CodeFromOlderProjects\Timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Graphics\IndirectRenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Window.h">
@@ -206,6 +209,9 @@
     <ClInclude Include="Src\CodeFromOlderProjects\Timer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Graphics\IndirectRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\VertexShader.hlsl" />
@@ -216,5 +222,8 @@
     <FxCompile Include="Shaders\VS_MainRenderPass.hlsl" />
     <FxCompile Include="Shaders\PS_OldMainRenderPass.hlsl" />
     <FxCompile Include="Shaders\VS_OldMainRenderPass.hlsl" />
+    <FxCompile Include="Shaders\CS_IndirectRenderPass.hlsl" />
+    <FxCompile Include="Shaders\VS_IndirectRenderPass.hlsl" />
+    <FxCompile Include="Shaders\PS_IndirectRenderPass.hlsl" />
   </ItemGroup>
 </Project>

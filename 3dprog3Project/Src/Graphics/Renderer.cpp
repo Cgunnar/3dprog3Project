@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "MainRenderPass.h"
+#include "IndirectRenderPass.h"
 #include "OldMainRenderPass.h"
 #include "PostProcessingPass.h"
 #include "pix3.h"
@@ -99,7 +100,8 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	auto format = m_frameResource->renderTarget->GetDesc().Format;
 
 	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, format, 12));
-	m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
+	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
+	m_renderPasses.emplace_back(std::make_unique<IndirectRenderPass>(m_device, m_numFramesInFlight));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
