@@ -388,7 +388,7 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 			int materialDescriptorIndex;
 		};
 		PerInstanceData instanceData{ transform, matDescIndex };
-		cbManager->UpdateConstantBuffer(worldMatrixCB, &instanceData, 256);
+		cbManager->UpdateConstantBuffer(worldMatrixCB, &instanceData, sizeof(PerInstanceData));
 
 		device->CopyDescriptorsSimple(1, descHandle[counter].cpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		counter++;
