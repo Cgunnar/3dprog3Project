@@ -49,3 +49,8 @@ void CameraControllerScript::ToggleCameraLock()
 {
 	m_lock = !m_lock;
 }
+
+bool CameraControllerScript::IsCameraLocked() const
+{
+	return m_lock;
+}

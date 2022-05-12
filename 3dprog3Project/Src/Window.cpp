@@ -254,10 +254,32 @@ void Window::SetWindowed(uint32_t width, uint32_t height)
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+
+	switch (uMsg)
 	{
-		return true;
+	case WM_MOUSEMOVE:
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_MOUSEWHEEL:
+	case WM_INPUT:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && !mouse.m_showCursor)
+		{
+			break;
+		}
 	}
+	default:
+		if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+		{
+			return true;
+		}
+	}
+	
 
 	switch (uMsg)
 	{
@@ -319,12 +341,17 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			//open
 			SetFullscreen(m_fullscreenStateWhenOnOutOfFocus);
-			if(Mouse::s_mouseInstance) Mouse::Get().m_windowOutOfFocus = false;
+			if (Mouse::s_mouseInstance && Mouse::Get().m_windowOutOfFocus) {
+				Mouse::Get().SetMode(m_mouseModeOnOutOfFocus);
+				Mouse::Get().m_windowOutOfFocus = false;
+			}
 		}
 		else
 		{
 			//close
 			m_fullscreenStateWhenOnOutOfFocus = m_fullscreenState;
+			m_mouseModeOnOutOfFocus = Mouse::Get().GetMode();
+			Mouse::Get().SetMode(Mouse::Mode::Visible);
 			Mouse::Get().m_windowOutOfFocus = true;
 			SetFullscreen(FullscreenState::windowed);
 		}
@@ -410,7 +437,8 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_INPUT:
 	{
-		if (!m_isStarting && !m_isClosed && ImGui::GetIO().WantCaptureMouse) return 0;
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
 		UINT bufferSize{};
 		UINT errorCode = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, nullptr, &bufferSize, sizeof(RAWINPUTHEADER));
 		assert(errorCode != -1);
@@ -421,14 +449,14 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		assert(errorCode != -1);
 		if (errorCode == -1) return 0;
 
-		auto& myMouse = Mouse::Get();
+		
 		RAWINPUT& rawMouseInput = (RAWINPUT&)(*m_ridData.data());
 		if (rawMouseInput.header.dwType == RIM_TYPEMOUSE)
 		{
 			if (rawMouseInput.data.mouse.lLastX || rawMouseInput.data.mouse.lLastY)
 			{
-				myMouse.m_mouseState0.deltaX += static_cast<float>(rawMouseInput.data.mouse.lLastX);
-				myMouse.m_mouseState0.deltaY += static_cast<float>(rawMouseInput.data.mouse.lLastY);
+				mouse.m_mouseState0.deltaX += static_cast<float>(rawMouseInput.data.mouse.lLastX);
+				mouse.m_mouseState0.deltaY += static_cast<float>(rawMouseInput.data.mouse.lLastY);
 			}
 		}
 		return 0;

@@ -1,5 +1,6 @@
 #pragma once
 #include "Renderer.h"
+#include "Mouse.h"
 class Window
 {
 public:
@@ -32,7 +33,7 @@ private:
 	bool m_isClosed = false;
 	bool m_isStarting = true;
 	FullscreenState m_fullscreenStateWhenOnOutOfFocus = FullscreenState::windowed;
-
+	Mouse::Mode m_mouseModeOnOutOfFocus = Mouse::Mode::Visible;
 	std::vector<std::byte> m_ridData;
 	void SetBorderLess(bool remeberSize);
 	void SetWindowed(uint32_t width = 0, uint32_t height = 0);

@@ -7,6 +7,7 @@ class CameraControllerScript : public rfe::NativeScriptComponent<CameraControlle
 public:
 	void OnUpdate(float dt);
 	void ToggleCameraLock();
+	bool IsCameraLocked() const;
 private:
 	float m_moveSpeed = 1;
 	float m_pitch = 0;

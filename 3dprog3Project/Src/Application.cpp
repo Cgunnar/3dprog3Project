@@ -41,7 +41,7 @@ void Application::Run()
 	bool restartRenderer = false;
 	while (runApplication)
 	{
-		Mouse::Get().SetMode(Mouse::Mode::Confined);
+		Mouse::Get().SetMode(Mouse::Mode::Visible);
 		if (restartRenderer)
 		{
 			delete m_scene;
@@ -54,6 +54,7 @@ void Application::Run()
 			AssetManager::Init(m_renderer);
 			m_scene = new Scene();
 			restartRenderer = false;
+			Mouse::Get().SetMode(Mouse::Mode::Visible);
 		}
 
 		bool runApplicationLoop = true;
@@ -172,8 +173,22 @@ void Application::Run()
 			if (Mouse::Get().State().RMBClicked)
 			{
 				Mouse::Get().SetMode(~Mouse::Get().GetMode());
-				for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
-					c.GetComponent<CameraControllerScript>()->ToggleCameraLock();
+				if ((Mouse::Get().GetMode() & Mouse::Mode::Visible) == Mouse::Mode::Visible)
+				{
+					for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
+					{
+						auto cs = c.GetComponent<CameraControllerScript>();
+						if (!cs->IsCameraLocked()) cs->ToggleCameraLock();
+					}
+				}
+				else
+				{
+					for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
+					{
+						auto cs = c.GetComponent<CameraControllerScript>();
+						if (cs->IsCameraLocked()) cs->ToggleCameraLock();
+					}
+				}
 			}
 
 			AssetManager::Get().Update(m_renderer->GetNumberOfFramesInFlight());
