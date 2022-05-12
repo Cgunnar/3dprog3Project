@@ -102,6 +102,9 @@
     <ClCompile Include="Src\Graphics\OldMainRenderPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Src\CodeFromOlderProjects\Timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Window.h">
@@ -198,6 +201,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\Graphics\OldMainRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\CodeFromOlderProjects\Timer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

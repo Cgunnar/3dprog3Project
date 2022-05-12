@@ -14,7 +14,7 @@ public:
 	Renderer(const Renderer& other) = delete;
 	Renderer& operator=(const Renderer& other) = delete;
 
-	UINT64 Render();
+	uint64_t Render();
 	ID3D12Device* GetDevice();
 	void OnResize(UINT width, UINT height, bool forceResolution);
 	bool SetFullscreen(bool fullscreen, UINT exitFullscreenWidth = 0, UINT exitFullscreenHeight = 0);
@@ -66,7 +66,7 @@ private:
 	std::unique_ptr<FrameResource> m_frameResource;
 
 	ID3D12DescriptorHeap* m_imguiDescHeap = nullptr;
-
+	uint64_t m_counter = 0;
 	void BeginFrame();
 	void EndFrame();
 	void CreateDeviceAndDirectCmd(IDXGIFactory6* factory);

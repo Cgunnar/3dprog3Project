@@ -8,6 +8,7 @@
 #include "RenderingTypes.h"
 #include "CameraControllerScript.h"
 #include "CommonComponents.h"
+#include "Timer.hpp"
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 
@@ -57,9 +58,29 @@ void Application::Run()
 			Mouse::Get().SetMode(Mouse::Mode::Visible);
 		}
 
+		Timer myTimer;
+		uint64_t frameNumber = 0;
 		bool runApplicationLoop = true;
 		while (runApplicationLoop)
 		{
+			if (frameNumber > 4000) // wait a bit before staring profiling 
+			{
+				static uint64_t frameCounter = 0;
+				static uint64_t avgOver2000FramesFrameTimeInMicroSec = 0;
+				avgOver2000FramesFrameTimeInMicroSec += myTimer.stop();
+				myTimer.start();
+				if (frameCounter == 2000)
+				{
+					uint64_t avg = avgOver2000FramesFrameTimeInMicroSec / 2000;
+					avgOver2000FramesFrameTimeInMicroSec = 0;
+					frameCounter = 0;
+					std::cout << "avg frame time: " + std::to_string((float)avg / 1000.0f) + " ms" << std::endl;
+				}
+				else
+				{
+					frameCounter++;
+				}
+			}
 			float dt = FrameTimer::NewFrame();
 			Mouse::Get().Update();
 			if (!m_window->Win32MsgPump())
@@ -206,7 +227,7 @@ void Application::Run()
 				m_scene->Update(dt);
 
 			ImGui::Render();
-			m_renderer->Render();
+			frameNumber = m_renderer->Render();
 		}
 	}
 }

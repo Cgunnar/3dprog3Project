@@ -191,7 +191,7 @@ void Renderer::BeginFrame()
 	m_desriptorPool->SetNextFrame();
 }
 
-size_t Renderer::Render()
+uint64_t Renderer::Render()
 {
 	int frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;
 	m_activeRenderPassCmdListsCount = 0;
@@ -233,8 +233,7 @@ size_t Renderer::Render()
 	m_directCmdListEnd->SetDescriptorHeaps(1, &m_imguiDescHeap);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_directCmdListEnd);
 	EndFrame();
-	static size_t counter = 0;
-	return counter++;
+	return m_counter++;
 }
 
 
