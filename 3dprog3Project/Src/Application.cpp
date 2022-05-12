@@ -77,6 +77,9 @@ void Application::Run()
 			newSettings.fullscreemState = m_window->GetFullscreenState();
 			ImGui::Begin("Settings");
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::SameLine();
+			static bool pauseSceneUpdate = true;
+			if (ImGui::Button("pause scene")) pauseSceneUpdate = !pauseSceneUpdate;
 			std::array<const char*, 3> fullscreenCompo = {"windowed", "borderLess", "fullscreen"};
 			FullscreenState selectedFullscreenState = newSettings.fullscreemState;
 			ImGui::Text("fullscreen mode");
@@ -198,7 +201,9 @@ void Application::Run()
 					= rfm::PerspectiveProjectionMatrix(rfm::PIDIV4,
 						static_cast<float>(width) / static_cast<float>(height), 0.001, 1000);
 			}
-			m_scene->Update(dt);
+			rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
+			if(!pauseSceneUpdate)
+				m_scene->Update(dt);
 
 			ImGui::Render();
 			m_renderer->Render();
