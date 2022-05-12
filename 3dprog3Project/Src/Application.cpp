@@ -173,21 +173,21 @@ void Application::Run()
 			if (Mouse::Get().State().RMBClicked)
 			{
 				Mouse::Get().SetMode(~Mouse::Get().GetMode());
-				if ((Mouse::Get().GetMode() & Mouse::Mode::Visible) == Mouse::Mode::Visible)
+			}
+			if ((Mouse::Get().GetMode() & Mouse::Mode::Visible) == Mouse::Mode::Visible)
+			{
+				for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
 				{
-					for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
-					{
-						auto cs = c.GetComponent<CameraControllerScript>();
-						if (!cs->IsCameraLocked()) cs->ToggleCameraLock();
-					}
+					auto cs = c.GetComponent<CameraControllerScript>();
+					if (!cs->IsCameraLocked()) cs->ToggleCameraLock();
 				}
-				else
+			}
+			else
+			{
+				for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
 				{
-					for (auto& c : rfe::EntityReg::ViewEntities<CameraControllerScript>())
-					{
-						auto cs = c.GetComponent<CameraControllerScript>();
-						if (cs->IsCameraLocked()) cs->ToggleCameraLock();
-					}
+					auto cs = c.GetComponent<CameraControllerScript>();
+					if (cs->IsCameraLocked()) cs->ToggleCameraLock();
 				}
 			}
 
