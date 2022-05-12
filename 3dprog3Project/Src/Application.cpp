@@ -63,26 +63,31 @@ void Application::Run()
 		bool runApplicationLoop = true;
 		while (runApplicationLoop)
 		{
-			if (frameNumber > 4000) // wait a bit before staring profiling 
-			{
-				static uint64_t frameCounter = 0;
-				static uint64_t avgOver2000FramesFrameTimeInMicroSec = 0;
-				avgOver2000FramesFrameTimeInMicroSec += myTimer.stop();
-				myTimer.start();
-				if (frameCounter == 2000)
-				{
-					uint64_t avg = avgOver2000FramesFrameTimeInMicroSec / 2000;
-					avgOver2000FramesFrameTimeInMicroSec = 0;
-					frameCounter = 0;
-					std::cout << "avg frame time: " + std::to_string((float)avg / 1000.0f) + " ms" << std::endl;
-				}
-				else
-				{
-					frameCounter++;
-				}
-			}
 			float dt = FrameTimer::NewFrame();
 			Mouse::Get().Update();
+			if (frameNumber == 500) myTimer.start();
+			if (frameNumber > 500) // wait a bit before staring profiling
+			{
+				static uint64_t frameCounter = 0;
+				static uint64_t avgFramesFrameTimeInMicroSec = 0;
+				static uint64_t avgOver2000FramesFrameTimeInMicroSec = 0;
+				uint64_t time = myTimer.stop();
+				myTimer.start();
+				avgOver2000FramesFrameTimeInMicroSec += time;
+				avgFramesFrameTimeInMicroSec += time;
+				if (frameCounter % 2000 == 0 && frameCounter)
+				{
+					uint64_t avg2000 = avgOver2000FramesFrameTimeInMicroSec / 2000;
+					uint64_t avgTotal = avgFramesFrameTimeInMicroSec / frameCounter;
+					avgOver2000FramesFrameTimeInMicroSec = 0;
+					std::cout << "runtime: " << std::to_string(FrameTimer::TimeFromLaunch()) << " s\n";
+					std::cout << "frame time:\n";
+					std::cout << "\tavg(2000):\t" + std::to_string((float)avg2000 / 1000.0f) + " ms\n";
+					std::cout << "\tavg(total):\t" + std::to_string((float)avgTotal / 1000.0f) + " ms" << std::endl;
+				}
+				frameCounter++;
+			}
+			
 			if (!m_window->Win32MsgPump())
 			{
 				runApplication = false;
