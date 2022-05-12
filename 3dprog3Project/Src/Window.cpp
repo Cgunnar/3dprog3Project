@@ -391,6 +391,23 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		mouse.m_mouseState0.RMBHeld = false;
 		return 0;
 	}
+	case WM_MBUTTONDOWN:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+		mouse.m_mouseState0.MMBClicked = true;
+		mouse.m_mouseState0.MMBHeld = true;
+		return 0;
+	}
+
+	case WM_MBUTTONUP:
+	{
+		Mouse& mouse = Mouse::Get();
+		if (!m_isStarting && !m_isClosed && mouse.m_showCursor && ImGui::GetIO().WantCaptureMouse) return 0;
+		mouse.m_mouseState0.MMBReleased = true;
+		mouse.m_mouseState0.MMBHeld = false;
+		return 0;
+	}
 	case WM_INPUT:
 	{
 		if (!m_isStarting && !m_isClosed && ImGui::GetIO().WantCaptureMouse) return 0;

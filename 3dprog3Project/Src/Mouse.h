@@ -18,6 +18,10 @@ struct MouseState
 	bool RMBClicked = false;
 	bool RMBReleased = false;
 	bool RMBHeld = false;
+
+	bool MMBClicked = false;
+	bool MMBReleased = false;
+	bool MMBHeld = false;
 };
 
 class Window;

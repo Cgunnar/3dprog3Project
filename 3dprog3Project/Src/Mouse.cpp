@@ -29,6 +29,8 @@ void Mouse::Update()
 	m_mouseState0.LMBReleased = false;
 	m_mouseState0.RMBClicked = false;
 	m_mouseState0.RMBReleased = false;
+	m_mouseState0.MMBClicked = false;
+	m_mouseState0.MMBReleased = false;
 	m_mouseState0.deltaX = 0;
 	m_mouseState0.deltaY = 0;
 	m_mouseState0.deltaZ = 0;
