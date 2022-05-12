@@ -52,7 +52,7 @@ Scene::Scene()
 	std::uniform_int_distribution<> dist1(0, 4);
 	std::uniform_int_distribution<> dist2(0, 1);
 	
-	int l = 12;
+	int l = 16;
 #ifdef _DEBUG
 	l = 8;
 #endif // _DEBUG

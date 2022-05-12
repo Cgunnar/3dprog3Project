@@ -70,7 +70,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	factory6->Release();
 
 	m_desriptorPool = std::make_unique<DescriptorPool>(m_device, m_numFramesInFlight,
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 900000, 100000);
+		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 900000, 99999);
 
 		m_frameResource = std::make_unique<FrameResource>(m_device, settings.renderWidth, settings.renderHeight);
 
