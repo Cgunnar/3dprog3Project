@@ -115,6 +115,7 @@ Scene::Scene()
 		auto& pl0 = newEntity.AddComponent<PointLightComp>()->pointLight;
 		pl0.color = light;
 		pl0.strength = 40.0f / numLight;
+		pl0.position = pos;
 
 		Material lightMat;
 		lightMat.albedoFactor = { 0, 0, 0, 1 };
@@ -145,31 +146,34 @@ void Scene::Update(float dt)
 	rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
 
 	//system to rotate the cubes
-	const auto& spinningEntities = EntityReg::GetComponentArray<SpinnComp>();
-	for (const auto& spinnComp : spinningEntities)
+	if (false)
 	{
-		TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(spinnComp.GetEntityID());
-		if (transformComp)
-			transformComp->transform.rotateDegL(dt * spinnComp.rotSpeed);
-	}
-
-
-	//system for making the lights orbit
-	rfm::Vector3 orbitPoint = { 0,0,0 };
-	auto& pointLightsEntities = EntityReg::GetComponentArray<PointLightComp>();
-	for (auto& plComp : pointLightsEntities)
-	{
-		TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(plComp.GetEntityID());
-		if (transformComp)
+		const auto& spinningEntities = EntityReg::GetComponentArray<SpinnComp>();
+		for (const auto& spinnComp : spinningEntities)
 		{
-			rfm::Transform& tr = transformComp->transform;
-			if ((orbitPoint - tr.getTranslation()).length() == 0) orbitPoint += {0.1, 0, 0};
-			rfm::Vector3 rotNormal = rfm::cross(tr.right(), tr.getTranslation() - orbitPoint);
-			if(rotNormal.length() == 0) rotNormal = rfm::cross(tr.up(), tr.getTranslation() - orbitPoint);
-			tr.translateW(-orbitPoint);
-			tr = rfm::rotationMatrixFromNormal( rfm::normalize(rotNormal), rfm::DegToRad(30.0f * dt)) * tr;
-			tr.translateW(orbitPoint);
-			plComp.pointLight.position = tr.getTranslation();
+			TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(spinnComp.GetEntityID());
+			if (transformComp)
+				transformComp->transform.rotateDegL(dt * spinnComp.rotSpeed);
+		}
+
+
+		//system for making the lights orbit
+		rfm::Vector3 orbitPoint = { 0,0,0 };
+		auto& pointLightsEntities = EntityReg::GetComponentArray<PointLightComp>();
+		for (auto& plComp : pointLightsEntities)
+		{
+			TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(plComp.GetEntityID());
+			if (transformComp)
+			{
+				rfm::Transform& tr = transformComp->transform;
+				if ((orbitPoint - tr.getTranslation()).length() == 0) orbitPoint += {0.1, 0, 0};
+				rfm::Vector3 rotNormal = rfm::cross(tr.right(), tr.getTranslation() - orbitPoint);
+				if (rotNormal.length() == 0) rotNormal = rfm::cross(tr.up(), tr.getTranslation() - orbitPoint);
+				tr.translateW(-orbitPoint);
+				tr = rfm::rotationMatrixFromNormal(rfm::normalize(rotNormal), rfm::DegToRad(30.0f * dt)) * tr;
+				tr.translateW(orbitPoint);
+				plComp.pointLight.position = tr.getTranslation();
+			}
 		}
 	}
 }
