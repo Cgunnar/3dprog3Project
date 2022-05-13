@@ -58,32 +58,39 @@ void Application::Run()
 			Mouse::Get().SetMode(Mouse::Mode::Visible);
 		}
 
-		Timer myTimer;
+		Timer myTimer(Duration::NANOSECONDS);
 		uint64_t frameNumber = 0;
 		bool runApplicationLoop = true;
 		while (runApplicationLoop)
 		{
 			float dt = FrameTimer::NewFrame();
 			Mouse::Get().Update();
-			if (frameNumber == 500) myTimer.start();
+			static uint64_t frameCounter = 0;
+			static uint64_t avgFramesFrameTimeNanoSec = 0;
+			static uint64_t avgOver2000FramesFrameTimeNanoSec = 0;
+			if (frameNumber == 500)
+			{
+				myTimer.start();
+				frameCounter = 0;
+				avgFramesFrameTimeNanoSec = 0;
+				avgOver2000FramesFrameTimeNanoSec = 0;
+				std::cout << "start profiling" << std::endl;
+			}
 			if (frameNumber > 500) // wait a bit before staring profiling
 			{
-				static uint64_t frameCounter = 0;
-				static uint64_t avgFramesFrameTimeInMicroSec = 0;
-				static uint64_t avgOver2000FramesFrameTimeInMicroSec = 0;
 				uint64_t time = myTimer.stop();
 				myTimer.start();
-				avgOver2000FramesFrameTimeInMicroSec += time;
-				avgFramesFrameTimeInMicroSec += time;
+				avgOver2000FramesFrameTimeNanoSec += time;
+				avgFramesFrameTimeNanoSec += time;
 				if (frameCounter % 2000 == 0 && frameCounter)
 				{
-					uint64_t avg2000 = avgOver2000FramesFrameTimeInMicroSec / 2000;
-					uint64_t avgTotal = avgFramesFrameTimeInMicroSec / frameCounter;
-					avgOver2000FramesFrameTimeInMicroSec = 0;
+					uint64_t avg2000 = avgOver2000FramesFrameTimeNanoSec / 2000;
+					uint64_t avgTotal = avgFramesFrameTimeNanoSec / frameCounter;
+					avgOver2000FramesFrameTimeNanoSec = 0;
 					std::cout << "runtime: " << std::to_string(FrameTimer::TimeFromLaunch()) << " s\n";
 					std::cout << "frame time:\n";
-					std::cout << "\tavg(2000):\t" + std::to_string((float)avg2000 / 1000.0f) + " ms\n";
-					std::cout << "\tavg(total):\t" + std::to_string((float)avgTotal / 1000.0f) + " ms" << std::endl;
+					std::cout << "\tavg(2000):\t" + std::to_string(static_cast<double>(avg2000) / 1.0E+6) + " ms\n";
+					std::cout << "\tavg(total):\t" + std::to_string(static_cast<double>(avgTotal) / 1.0E+6) + " ms" << std::endl;
 				}
 				frameCounter++;
 			}
