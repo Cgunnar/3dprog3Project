@@ -21,15 +21,14 @@ FrameResource::FrameResource(ID3D12Device* device, UINT width, UINT height) : m_
 	rtvDesc.SampleDesc.Quality = 0;
 	rtvDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	D3D12_CLEAR_VALUE rtClarValue;
-	rtClarValue.Format = rtvDesc.Format;
-	rtClarValue.Color[0] = pow(0.2f, 2.2f);
-	rtClarValue.Color[1] = 0.0f;
-	rtClarValue.Color[2] = 0.0f;
-	rtClarValue.Color[3] = 0.0f;
+	m_rtClearValue.Format = rtvDesc.Format;
+	m_rtClearValue.Color[0] = pow(0.2f, 2.2f);
+	m_rtClearValue.Color[1] = 0.0f;
+	m_rtClearValue.Color[2] = 0.0f;
+	m_rtClearValue.Color[3] = 0.0f;
 
 	HRESULT hr = device->CreateCommittedResource(&heapProp, D3D12_HEAP_FLAG_NONE, &rtvDesc,
-		D3D12_RESOURCE_STATE_RENDER_TARGET, &rtClarValue, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&renderTarget));
+		D3D12_RESOURCE_STATE_RENDER_TARGET, &m_rtClearValue, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&renderTarget));
 	assert(SUCCEEDED(hr));
 
 	if (FAILED(hr)) //troll resolution settings will fail here

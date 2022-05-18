@@ -27,5 +27,6 @@ private:
 	UINT m_rtvHeapDescIncremenSize = 0;
 	UINT m_width;
 	UINT m_height;
+	D3D12_CLEAR_VALUE m_rtClearValue;
 };
 

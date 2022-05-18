@@ -96,9 +96,10 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	assert(SUCCEEDED(hr));
 
 	CreateRTV();
+	auto format = m_frameResource->renderTarget->GetDesc().Format;
 
-	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, 12));
-	m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, 1));
+	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, format, 12));
+	m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -183,7 +184,18 @@ void Renderer::BeginFrame()
 	backbufferTransitionBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	m_directCmdListStart->ResourceBarrier(1, &backbufferTransitionBarrier);
 
+	
+
 	m_frameResource->m_backBufferCpuDescHandle = backBufferHandle;
+
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	D3D12_CPU_DESCRIPTOR_HANDLE bbRtvHandle = m_frameResource->GetBackBufferCpuHandle();
+	m_directCmdListStart->ClearRenderTargetView(bbRtvHandle, clearColor, 0, nullptr);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_frameResource->GetRtvCpuHandle();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_frameResource->GetDsvCpuHandle();
+	m_directCmdListStart->ClearRenderTargetView(rtvHandle, m_frameResource->m_rtClearValue.Color, 0, nullptr);
+	m_directCmdListStart->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	auto descripterHeap = m_desriptorPool->Get();
 	m_directCmdListStart->SetDescriptorHeaps(1, &descripterHeap);

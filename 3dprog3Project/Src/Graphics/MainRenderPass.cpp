@@ -5,8 +5,8 @@
 #include "AssetManager.h"
 
 
-MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, int numThreads)
-	: m_device(device)
+MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat, int numThreads)
+	: m_device(device), m_rtFormat(renderTargetFormat)
 {
 	m_numThreads = std::max(1, numThreads);
 	m_constantBuffers.resize(m_numThreads);
@@ -226,8 +226,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, int num
 	pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateDesc.RasterizerState = rasterState;
 	pipelineStateDesc.NumRenderTargets = 1u;
-	//pipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	pipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	pipelineStateDesc.RTVFormats[0] = renderTargetFormat;
 	pipelineStateDesc.BlendState.RenderTarget[0] = rtvBlendDesc;
 	pipelineStateDesc.BlendState.AlphaToCoverageEnable = false;
 	pipelineStateDesc.BlendState.IndependentBlendEnable = false;
@@ -301,12 +300,6 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 
 	UINT cameraCB = m_constantBuffers[0][frameIndex]->PushConstantBuffer();
 	m_constantBuffers[0][frameIndex]->UpdateConstantBuffer(cameraCB, &cameraCBData, sizeof(cameraCBData));
-
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
-	float clearColor[] = { pow(0.2f, 2.2f), 0.0f, 0.0f, 0.0f };
-	cmdLists.front()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	cmdLists.front()->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	//we use one of the descriptors that we requaseted for thread0, to bind the lights
 	m_device->CopyDescriptorsSimple(1, descriptorHandles.front().cpuHandle, m_dynamicPointLightBuffer[frameIndex]->CpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -443,7 +436,7 @@ void MainRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int frames
 {
 	return; // no need to recreate this class
 	this->~MainRenderPass();
-	new(this) MainRenderPass(device, framesInFlight, m_numThreads);
+	new(this) MainRenderPass(device, framesInFlight, m_rtFormat, m_numThreads);
 }
 
 std::string MainRenderPass::Name() const

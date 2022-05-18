@@ -5,8 +5,8 @@
 #include "AssetManager.h"
 
 
-TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight) 
-	: m_device(device)
+TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat)
+	: m_device(device), m_rtFormat(renderTargetFormat)
 {
 	m_constantBuffers.resize(m_numThreads);
 
@@ -145,7 +145,7 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight)
 	pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateDesc.RasterizerState = rasterState;
 	pipelineStateDesc.NumRenderTargets = 1u;
-	pipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pipelineStateDesc.RTVFormats[0] = renderTargetFormat;
 	pipelineStateDesc.BlendState.RenderTarget[0] = rtvBlendDesc;
 	pipelineStateDesc.BlendState.AlphaToCoverageEnable = false;
 	pipelineStateDesc.BlendState.IndependentBlendEnable = false;
@@ -213,11 +213,6 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	UINT cameraCB = m_constantBuffers[0][frameIndex]->PushConstantBuffer();
 	m_constantBuffers[0][frameIndex]->UpdateConstantBuffer(cameraCB, &cameraCBData, sizeof(cameraCBData));
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
-	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
-	cmdLists.front()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	cmdLists.front()->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	//fix a better way of allocating memory
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
@@ -301,7 +296,7 @@ void TestRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int frames
 {
 	return; // no need to recreate this class
 	this->~TestRenderPass();
-	new(this) TestRenderPass(device, framesInFlight);
+	new(this) TestRenderPass(device, framesInFlight, m_rtFormat);
 }
 
 std::string TestRenderPass::Name() const
