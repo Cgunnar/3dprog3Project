@@ -4,8 +4,8 @@
 #include "CommonComponents.h"
 #include "AssetManager.h"
 
-IndirectRenderPass::IndirectRenderPass(ID3D12Device* device, int framesInFlight)
-	: m_device(device), m_framesInFlight(framesInFlight)
+IndirectRenderPass::IndirectRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat)
+	: m_device(device), m_framesInFlight(framesInFlight), m_rtFormat(renderTargetFormat)
 {
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -60,12 +60,6 @@ void IndirectRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> c
 	auto currentCpuHandle = descHandle.cpuHandle;
 	m_device->CopyDescriptorsSimple(2, currentCpuHandle, AssetManager::Get().GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	currentCpuHandle.ptr += 2 * descHandle.incrementSize;
-
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
-	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
-	cmdLists.front()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	cmdLists.front()->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	cmdLists.front()->SetGraphicsRootSignature(m_rootSignature);
 	cmdLists.front()->SetPipelineState(m_pipelineState);
@@ -220,7 +214,7 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateDesc.RasterizerState = rasterState;
 	pipelineStateDesc.NumRenderTargets = 1u;
-	pipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pipelineStateDesc.RTVFormats[0] = m_rtFormat;
 	pipelineStateDesc.BlendState.RenderTarget[0] = rtvBlendDesc;
 	pipelineStateDesc.BlendState.AlphaToCoverageEnable = false;
 	pipelineStateDesc.BlendState.IndependentBlendEnable = false;
