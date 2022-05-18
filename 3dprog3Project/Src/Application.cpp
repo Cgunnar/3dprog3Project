@@ -68,33 +68,36 @@ void Application::Run()
 			static uint64_t frameCounter = 0;
 			static uint64_t avgFramesFrameTimeNanoSec = 0;
 			static uint64_t avgOver2000FramesFrameTimeNanoSec = 0;
-			if (frameNumber == 500)
+			static bool profiling = false;
+			if (profiling)
 			{
-				myTimer.start();
-				frameCounter = 0;
-				avgFramesFrameTimeNanoSec = 0;
-				avgOver2000FramesFrameTimeNanoSec = 0;
-				std::cout << "start profiling" << std::endl;
-			}
-			if (frameNumber > 500) // wait a bit before staring profiling
-			{
-				uint64_t time = myTimer.stop();
-				myTimer.start();
-				avgOver2000FramesFrameTimeNanoSec += time;
-				avgFramesFrameTimeNanoSec += time;
-				if (frameCounter % 2000 == 0 && frameCounter)
+				if (frameNumber == 500)
 				{
-					uint64_t avg2000 = avgOver2000FramesFrameTimeNanoSec / 2000;
-					uint64_t avgTotal = avgFramesFrameTimeNanoSec / frameCounter;
+					myTimer.start();
+					frameCounter = 0;
+					avgFramesFrameTimeNanoSec = 0;
 					avgOver2000FramesFrameTimeNanoSec = 0;
-					std::cout << "runtime: " << std::to_string(FrameTimer::TimeFromLaunch()) << " s\n";
-					std::cout << "frame time:\n";
-					std::cout << "\tavg(2000):\t" + std::to_string(static_cast<double>(avg2000) / 1.0E+6) + " ms\n";
-					std::cout << "\tavg(total):\t" + std::to_string(static_cast<double>(avgTotal) / 1.0E+6) + " ms" << std::endl;
+					std::cout << "start profiling" << std::endl;
 				}
-				frameCounter++;
+				if (frameNumber > 500) // wait a bit before staring profiling
+				{
+					uint64_t time = myTimer.stop();
+					myTimer.start();
+					avgOver2000FramesFrameTimeNanoSec += time;
+					avgFramesFrameTimeNanoSec += time;
+					if (frameCounter % 2000 == 0 && frameCounter)
+					{
+						uint64_t avg2000 = avgOver2000FramesFrameTimeNanoSec / 2000;
+						uint64_t avgTotal = avgFramesFrameTimeNanoSec / frameCounter;
+						avgOver2000FramesFrameTimeNanoSec = 0;
+						std::cout << "runtime: " << std::to_string(FrameTimer::TimeFromLaunch()) << " s\n";
+						std::cout << "frame time:\n";
+						std::cout << "\tavg(2000):\t" + std::to_string(static_cast<double>(avg2000) / 1.0E+6) + " ms\n";
+						std::cout << "\tavg(total):\t" + std::to_string(static_cast<double>(avgTotal) / 1.0E+6) + " ms" << std::endl;
+					}
+					frameCounter++;
+				}
 			}
-			
 			if (!m_window->Win32MsgPump())
 			{
 				runApplication = false;
@@ -171,6 +174,7 @@ void Application::Run()
 			static int numFramesIndex = 1;
 			ImGui::Separator();
 			ImGui::Text("Restart renderer to apply");
+			ImGui::Checkbox("profiling", &profiling);
 			ImGui::Text("frames in flight");
 			ImGui::SameLine();
 			if (ImGui::Combo("##3", &numFramesIndex, numframes.data(), numframes.size()))
