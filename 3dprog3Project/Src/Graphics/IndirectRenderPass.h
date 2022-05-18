@@ -3,7 +3,7 @@
 class IndirectRenderPass : public RenderPass
 {
 public:
-	IndirectRenderPass(ID3D12Device* device, int framesInFlight);
+	IndirectRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat);
 	~IndirectRenderPass();
 	RenderPassRequirements GetRequirements() override;
 	void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) override;
@@ -15,6 +15,7 @@ private:
 	constexpr static size_t vbBindlessRP = 1;
 	constexpr static size_t ibBindlessRP = 2;
 
+	DXGI_FORMAT m_rtFormat;
 	int m_framesInFlight;
 	ID3D12Device* m_device = nullptr;
 
