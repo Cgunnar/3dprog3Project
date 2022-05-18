@@ -226,7 +226,8 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, int num
 	pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateDesc.RasterizerState = rasterState;
 	pipelineStateDesc.NumRenderTargets = 1u;
-	pipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	//pipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	pipelineStateDesc.BlendState.RenderTarget[0] = rtvBlendDesc;
 	pipelineStateDesc.BlendState.AlphaToCoverageEnable = false;
 	pipelineStateDesc.BlendState.IndependentBlendEnable = false;
@@ -303,7 +304,7 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetRtvCpuHandle();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
-	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
+	float clearColor[] = { pow(0.2f, 2.2f), 0.0f, 0.0f, 0.0f };
 	cmdLists.front()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	cmdLists.front()->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 

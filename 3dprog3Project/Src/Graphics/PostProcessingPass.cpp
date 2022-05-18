@@ -164,7 +164,7 @@ void PostProcessingPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> c
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	float clearColor[] = { 0.2f, 0.0f, 0.0f, 0.0f };
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = frameResource.GetBackBufferCpuHandle();
 	cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);

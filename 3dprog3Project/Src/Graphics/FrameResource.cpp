@@ -10,8 +10,7 @@ FrameResource::FrameResource(ID3D12Device* device, UINT width, UINT height) : m_
 
 	D3D12_RESOURCE_DESC rtvDesc;
 	rtvDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	//rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	rtvDesc.MipLevels = 1;
 	rtvDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 	rtvDesc.Width = width;
@@ -24,7 +23,7 @@ FrameResource::FrameResource(ID3D12Device* device, UINT width, UINT height) : m_
 
 	D3D12_CLEAR_VALUE rtClarValue;
 	rtClarValue.Format = rtvDesc.Format;
-	rtClarValue.Color[0] = 0.2f;
+	rtClarValue.Color[0] = pow(0.2f, 2.2f);
 	rtClarValue.Color[1] = 0.0f;
 	rtClarValue.Color[2] = 0.0f;
 	rtClarValue.Color[3] = 0.0f;

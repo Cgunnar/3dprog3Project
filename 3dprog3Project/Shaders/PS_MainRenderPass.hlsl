@@ -48,6 +48,9 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 	float4 albedo;
 	Material mat = materials[NonUniformResourceIndex(matID)];
 	
+	//https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
+	//if no texture exists, texture is assumed to gave value 1 for each pixel => factor is the color
+	//this is true for the roughness and the other pbr materials as well.
 	if(mat.albedoTextureIndex != -1)
 		albedo = mat.albedoFactor * albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
 	else
@@ -75,7 +78,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 	}
 	outputColor += mat.emissionFactor.rgb;
 	outputColor += 0.2f * albedo.rgb;
-	return float4(saturate(outputColor), albedo.a);
+	return float4(outputColor, albedo.a);
 }
 
 
