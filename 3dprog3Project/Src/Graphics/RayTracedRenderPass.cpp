@@ -265,10 +265,14 @@ void RayTracedRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList*
 	ID3D12Device5* device5 = nullptr;
 	HRESULT hr = device->QueryInterface(__uuidof(ID3D12Device5), reinterpret_cast<void**>(&device5));
 	assert(SUCCEEDED(hr));
+	ID3D12GraphicsCommandList4* cmdList4 = nullptr;
+	hr = cmdList->QueryInterface(__uuidof(ID3D12GraphicsCommandList4), reinterpret_cast<void**>(&cmdList4));
+	assert(SUCCEEDED(hr));
 	m_accelerationStructures.resize(m_numberOfFramesInFlight);
 	for (auto& a : m_accelerationStructures)
-		a = std::make_unique<AccelerationStructure>(device5);
+		a = std::make_unique<AccelerationStructure>(device5, cmdList4);
 	device5->Release();
+	cmdList4->Release();
 }
 
 static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
