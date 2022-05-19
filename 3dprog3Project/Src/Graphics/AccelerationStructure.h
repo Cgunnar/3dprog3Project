@@ -7,6 +7,7 @@ public:
 	AccelerationStructure(ID3D12Device5* device, ID3D12GraphicsCommandList4* cmdList);
 	~AccelerationStructure();
 
+	void UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
 
 private:
 

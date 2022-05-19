@@ -282,6 +282,7 @@ static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdLis
 void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
 	UpdateDynamicLights(frameIndex);
+	m_accelerationStructures[frameIndex]->UpdateTopLevel(m_device, cmdLists.front());
 
 	m_constantBuffers[frameIndex]->Clear();
 

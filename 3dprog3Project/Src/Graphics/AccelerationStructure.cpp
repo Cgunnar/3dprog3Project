@@ -9,8 +9,20 @@ AccelerationStructure::AccelerationStructure(ID3D12Device5* device, ID3D12Graphi
 {
 
 	BuildBottomLevel(device, cmdList);
+	std::vector<D3D12_RESOURCE_BARRIER> barriers;
+	D3D12_RESOURCE_BARRIER barrier{};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+	for (auto& b : m_bottomLevels)
+	{
+		barrier.UAV.pResource = b.second.resultBuffer;
+		barriers.push_back(barrier);
+	}
+	cmdList->ResourceBarrier(barriers.size(), barriers.data());
+
 	BuildTopLevel(device, cmdList);
 
+	barrier.UAV.pResource = m_topLevel.resultBuffer;
+	cmdList->ResourceBarrier(1, &barrier);
 }
 
 AccelerationStructure::~AccelerationStructure()
@@ -22,6 +34,46 @@ AccelerationStructure::~AccelerationStructure()
 	}
 	if (m_topLevel.resultBuffer) m_topLevel.resultBuffer->Release();
 	if (m_topLevel.scratchBuffer) m_topLevel.scratchBuffer->Release();
+}
+
+void AccelerationStructure::UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+{
+	ID3D12Device5* device5 = nullptr;
+	HRESULT hr = device->QueryInterface(__uuidof(ID3D12Device5), reinterpret_cast<void**>(&device5));
+	assert(SUCCEEDED(hr));
+	ID3D12GraphicsCommandList4* cmdList4 = nullptr;
+	hr = cmdList->QueryInterface(__uuidof(ID3D12GraphicsCommandList4), reinterpret_cast<void**>(&cmdList4));
+	assert(SUCCEEDED(hr));
+
+	for (auto& inst : m_instances)
+	{
+		rfm::Matrix worldMatrix = rfe::EntityReg::GetComponent<TransformComp>(inst.InstanceID)->transform;
+		inst.Transform[0][0] = worldMatrix[0][0]; inst.Transform[0][1] = worldMatrix[0][1]; inst.Transform[0][2] = worldMatrix[0][2]; inst.Transform[0][3] = worldMatrix[0][3];
+		inst.Transform[1][0] = worldMatrix[1][0]; inst.Transform[1][1] = worldMatrix[1][1]; inst.Transform[1][2] = worldMatrix[1][2]; inst.Transform[1][3] = worldMatrix[1][3];
+		inst.Transform[2][0] = worldMatrix[2][0]; inst.Transform[2][1] = worldMatrix[2][1]; inst.Transform[2][2] = worldMatrix[2][2]; inst.Transform[2][3] = worldMatrix[2][3];
+	}
+
+	m_instanceBuffer->Update(m_instances.data(), m_instances.size());
+
+
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC accStructureDesc{};
+	accStructureDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+	accStructureDesc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	accStructureDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	accStructureDesc.Inputs.NumDescs = m_instances.size();
+	accStructureDesc.Inputs.InstanceDescs = m_instanceBuffer->GpuAddress();
+
+	accStructureDesc.DestAccelerationStructureData = m_topLevel.resultBuffer->GetGPUVirtualAddress();
+	accStructureDesc.ScratchAccelerationStructureData = m_topLevel.scratchBuffer->GetGPUVirtualAddress();
+	cmdList4->BuildRaytracingAccelerationStructure(&accStructureDesc, 0, nullptr);
+
+	D3D12_RESOURCE_BARRIER barrier{};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+	barrier.UAV.pResource = m_topLevel.resultBuffer;
+	cmdList4->ResourceBarrier(1, &barrier);
+
+	device5->Release();
+	cmdList4->Release();
 }
 
 bool AccelerationStructure::BuildBottomLevel(ID3D12Device5* device, ID3D12GraphicsCommandList4* cmdList)
