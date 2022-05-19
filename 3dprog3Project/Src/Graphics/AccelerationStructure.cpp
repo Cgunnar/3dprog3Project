@@ -23,6 +23,25 @@ AccelerationStructure::AccelerationStructure(ID3D12Device5* device, ID3D12Graphi
 
 	barrier.UAV.pResource = m_topLevel.resultBuffer;
 	cmdList->ResourceBarrier(1, &barrier);
+
+
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc{};
+	descHeapDesc.NodeMask = 0;
+	descHeapDesc.NumDescriptors = 1;
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+	HRESULT hr = device->CreateDescriptorHeap(&descHeapDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_descriptorHeap));
+	assert(SUCCEEDED(hr));
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
+	viewDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+	viewDesc.Format = DXGI_FORMAT_UNKNOWN;
+	viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	viewDesc.RaytracingAccelerationStructure.Location = m_topLevel.resultBuffer->GetGPUVirtualAddress();
+
+	D3D12_CPU_DESCRIPTOR_HANDLE heapHandle = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	device->CreateShaderResourceView(nullptr, &viewDesc, heapHandle);
 }
 
 AccelerationStructure::~AccelerationStructure()
@@ -34,6 +53,12 @@ AccelerationStructure::~AccelerationStructure()
 	}
 	if (m_topLevel.resultBuffer) m_topLevel.resultBuffer->Release();
 	if (m_topLevel.scratchBuffer) m_topLevel.scratchBuffer->Release();
+	if (m_descriptorHeap) m_descriptorHeap->Release();
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE AccelerationStructure::GetCpuHandle() const
+{
+	return m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
 void AccelerationStructure::UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
@@ -48,9 +73,9 @@ void AccelerationStructure::UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsC
 	for (auto& inst : m_instances)
 	{
 		rfm::Matrix worldMatrix = rfe::EntityReg::GetComponent<TransformComp>(inst.InstanceID)->transform;
-		inst.Transform[0][0] = worldMatrix[0][0]; inst.Transform[0][1] = worldMatrix[0][1]; inst.Transform[0][2] = worldMatrix[0][2]; inst.Transform[0][3] = worldMatrix[0][3];
-		inst.Transform[1][0] = worldMatrix[1][0]; inst.Transform[1][1] = worldMatrix[1][1]; inst.Transform[1][2] = worldMatrix[1][2]; inst.Transform[1][3] = worldMatrix[1][3];
-		inst.Transform[2][0] = worldMatrix[2][0]; inst.Transform[2][1] = worldMatrix[2][1]; inst.Transform[2][2] = worldMatrix[2][2]; inst.Transform[2][3] = worldMatrix[2][3];
+		inst.Transform[0][0] = worldMatrix[0][0]; inst.Transform[0][1] = worldMatrix[1][0]; inst.Transform[0][2] = worldMatrix[2][0]; inst.Transform[0][3] = worldMatrix[3][0];
+		inst.Transform[1][0] = worldMatrix[0][1]; inst.Transform[1][1] = worldMatrix[1][1]; inst.Transform[1][2] = worldMatrix[2][1]; inst.Transform[1][3] = worldMatrix[3][1];
+		inst.Transform[2][0] = worldMatrix[0][2]; inst.Transform[2][1] = worldMatrix[1][2]; inst.Transform[2][2] = worldMatrix[2][2]; inst.Transform[2][3] = worldMatrix[3][2];
 	}
 
 	m_instanceBuffer->Update(m_instances.data(), m_instances.size());

@@ -7,6 +7,7 @@ public:
 	AccelerationStructure(ID3D12Device5* device, ID3D12GraphicsCommandList4* cmdList);
 	~AccelerationStructure();
 
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const;
 	void UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
 
 private:
@@ -22,6 +23,7 @@ private:
 	};
 	std::unordered_map<uint64_t, AccelerationLevel> m_bottomLevels;
 	AccelerationLevel m_topLevel;
+	ID3D12DescriptorHeap* m_descriptorHeap = nullptr;
 
 	void BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsCommandList4* cmdList);
 	bool BuildBottomLevel(ID3D12Device5* device, ID3D12GraphicsCommandList4* cmdList);

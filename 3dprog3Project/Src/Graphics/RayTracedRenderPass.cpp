@@ -51,6 +51,10 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 	//dynamicPointLights buffer
 	tableSlot3[0] = descriptorRange;
 
+	//ray traicing acceleration structure
+	descriptorRange.BaseShaderRegister = 1;
+	tableSlot3[1] = descriptorRange;
+
 	//bindless
 	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable0> psPerDrawCallDescriptors;
 	descriptorRange.BaseShaderRegister = 0;
@@ -304,14 +308,16 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 
 	auto& descriptorHandle = descriptorHandles.front();
 	m_device->CopyDescriptorsSimple(1, descriptorHandle.cpuHandle, m_dynamicPointLightBuffer[frameIndex]->CpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	descriptorHandles.front().cpuHandle.ptr += descriptorHandle.incrementSize;
+	descriptorHandle.cpuHandle.ptr += descriptorHandle.incrementSize;
+	m_device->CopyDescriptorsSimple(1, descriptorHandle.cpuHandle, m_accelerationStructures[frameIndex]->GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	descriptorHandle.cpuHandle.ptr += descriptorHandle.incrementSize;
 	auto& cmdList = cmdLists.front();
 	cmdList->SetGraphicsRootSignature(m_rootSignature);
 	cmdList->SetPipelineState(m_pipelineState);
 	cmdList->SetGraphicsRootConstantBufferView(2, m_constantBuffers[frameIndex]->GetGPUVirtualAddress(cameraCB));
 	cmdList->SetGraphicsRootDescriptorTable(3, descriptorHandle.gpuHandle);
-	descriptorHandle.gpuHandle.ptr += descriptorHandle.incrementSize;
-	descriptorHandle.index++;
+	descriptorHandle.gpuHandle.ptr += descriptorHandle.incrementSize * numDescriptorsInRootTable3;
+	descriptorHandle.index += numDescriptorsInRootTable3;
 
 
 	//fix a better way of allocating memory
