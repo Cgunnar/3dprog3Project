@@ -222,5 +222,7 @@
     <FxCompile Include="Shaders\VS_MainRenderPass.hlsl" />
     <FxCompile Include="Shaders\PS_OldMainRenderPass.hlsl" />
     <FxCompile Include="Shaders\VS_OldMainRenderPass.hlsl" />
+    <FxCompile Include="Shaders\PS_RayTracedRenderPass.hlsl" />
+    <FxCompile Include="Shaders\VS_RayTracedRenderPass.hlsl" />
   </ItemGroup>
 </Project>
