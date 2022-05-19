@@ -63,7 +63,7 @@ public:
 
 	void Update(const T* data, UINT count)
 	{
-		assert(count < m_maxNumElements && count > 0);
+		assert(count <= m_maxNumElements && count > 0);
 		if (m_cpuWrite)
 		{
 			if (m_descriptorHeap)
@@ -93,6 +93,11 @@ public:
 		{
 			assert(false);
 		}
+	}
+
+	ID3D12Resource* Get() const
+	{
+		return m_buffer;
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS GpuAddress() const
