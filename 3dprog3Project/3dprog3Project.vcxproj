@@ -107,6 +107,7 @@
     <ClCompile Include="Src\Graphics\OldMainRenderPass.cpp" />
     <ClCompile Include="Src\Graphics\PostProcessingPass.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\CameraControllerScript.cpp" />
+    <ClCompile Include="Src\Graphics\RayTracedRenderPass.cpp" />
     <ClCompile Include="Src\Mouse.cpp" />
     <ClCompile Include="Src\Graphics\ConstantBufferManager.cpp" />
     <ClCompile Include="Src\Graphics\DescriptorVector.cpp" />
@@ -145,6 +146,7 @@
     <ClInclude Include="Src\Graphics\OldMainRenderPass.h" />
     <ClInclude Include="Src\Graphics\PostProcessingPass.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\CameraControllerScript.h" />
+    <ClInclude Include="Src\Graphics\RayTracedRenderPass.h" />
     <ClInclude Include="Src\Mouse.h" />
     <ClInclude Include="Src\Graphics\ConstantBufferManager.h" />
     <ClInclude Include="Src\Graphics\DescriptorVector.h" />
