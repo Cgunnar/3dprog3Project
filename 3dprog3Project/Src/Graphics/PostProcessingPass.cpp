@@ -154,6 +154,11 @@ RenderPassRequirements PostProcessingPass::GetRequirements()
 	return req;
 }
 
+void PostProcessingPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+{
+
+}
+
 void PostProcessingPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
 	ID3D12GraphicsCommandList* cmdList = cmdLists.front();

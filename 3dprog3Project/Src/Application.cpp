@@ -20,6 +20,7 @@ Application::Application()
 	m_window->SetRenderer(m_renderer);
 	AssetManager::Init(m_renderer);
 	m_scene = new Scene();
+	m_renderer->PostAssetManagerSetUp();
 }
 
 Application::~Application()
@@ -54,6 +55,7 @@ void Application::Run()
 			m_window->SetRenderer(m_renderer);
 			AssetManager::Init(m_renderer);
 			m_scene = new Scene();
+			m_renderer->PostAssetManagerSetUp();
 			restartRenderer = false;
 			Mouse::Get().SetMode(Mouse::Mode::Visible);
 		}

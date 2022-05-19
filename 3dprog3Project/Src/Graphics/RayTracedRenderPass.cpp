@@ -3,7 +3,7 @@
 #include "AssetManager.h"
 
 RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat)
-	: m_device(device), m_rtFormat(renderTargetFormat)
+	: m_device(device), m_rtFormat(renderTargetFormat), m_numberOfFramesInFlight(framesInFlight)
 {
 	m_constantBuffers.resize(framesInFlight);
 
@@ -11,7 +11,6 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 	{
 		cbManager = new ConstantBufferManager(device, 100000, 256);
 	}
-
 
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -259,6 +258,17 @@ RenderPassRequirements RayTracedRenderPass::GetRequirements()
 	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * renderCount + numDescriptorsInRootTable3;
 	req.numDescriptorHandles = 1;
 	return req;
+}
+
+void RayTracedRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+{
+	ID3D12Device5* device5 = nullptr;
+	HRESULT hr = device->QueryInterface(__uuidof(ID3D12Device5), reinterpret_cast<void**>(&device5));
+	assert(SUCCEEDED(hr));
+	m_accelerationStructures.resize(m_numberOfFramesInFlight);
+	for (auto& a : m_accelerationStructures)
+		a = std::make_unique<AccelerationStructure>(device5);
+	device5->Release();
 }
 
 static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,

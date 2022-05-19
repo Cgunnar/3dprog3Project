@@ -100,6 +100,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Graphics\AccelerationStructure.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\Timer.cpp" />
     <ClCompile Include="Src\Graphics\MainRenderPass.cpp" />
     <ClCompile Include="Src\Graphics\DescriptorPool.cpp" />
@@ -139,6 +140,7 @@
     <ClCompile Include="Src\Graphics\StructuredBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\Graphics\AccelerationStructure.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\Timer.hpp" />
     <ClInclude Include="Src\Graphics\MainRenderPass.h" />
     <ClInclude Include="Src\Graphics\DescriptorPool.h" />

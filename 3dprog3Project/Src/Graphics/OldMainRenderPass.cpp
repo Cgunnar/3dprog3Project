@@ -242,6 +242,11 @@ RenderPassRequirements OldMainRenderPass::GetRequirements()
 	return req;
 }
 
+void OldMainRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+{
+
+}
+
 static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex);

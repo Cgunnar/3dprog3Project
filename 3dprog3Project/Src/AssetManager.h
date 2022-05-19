@@ -86,6 +86,8 @@ public:
 
 	void Update(int numberOfFramesInFlight);
 
+	const std::unordered_map<uint64_t, MeshAsset>& GetAllMeshes() const;
+
 	const DescriptorVector& GetHeapDescriptors() const;
 	DescriptorHandle GetBindlessAlbedoTexturesStart() const;
 	DescriptorHandle GetBindlessMaterialStart() const;

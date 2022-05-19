@@ -206,6 +206,11 @@ void AssetManager::Update(int numberOfFramesInFlight)
 	}
 }
 
+const std::unordered_map<uint64_t, MeshAsset>& AssetManager::GetAllMeshes() const
+{
+	return m_meshes;
+}
+
 const DescriptorVector& AssetManager::GetHeapDescriptors() const
 {
 	return m_heapDescriptor;

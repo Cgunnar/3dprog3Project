@@ -205,6 +205,25 @@ void Renderer::BeginFrame()
 	m_desriptorPool->SetNextFrame();
 }
 
+void Renderer::PostAssetManagerSetUp()
+{
+	for (auto& rp : m_renderPasses)
+	{
+		HRESULT hr = m_directCmdAllocatorStart.front()->Reset();
+		assert(SUCCEEDED(hr));
+		hr = m_directCmdListStart->Reset(m_directCmdAllocatorStart.front(), nullptr);
+		assert(SUCCEEDED(hr));
+
+		rp->Start(m_device, m_directCmdListStart);
+
+		hr = m_directCmdListStart->Close();
+		assert(SUCCEEDED(hr));
+		ID3D12CommandList* tmpCmdList = m_directCmdListStart;
+		m_directCmdQueue->ExecuteCommandLists(1, &tmpCmdList);
+		FlushGPU();
+	}
+}
+
 uint64_t Renderer::Render()
 {
 	int frameIndex = m_currentBackbufferIndex % m_numFramesInFlight;

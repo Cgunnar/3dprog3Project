@@ -6,6 +6,7 @@ public:
 	PostProcessingPass(ID3D12Device* device, int framesInFlight);
 	~PostProcessingPass();
 	RenderPassRequirements GetRequirements() override;
+	void Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) override;
 	void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) override;
 	void RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height) override;
 	std::string Name() const override;

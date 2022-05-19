@@ -3,6 +3,7 @@
 #include "StructuredBuffer.h"
 #include "ConstantBufferManager.h"
 #include "CommonComponents.h"
+#include "AccelerationStructure.h"
 
 class RayTracedRenderPass : public RenderPass
 {
@@ -10,6 +11,7 @@ public:
 	RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat);
 	~RayTracedRenderPass();
 	RenderPassRequirements GetRequirements() override;
+	void Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) override;
 	void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) override;
 	void RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height) override;
 	std::string Name() const override;
@@ -27,7 +29,8 @@ private:
 	std::vector<ConstantBufferManager*> m_constantBuffers;
 
 	std::vector<std::unique_ptr<StructuredBuffer<PointLight>>> m_dynamicPointLightBuffer;
-
+	std::vector<std::unique_ptr<AccelerationStructure>> m_accelerationStructures;
+	int m_numberOfFramesInFlight;
 	void UpdateDynamicLights(int frameIndex);
 };
 
