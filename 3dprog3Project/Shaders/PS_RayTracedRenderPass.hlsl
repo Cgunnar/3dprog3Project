@@ -123,16 +123,21 @@ float4 main(VS_OUT input) : SV_TARGET
     if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
         //q.CommittedInstanceIndex(),
+        float3x4 w = q.CommittedObjectToWorld3x4();
         uint primitiveIndex = q.CommittedPrimitiveIndex();
-        uint index = indices[NonUniformResourceIndex(0)][NonUniformResourceIndex(primitiveIndex*3)];
-        Vertex vertex0 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index)];
-        Vertex vertex1 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index+1)];
-        Vertex vertex2 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index+2)];
-        //a = a0 + barycentrics.x * (a1 - a0) + barycentrics.y * (a2– a0).
-		
-        //return float4(vertex0.normal, 1);
+        float2 bar = q.CommittedTriangleBarycentrics();
+        uint index = indices[NonUniformResourceIndex(0)][primitiveIndex*3];
+        Vertex vertex0 = vertices[NonUniformResourceIndex(0)][index+0];
+        Vertex vertex1 = vertices[NonUniformResourceIndex(0)][index+1];
+        Vertex vertex2 = vertices[NonUniformResourceIndex(0)][index+2];
+        Vertex vertex;
+        vertex.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
+        vertex.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
+        vertex.position = vertex0.position + bar.x * (vertex1.position - vertex0.position) + bar.y * (vertex2.position - vertex0.position);
+        vertex.normal = mul(w, float4(vertex.normal, 0)); //is this even the right way?
+        vertex.position = mul(w, float4(vertex.position, 1));
         uint matID = q.CommittedInstanceContributionToHitGroupIndex();
-        float4 reflectedObjectColor = CalcLightForTexturedMaterial(vertex0.position.xyz, vertex0.normal.xyz, float2(0, 0), matID);
+        float4 reflectedObjectColor = CalcLightForTexturedMaterial(vertex.position, vertex.normal, vertex.uv, matID);
         Material mat = materials[NonUniformResourceIndex(matID)];
         //return float4(mat.albedoFactor.xyz, 1);
         outputColor.xyz = lerp(outputColor.xyz, reflectedObjectColor.xyz, 0.5f);
