@@ -102,8 +102,7 @@ float4 main(VS_OUT input) : SV_TARGET
 	outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, input.normal.xyz, input.uv, input.materialID);
 	
     RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
-             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
-             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH>q;
+             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES>q;
     float3 V = normalize(input.posWorld.xyz - cameraPosition);
     RayDesc ray;
     ray.Origin = input.posWorld.xyz;
