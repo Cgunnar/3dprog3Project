@@ -298,6 +298,10 @@ void Renderer::EndFrame()
 	tmpCmdList.push_back(m_directCmdListEnd);
 
 	m_directCmdQueue->ExecuteCommandLists(tmpCmdList.size(), tmpCmdList.data());
+	/*for (auto& l : tmpCmdList)
+	{
+		m_directCmdQueue->ExecuteCommandLists(1, &l);
+	}*/
 
 
 	// this comment is from microsofts smmple repo

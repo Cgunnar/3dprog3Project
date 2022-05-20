@@ -63,8 +63,21 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 	for (int i = 0; i < numLights; i++)
 	{
 		PointLight pl = dynamicPointLights[i];
-		float3 vecToLight = pl.position - pos;
-		float3 dirToLight = normalize(vecToLight);
+        float3 vecToLight = pl.position - pos;
+        float3 dirToLight = normalize(vecToLight);
+		
+        RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+        RayDesc ray;
+        ray.Origin = pos;
+        ray.Direction = dirToLight;
+        ray.TMin = 1.0f;
+        ray.TMax = length(vecToLight) - 0.21; //pointlights has a sphere mesh with radius 0.2, and i have no mask for the mesh to filter
+        q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
+        q.Proceed();
+        if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+            continue;
 
 		float diffFactor = saturate(dot(normal, dirToLight));
 		float3 r = normalize(reflect(-dirToLight, normal));
@@ -90,37 +103,23 @@ float4 main(VS_OUT input) : SV_TARGET
 	
     RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
              RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
-             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH > q;
-
-	
+             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH>q;
     float3 V = normalize(input.posWorld.xyz - cameraPosition);
     RayDesc ray;
     ray.Origin = input.posWorld.xyz;
     ray.Direction = reflect(V, input.normal.xyz);
     ray.TMin = 1.0f;
-    ray.TMax = 1000.0f;
-    // Set up a trace.  No work is done yet.
-    q.TraceRayInline(
-        accelerationStructure,
-        0, // OR'd with flags above
-        0xff,
-        ray);
-	
-	
+    ray.TMax = 100.0f;
+    q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
     q.Proceed();
-	
     if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
-        //ShadeMyTriangleHit(
-        //    q.CommittedInstanceIndex(),
-        //    q.CommittedPrimitiveIndex(),
-        //    q.CommittedGeometryIndex(),
-        //    q.CommittedRayT(),
-        //    q.CommittedTriangleBarycentrics(),
-        //    q.CommittedTriangleFrontFace());
+        //q.CommittedInstanceIndex(),
+        //q.CommittedPrimitiveIndex(),
         uint matID = q.CommittedInstanceContributionToHitGroupIndex();
         Material mat = materials[NonUniformResourceIndex(matID)];
-        return float4(mat.albedoFactor.xyz, 1);
+        //return float4(mat.albedoFactor.xyz, 1);
+        outputColor.xyz = lerp(outputColor.xyz, mat.albedoFactor.xyz, 0.5f);
     }
 	return outputColor;
 }
