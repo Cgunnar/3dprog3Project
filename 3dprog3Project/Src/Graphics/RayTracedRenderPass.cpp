@@ -94,12 +94,12 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 	rootParameters[0].Constants.Num32BitValues = 1;
 	//ib
 	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	rootParameters[6].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable6;
 	rootParameters[6].DescriptorTable.pDescriptorRanges = table6.data();
 	//vb
 	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	rootParameters[7].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable7;
 	rootParameters[7].DescriptorTable.pDescriptorRanges = table7.data();
 

@@ -17,7 +17,8 @@ Scene::Scene()
 	m_sphereMesh = AssetManager::Get().AddMesh(newSphereMesh);
 	AssetManager::Get().MoveMeshToGPU(m_sphereMesh);
 
-	m_boxMesh = AssetManager::Get().AddMesh(newBoxMesh);
+	m_boxMesh = AssetManager::Get().AddMesh(newSphereMesh);
+	//m_boxMesh = AssetManager::Get().AddMesh(newBoxMesh);
 	AssetManager::Get().MoveMeshToGPU(m_boxMesh);
 
 	Material whiteEmissiveMat;

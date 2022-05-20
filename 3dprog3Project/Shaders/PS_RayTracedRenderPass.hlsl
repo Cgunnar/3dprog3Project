@@ -38,6 +38,15 @@ StructuredBuffer<PointLight> dynamicPointLights : register(t0);
 RaytracingAccelerationStructure accelerationStructure : register(t1);
 Texture2D albedoMap[] : register(t0, space1);
 
+struct Vertex
+{
+    float3 position;
+    float3 normal;
+    float2 uv;
+};
+StructuredBuffer<Vertex> vertices[] : register(t0, space4);
+StructuredBuffer<unsigned int> indices[] : register(t0, space2);
+
 float Attenuate(float length, float constAtt, float linAtt , float expAtt)
 {
 	return 1.0f / (constAtt + linAtt * length + expAtt * length * length);
@@ -114,7 +123,13 @@ float4 main(VS_OUT input) : SV_TARGET
     if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
         //q.CommittedInstanceIndex(),
-        //q.CommittedPrimitiveIndex(),
+        uint primitiveIndex = q.CommittedPrimitiveIndex();
+        uint index = indices[NonUniformResourceIndex(0)][NonUniformResourceIndex(primitiveIndex*3)];
+        Vertex vertex0 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index)];
+        Vertex vertex1 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index+1)];
+        Vertex vertex2 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index+2)];
+        //a = a0 + barycentrics.x * (a1 - a0) + barycentrics.y * (a2– a0).
+        return float4(vertex0.normal, 1);
         uint matID = q.CommittedInstanceContributionToHitGroupIndex();
         Material mat = materials[NonUniformResourceIndex(matID)];
         //return float4(mat.albedoFactor.xyz, 1);
