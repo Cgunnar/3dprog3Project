@@ -35,18 +35,13 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange.RegisterSpace = 0;
-	
-	descriptorRange.BaseShaderRegister = 0;
-	vsDescriptorRanges[0] = descriptorRange;
-	descriptorRange.BaseShaderRegister = 1;
-	vsDescriptorRanges[1] = descriptorRange;
 
 	//worldMatrix CB
 	descriptorRange.BaseShaderRegister = 1;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	vsDescriptorRanges[2] = descriptorRange;
+	vsDescriptorRanges[0] = descriptorRange;
 
-	std::array<D3D12_ROOT_PARAMETER, 3> rootParameters;
+	std::array<D3D12_ROOT_PARAMETER, 5> rootParameters;
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = m_numDescriptorsInRootTable0;
@@ -63,6 +58,17 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	rootParameters[2].Descriptor.ShaderRegister = 0;
 	rootParameters[2].Descriptor.RegisterSpace = 0;
+
+	//ib
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[3].Descriptor.ShaderRegister = 1;
+	rootParameters[3].Descriptor.RegisterSpace = 0;
+	//vb
+	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[4].Descriptor.ShaderRegister = 0;
+	rootParameters[4].Descriptor.RegisterSpace = 0;
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -126,7 +132,7 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	HRESULT hr = D3D12SerializeRootSignature(&rootSignDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, &rootSignatureBlob, &errorBlob);
 	if (FAILED(hr))
 	{
-		errorBlob->Release();
+		if(errorBlob) errorBlob->Release();
 		assert(SUCCEEDED(hr));
 	}
 
@@ -282,16 +288,14 @@ static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdLis
 
 		if (!vb.valid || !ib.valid || !colorBuffer.valid) continue;
 
-		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
-		device->CopyDescriptorsSimple(1, currentCpuHandle, am.GetHeapDescriptors()[ib.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 		device->CopyDescriptorsSimple(1, currentCpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		currentCpuHandle.ptr += visBaseDescHandle.incrementSize;
 
 		cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
 		visBaseDescHandle.gpuHandle.ptr += TestRenderPass::m_numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, colorBuffer.resource->GetGPUVirtualAddress());
+		cmdList->SetGraphicsRootShaderResourceView(3, ib.resource->GetGPUVirtualAddress());
+		cmdList->SetGraphicsRootShaderResourceView(4, vb.resource->GetGPUVirtualAddress());
 		
 		cmdList->DrawInstanced(ib.elementCount, 1, 0, 0);
 	}

@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "MainRenderPass.h"
 #include "OldMainRenderPass.h"
+#include "TestRenderPass.h"
 #include "RayTracedRenderPass.h"
 #include "PostProcessingPass.h"
 #include "pix3.h"
@@ -100,6 +101,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	auto format = m_frameResource->renderTarget->GetDesc().Format;
 
 	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, format, 12));
+	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight, format));
 	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
 	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_device, m_numFramesInFlight, format));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));

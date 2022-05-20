@@ -64,6 +64,8 @@ class AssetManager
 public:
 	static constexpr int maxNumMaterials = 20000;
 	static constexpr int maxNumAlbedoTextures = 100;
+	static constexpr int maxNumIndexBuffers = 100;
+	static constexpr int maxNumVertexBuffers = 100;
 
 	static void Init(Renderer* renderer);
 	static void Destroy();
@@ -80,6 +82,7 @@ public:
 	const MaterialAsset& GetMaterial(uint64_t id) const;
 	const GPUAsset& GetTexture(uint64_t id) const;
 
+	//none of the remove functions are tested, they might not work
 	void RemoveMesh(uint64_t id);
 	void RemoveMaterial(uint64_t id);
 	void RemoveTexture(uint64_t id);
@@ -88,9 +91,10 @@ public:
 
 	const std::unordered_map<uint64_t, MeshAsset>& GetAllMeshes() const;
 
-	const DescriptorVector& GetHeapDescriptors() const;
 	DescriptorHandle GetBindlessAlbedoTexturesStart() const;
 	DescriptorHandle GetBindlessMaterialStart() const;
+	DescriptorHandle GetBindlessIndexBufferStart() const;
+	DescriptorHandle GetBindlessVertexBufferStart() const;
 
 private:
 	AssetManager(Renderer* renderer);
@@ -105,10 +109,15 @@ private:
 	std::unordered_map<uint64_t, GPUAsset> m_textures;
 	std::queue<std::pair<GPUAsset, uint64_t>> m_gpuAssetsToRemove; //the uint is the frame the remove was requested on
 	DescriptorVector m_heapDescriptor = DescriptorVector(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+
 	DescriptorHandle m_albedoViewsHandle;
 	int m_albedoViewCount = 0;
 	DescriptorHandle m_materialViewsHandle;
 	int m_materialViewCount = 0;
+	DescriptorHandle m_vbViewsHandle;
+	int m_vbViewCount = 0;
+	DescriptorHandle m_ibViewsHandle;
+	int m_ibViewCount = 0;
 
 	Renderer* m_renderer = nullptr;
 	ID3D12CommandQueue* m_cpyCmdQueue = nullptr;

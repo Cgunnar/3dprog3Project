@@ -91,15 +91,18 @@ void AssetManager::MoveMeshToGPU(uint64_t id)
 
 	viewDesc.Buffer.NumElements = meshAsset.vertexBuffer.elementCount;
 	viewDesc.Buffer.StructureByteStride = meshAsset.vertexBuffer.elementSize;
-	meshAsset.vertexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_renderer->GetDevice(),
-		meshAsset.vertexBuffer.resource.Get(), &viewDesc);
+
+	auto handle = m_vbViewsHandle[m_vbViewCount];
+	m_renderer->GetDevice()->CreateShaderResourceView(meshAsset.vertexBuffer.resource.Get(), &viewDesc, handle.cpuHandle);
+	meshAsset.vertexBuffer.descIndex = m_vbViewCount++;
+	meshAsset.vertexBuffer.valid = true;
 
 	viewDesc.Buffer.NumElements = meshAsset.indexBuffer.elementCount;
 	viewDesc.Buffer.StructureByteStride = meshAsset.indexBuffer.elementSize;
-	meshAsset.indexBuffer.descIndex = m_heapDescriptor.CreateShaderResource(m_renderer->GetDevice(),
-		meshAsset.indexBuffer.resource.Get(), &viewDesc);
 
-	meshAsset.vertexBuffer.valid = true;
+	handle = m_ibViewsHandle[m_ibViewCount];
+	m_renderer->GetDevice()->CreateShaderResourceView(meshAsset.indexBuffer.resource.Get(), &viewDesc, handle.cpuHandle);
+	meshAsset.indexBuffer.descIndex = m_ibViewCount++;
 	meshAsset.indexBuffer.valid = true;
 }
 
@@ -211,10 +214,10 @@ const std::unordered_map<uint64_t, MeshAsset>& AssetManager::GetAllMeshes() cons
 	return m_meshes;
 }
 
-const DescriptorVector& AssetManager::GetHeapDescriptors() const
-{
-	return m_heapDescriptor;
-}
+//const DescriptorVector& AssetManager::GetHeapDescriptors() const
+//{
+//	return m_heapDescriptor;
+//}
 
 DescriptorHandle AssetManager::GetBindlessAlbedoTexturesStart() const
 {
@@ -226,12 +229,24 @@ DescriptorHandle AssetManager::GetBindlessMaterialStart() const
 	return m_materialViewsHandle;
 }
 
+DescriptorHandle AssetManager::GetBindlessIndexBufferStart() const
+{
+	return m_ibViewsHandle;
+}
+
+DescriptorHandle AssetManager::GetBindlessVertexBufferStart() const
+{
+	return m_vbViewsHandle;
+}
+
 AssetManager::AssetManager(Renderer* renderer) : m_renderer(renderer)
 {
 	ID3D12Device* device = renderer->GetDevice();
 	m_heapDescriptor.Init(device);
 	m_materialViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumMaterials);
 	m_albedoViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumAlbedoTextures);
+	m_ibViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumIndexBuffers);
+	m_vbViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumVertexBuffers);
 
 	HRESULT hr = device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&m_fence));
 	assert(SUCCEEDED(hr));

@@ -30,17 +30,20 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	psBlob = LoadCSO("Shaders/compiled/Release/PS_MainRenderPass.cso");
 #endif // _DEBUG
 
-	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable0> vsDescriptorRanges;
+	//std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable0> vsDescriptorRanges;
 	D3D12_DESCRIPTOR_RANGE descriptorRange;
-	descriptorRange.NumDescriptors = 1;
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	descriptorRange.RegisterSpace = 0;
-
+	descriptorRange.RegisterSpace = 2;
 	descriptorRange.BaseShaderRegister = 0;
-	vsDescriptorRanges[0] = descriptorRange;
-	descriptorRange.BaseShaderRegister = 1;
-	vsDescriptorRanges[1] = descriptorRange;
+	
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable7> table7;
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable8> table8;
+	descriptorRange.NumDescriptors = AssetManager::maxNumIndexBuffers;
+	table7[0] = descriptorRange;
+	descriptorRange.RegisterSpace = 4;
+	descriptorRange.NumDescriptors = AssetManager::maxNumVertexBuffers;
+	table8[0] = descriptorRange;
 
 	////worldMatrix CB
 	//descriptorRange.BaseShaderRegister = 1;
@@ -59,7 +62,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	tableSlot3[0] = descriptorRange;
 
 	//bindless
-	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable0> psPerDrawCallDescriptors;
+	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable4> psPerDrawCallDescriptors;
 	descriptorRange.BaseShaderRegister = 0;
 	descriptorRange.RegisterSpace = 1;
 	descriptorRange.NumDescriptors = AssetManager::maxNumAlbedoTextures;
@@ -81,11 +84,22 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	tableSlot1[0] = descriptorRange;
 
-	std::array<D3D12_ROOT_PARAMETER, 7> rootParameters;
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	std::array<D3D12_ROOT_PARAMETER, 9> rootParameters;
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[0].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable0;
-	rootParameters[0].DescriptorTable.pDescriptorRanges = vsDescriptorRanges.data();
+	rootParameters[0].Constants.ShaderRegister = 1;
+	rootParameters[0].Constants.RegisterSpace = 0;
+	rootParameters[0].Constants.Num32BitValues = 1;
+
+	rootParameters[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[7].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable7;
+	rootParameters[7].DescriptorTable.pDescriptorRanges = table7.data();
+
+	rootParameters[8].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[8].DescriptorTable.NumDescriptorRanges = numDescriptorsInRootTable8;
+	rootParameters[8].DescriptorTable.pDescriptorRanges = table8.data();
 
 	//material CB
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -121,7 +135,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[6].Constants.ShaderRegister = 2;
 	rootParameters[6].Constants.RegisterSpace = 3;
-	rootParameters[6].Constants.Num32BitValues = 1;
+	rootParameters[6].Constants.Num32BitValues = 3;
 
 
 	D3D12_RASTERIZER_DESC rasterState;
@@ -267,7 +281,8 @@ RenderPassRequirements MainRenderPass::GetRequirements()
 	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
-	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * perThreadSize + numDescriptorsInRootTable3;
+	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * perThreadSize + numDescriptorsInRootTable3
+		+ numDescriptorsInRootTable7 + numDescriptorsInRootTable8;
 	req.numDescriptorHandles = m_numThreads;
 	return req;
 }
@@ -373,6 +388,8 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	const AssetManager& am = AssetManager::Get();
 	cmdList->SetGraphicsRootDescriptorTable(1, am.GetBindlessMaterialStart().gpuHandle);
 	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
+	cmdList->SetGraphicsRootDescriptorTable(7, am.GetBindlessIndexBufferStart().gpuHandle);
+	cmdList->SetGraphicsRootDescriptorTable(8, am.GetBindlessVertexBufferStart().gpuHandle);
 
 	int counter = 0;
 	for (auto& entity : entitiesToDraw)
@@ -420,12 +437,14 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 
 			if (!vb.valid || !ib.valid) assert(false);
 
-			device->CopyDescriptorsSimple(2, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			currentCpuHandle.ptr += 2 * visBaseDescHandle.incrementSize;
+			//device->CopyDescriptorsSimple(2, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			//currentCpuHandle.ptr += 2 * visBaseDescHandle.incrementSize;
 
-			cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
-			visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
+			//cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
+			//visBaseDescHandle.gpuHandle.ptr += MainRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 			cmdList->SetGraphicsRoot32BitConstant(6, counter, 0);
+			cmdList->SetGraphicsRoot32BitConstant(6, ib.descIndex, 1);
+			cmdList->SetGraphicsRoot32BitConstant(6, vb.descIndex, 2);
 			cmdList->DrawInstanced(ib.elementCount, numInstances, 0, 0);
 			counter += numInstances;
 			numInstances = 1;
