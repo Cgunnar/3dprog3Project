@@ -129,11 +129,14 @@ float4 main(VS_OUT input) : SV_TARGET
         Vertex vertex1 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index+1)];
         Vertex vertex2 = vertices[NonUniformResourceIndex(0)][NonUniformResourceIndex(index+2)];
         //a = a0 + barycentrics.x * (a1 - a0) + barycentrics.y * (a2– a0).
-        return float4(vertex0.normal, 1);
+		
+        //return float4(vertex0.normal, 1);
         uint matID = q.CommittedInstanceContributionToHitGroupIndex();
+        float4 reflectedObjectColor = CalcLightForTexturedMaterial(vertex0.position.xyz, vertex0.normal.xyz, float2(0, 0), matID);
         Material mat = materials[NonUniformResourceIndex(matID)];
         //return float4(mat.albedoFactor.xyz, 1);
-        outputColor.xyz = lerp(outputColor.xyz, mat.albedoFactor.xyz, 0.5f);
+        outputColor.xyz = lerp(outputColor.xyz, reflectedObjectColor.xyz, 0.5f);
+        //outputColor.xyz = lerp(outputColor.xyz, mat.albedoFactor.xyz, 0.5f);
     }
 	return outputColor;
 }
