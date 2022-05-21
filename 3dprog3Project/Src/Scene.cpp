@@ -14,11 +14,9 @@ Scene::Scene()
 	Mesh newSphereMesh = Mesh(reinterpret_cast<const float*>(sphere.VertexData().data()), sphere.ArraySize(), sphere.IndexData(), MeshType::POS_NOR_UV);
 	Mesh newBoxMesh = Mesh(reinterpret_cast<const float*>(box.VertexData().data()), box.ArraySize(), box.IndexData(), MeshType::POS_NOR_UV);
 
-	m_sphereMesh = AssetManager::Get().AddMesh(newBoxMesh);
-	//m_sphereMesh = AssetManager::Get().AddMesh(newSphereMesh);
+	m_sphereMesh = AssetManager::Get().AddMesh(newSphereMesh);
 	AssetManager::Get().MoveMeshToGPU(m_sphereMesh);
 
-	//m_boxMesh = AssetManager::Get().AddMesh(newSphereMesh);
 	m_boxMesh = AssetManager::Get().AddMesh(newBoxMesh);
 	AssetManager::Get().MoveMeshToGPU(m_boxMesh);
 

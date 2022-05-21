@@ -122,25 +122,29 @@ float4 main(VS_OUT input) : SV_TARGET
     if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
         //q.CommittedInstanceIndex(),
+        uint combinedMatIndexAndMeshIndex = q.CommittedInstanceContributionToHitGroupIndex();
+        uint meshIndex = combinedMatIndexAndMeshIndex >> 16;
+        uint materialIndex = combinedMatIndexAndMeshIndex & 0xffff;
+		
         float3x4 w = q.CommittedObjectToWorld3x4();
         uint primitiveIndex = 3 * q.CommittedPrimitiveIndex();
         float2 bar = q.CommittedTriangleBarycentrics();
-        uint index0 = indices[NonUniformResourceIndex(0)][primitiveIndex + 0];
-        uint index1 = indices[NonUniformResourceIndex(0)][primitiveIndex + 1];
-        uint index2 = indices[NonUniformResourceIndex(0)][primitiveIndex + 2];
+        uint index0 = indices[NonUniformResourceIndex(meshIndex)][primitiveIndex + 0];
+        uint index1 = indices[NonUniformResourceIndex(meshIndex)][primitiveIndex + 1];
+        uint index2 = indices[NonUniformResourceIndex(meshIndex)][primitiveIndex + 2];
         
-        Vertex vertex0 = vertices[NonUniformResourceIndex(0)][index0];
-        Vertex vertex1 = vertices[NonUniformResourceIndex(0)][index1];
-        Vertex vertex2 = vertices[NonUniformResourceIndex(0)][index2];
+        Vertex vertex0 = vertices[NonUniformResourceIndex(meshIndex)][index0];
+        Vertex vertex1 = vertices[NonUniformResourceIndex(meshIndex)][index1];
+        Vertex vertex2 = vertices[NonUniformResourceIndex(meshIndex)][index2];
         Vertex vertex;
         vertex.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
         vertex.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
         vertex.position = vertex0.position + bar.x * (vertex1.position - vertex0.position) + bar.y * (vertex2.position - vertex0.position);
         vertex.normal = mul(w, float4(vertex.normal, 0)); //is this even the right way?
         vertex.position = mul(w, float4(vertex.position, 1));
-        uint matID = q.CommittedInstanceContributionToHitGroupIndex();
-        float4 reflectedObjectColor = CalcLightForTexturedMaterial(vertex.position, vertex.normal, vertex.uv, matID);
-        Material mat = materials[NonUniformResourceIndex(matID)];
+        
+        float4 reflectedObjectColor = CalcLightForTexturedMaterial(vertex.position, vertex.normal, vertex.uv, materialIndex);
+        //Material mat = materials[NonUniformResourceIndex(materialIndex)];
         outputColor.xyz = lerp(outputColor.xyz, reflectedObjectColor.xyz, 0.5f);
     }
 	return outputColor;

@@ -192,9 +192,13 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 		instDesc.Transform[0][0] = 1;
 		instDesc.Transform[1][1] = 1;
 		instDesc.Transform[2][2] = 1;
-		instDesc.InstanceID = e.GetID();
-		//InstanceContributionToHitGroupIndex is not used when using inline raytracing, use it for materialIndex
-		instDesc.InstanceContributionToHitGroupIndex = mat.constantBuffer.descIndex;
+		instDesc.InstanceID = e;
+		assert(am.GetMesh(meshID).indexBuffer.descIndex == am.GetMesh(meshID).vertexBuffer.descIndex);
+		//InstanceContributionToHitGroupIndex is not used when using inline raytracing, use it for materialIndex and meshIndex
+		//meshIndex is the index of the ib and vb, assumed to have the same index
+		UINT meshBuffersIndex = am.GetMesh(meshID).indexBuffer.descIndex;
+		assert(mat.constantBuffer.descIndex < 0xffff && meshBuffersIndex < 0xffff);
+		instDesc.InstanceContributionToHitGroupIndex = mat.constantBuffer.descIndex | (meshBuffersIndex << 16);
 		instDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 		instDesc.InstanceMask = 0xFF;
 		instDesc.AccelerationStructure = m_bottomLevels[meshID].resultBuffer->GetGPUVirtualAddress();
