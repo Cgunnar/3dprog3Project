@@ -65,6 +65,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 		albedo = mat.albedoFactor * albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
 	else
 		albedo = mat.albedoFactor;
+    //return float4(albedo.rgb, 1);
 	unsigned int lightSize = 0;
 	unsigned int numLights = 0;
 	dynamicPointLights.GetDimensions(numLights, lightSize);
@@ -103,49 +104,87 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 	return float4(outputColor, albedo.a);
 }
 
-
-float4 main(VS_OUT input) : SV_TARGET
+struct RayTracedObject
 {
-	float4 outputColor = float4(0,0,0,0);
-	outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, input.normal.xyz, input.uv, input.materialID);
-	
-    RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
-             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES>q;
-    float3 V = normalize(input.posWorld.xyz - cameraPosition);
+    float3 position;
+    uint matIndex;
+    float3 normal;
+    uint meshIndex;
+    float2 uv;
+    bool hit;
+};
+
+RayTracedObject RayTrace(float3 origin, float3 dir)
+{
+    RayTracedObject obj;
+    RayQuery<RAY_FLAG_CULL_NON_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> q;
     RayDesc ray;
-    ray.Origin = input.posWorld.xyz;
-    ray.Direction = reflect(V, input.normal.xyz);
-    ray.TMin = 1.0f;
+    ray.Origin = origin;
+    ray.Direction = dir;
+    ray.TMin = 0.5f;
     ray.TMax = 100.0f;
     q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
     q.Proceed();
     if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
-        //q.CommittedInstanceIndex(),
+        obj.hit = true;
         uint combinedMatIndexAndMeshIndex = q.CommittedInstanceContributionToHitGroupIndex();
-        uint meshIndex = combinedMatIndexAndMeshIndex >> 16;
-        uint materialIndex = combinedMatIndexAndMeshIndex & 0xffff;
-		
-        float3x4 w = q.CommittedObjectToWorld3x4();
+        obj.meshIndex = combinedMatIndexAndMeshIndex >> 16;
+        obj.matIndex = combinedMatIndexAndMeshIndex & 0xffff;
+        
         uint primitiveIndex = 3 * q.CommittedPrimitiveIndex();
         float2 bar = q.CommittedTriangleBarycentrics();
-        uint index0 = indices[NonUniformResourceIndex(meshIndex)][primitiveIndex + 0];
-        uint index1 = indices[NonUniformResourceIndex(meshIndex)][primitiveIndex + 1];
-        uint index2 = indices[NonUniformResourceIndex(meshIndex)][primitiveIndex + 2];
+        uint index0 = indices[NonUniformResourceIndex(obj.meshIndex)][primitiveIndex + 0];
+        uint index1 = indices[NonUniformResourceIndex(obj.meshIndex)][primitiveIndex + 1];
+        uint index2 = indices[NonUniformResourceIndex(obj.meshIndex)][primitiveIndex + 2];
         
-        Vertex vertex0 = vertices[NonUniformResourceIndex(meshIndex)][index0];
-        Vertex vertex1 = vertices[NonUniformResourceIndex(meshIndex)][index1];
-        Vertex vertex2 = vertices[NonUniformResourceIndex(meshIndex)][index2];
-        Vertex vertex;
-        vertex.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
-        vertex.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
-        vertex.position = vertex0.position + bar.x * (vertex1.position - vertex0.position) + bar.y * (vertex2.position - vertex0.position);
-        vertex.normal = mul(w, float4(vertex.normal, 0)); //is this even the right way?
-        vertex.position = mul(w, float4(vertex.position, 1));
+        Vertex vertex0 = vertices[NonUniformResourceIndex(obj.meshIndex)][index0];
+        Vertex vertex1 = vertices[NonUniformResourceIndex(obj.meshIndex)][index1];
+        Vertex vertex2 = vertices[NonUniformResourceIndex(obj.meshIndex)][index2];
+
+        float3x4 w3 = q.CommittedObjectToWorld3x4();
+        float4x4 w = float4x4(w3[0], w3[1], w3[2], float4(0,0,0,1));
+        vertex0.position = mul(w, float4(vertex0.position, 1));
+        vertex1.position = mul(w, float4(vertex1.position, 1));
+        vertex2.position = mul(w, float4(vertex2.position, 1));
         
-        float4 reflectedObjectColor = CalcLightForTexturedMaterial(vertex.position, vertex.normal, vertex.uv, materialIndex);
-        //Material mat = materials[NonUniformResourceIndex(materialIndex)];
-        outputColor.xyz = lerp(outputColor.xyz, reflectedObjectColor.xyz, 0.5f);
+        obj.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
+        obj.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
+        obj.position = vertex0.position + bar.x * (vertex1.position - vertex0.position) + bar.y * (vertex2.position - vertex0.position);
     }
-	return outputColor;
+    else
+    {
+        obj.hit = false;
+    }
+    
+    return obj;
+}
+
+
+float4 main(VS_OUT input) : SV_TARGET
+{
+	float4 outputColor = float4(0,0,0,0);
+	outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, input.normal.xyz, input.uv, input.materialID);
+    
+    int bounceCount = 0;
+    
+    float3 origin = input.posWorld.xyz;
+    float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normalize(input.normal.xyz));
+    while (bounceCount < 4)
+    {
+        RayTracedObject obj1 = RayTrace(origin, dir);
+        
+        if (obj1.hit)
+        {
+            outputColor =  CalcLightForTexturedMaterial(obj1.position, obj1.normal, obj1.uv, obj1.matIndex);
+            origin = obj1.position;
+            dir = reflect(dir, obj1.normal);
+        }
+        else
+        {
+            break;
+        }
+        bounceCount++;
+    }
+    return outputColor;
 }
