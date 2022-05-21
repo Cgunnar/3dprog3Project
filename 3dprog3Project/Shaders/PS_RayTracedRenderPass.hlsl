@@ -65,7 +65,6 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 		albedo = mat.albedoFactor * albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
 	else
 		albedo = mat.albedoFactor;
-
 	unsigned int lightSize = 0;
 	unsigned int numLights = 0;
 	dynamicPointLights.GetDimensions(numLights, lightSize);
@@ -75,18 +74,18 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
         float3 vecToLight = pl.position - pos;
         float3 dirToLight = normalize(vecToLight);
 		
-        RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
-             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
-             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
-        RayDesc ray;
-        ray.Origin = pos;
-        ray.Direction = dirToLight;
-        ray.TMin = 1.0f;
-        ray.TMax = length(vecToLight) - 0.21; //pointlights has a sphere mesh with radius 0.2, and i have no mask for the mesh to filter
-        q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
-        q.Proceed();
-        if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-            continue;
+        //RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+        //     RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+        //     RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+        //RayDesc ray;
+        //ray.Origin = pos;
+        //ray.Direction = dirToLight;
+        //ray.TMin = 1.0f;
+        //ray.TMax = length(vecToLight) - 0.21; //pointlights has a sphere mesh with radius 0.2, and i have no mask for the mesh to filter
+        //q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
+        //q.Proceed();
+        //if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+        //    continue;
 
 		float diffFactor = saturate(dot(normal, dirToLight));
 		float3 r = normalize(reflect(-dirToLight, normal));
@@ -124,12 +123,15 @@ float4 main(VS_OUT input) : SV_TARGET
     {
         //q.CommittedInstanceIndex(),
         float3x4 w = q.CommittedObjectToWorld3x4();
-        uint primitiveIndex = q.CommittedPrimitiveIndex();
+        uint primitiveIndex = 3 * q.CommittedPrimitiveIndex();
         float2 bar = q.CommittedTriangleBarycentrics();
-        uint index = indices[NonUniformResourceIndex(0)][primitiveIndex*3];
-        Vertex vertex0 = vertices[NonUniformResourceIndex(0)][index+0];
-        Vertex vertex1 = vertices[NonUniformResourceIndex(0)][index+1];
-        Vertex vertex2 = vertices[NonUniformResourceIndex(0)][index+2];
+        uint index0 = indices[NonUniformResourceIndex(0)][primitiveIndex + 0];
+        uint index1 = indices[NonUniformResourceIndex(0)][primitiveIndex + 1];
+        uint index2 = indices[NonUniformResourceIndex(0)][primitiveIndex + 2];
+        
+        Vertex vertex0 = vertices[NonUniformResourceIndex(0)][index0];
+        Vertex vertex1 = vertices[NonUniformResourceIndex(0)][index1];
+        Vertex vertex2 = vertices[NonUniformResourceIndex(0)][index2];
         Vertex vertex;
         vertex.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
         vertex.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
@@ -139,9 +141,7 @@ float4 main(VS_OUT input) : SV_TARGET
         uint matID = q.CommittedInstanceContributionToHitGroupIndex();
         float4 reflectedObjectColor = CalcLightForTexturedMaterial(vertex.position, vertex.normal, vertex.uv, matID);
         Material mat = materials[NonUniformResourceIndex(matID)];
-        //return float4(mat.albedoFactor.xyz, 1);
         outputColor.xyz = lerp(outputColor.xyz, reflectedObjectColor.xyz, 0.5f);
-        //outputColor.xyz = lerp(outputColor.xyz, mat.albedoFactor.xyz, 0.5f);
     }
 	return outputColor;
 }

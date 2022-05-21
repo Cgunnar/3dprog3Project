@@ -67,6 +67,7 @@ namespace Geometry
 
 		const std::vector<Vertex_POS_NOR_UV>& VertexData() { return vertices; }
 		const std::vector<uint32_t>& IndexData() { return indices; }
+		const uint32_t ArraySize() const { return static_cast<uint32_t>(vertices.size() * vertexStride); }
 	};
 
 	class Sphere_POS_NOR_UV
