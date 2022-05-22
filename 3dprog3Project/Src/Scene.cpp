@@ -22,7 +22,7 @@ Scene::Scene()
 
 	Material whiteEmissiveMat;
 	whiteEmissiveMat.albedoFactor = { 0, 0, 0, 1 };
-	whiteEmissiveMat.emissionFactor = { 1, 1, 1, 1 };
+	whiteEmissiveMat.emissiveFactor = { 1, 1, 1};
 	Material matRed;
 	matRed.albedoFactor = { 1, 0, 0, 1 };
 	Material matGreen;
@@ -119,7 +119,7 @@ Scene::Scene()
 
 		Material lightMat;
 		lightMat.albedoFactor = { 0, 0, 0, 1 };
-		lightMat.emissionFactor = rfm::Vector4(light, 1);
+		lightMat.emissiveFactor = rfm::Vector4(light, 1);
 
 		uint64_t matId = AssetManager::Get().AddMaterial(lightMat);
 		AssetManager::Get().MoveMaterialToGPU(matId);

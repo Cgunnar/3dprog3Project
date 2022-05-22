@@ -17,7 +17,7 @@ cbuffer CameraCB : register(b0)
 cbuffer MaterialBuffer : register(b1)
 {
 	float4 albedoFactor;
-	float4 emissionFactor;
+	float3 emissionFactor;
 	int albedoTextureIndex;
 }
 

@@ -5,6 +5,11 @@
 //#include "boundingVolumes.h"
 namespace Geometry
 {
+	enum class VertexFormat
+	{
+		POS_NOR_UV = 0,
+		POS_NOR_UV_TAN_BITAN,
+	};
 	struct Vertex_POS_UV
 	{
 		rfm::Vector3 position;

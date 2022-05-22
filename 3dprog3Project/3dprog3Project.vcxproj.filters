@@ -111,7 +111,10 @@
     <ClCompile Include="Src\Graphics\AccelerationStructure.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\ModelLoader.cpp">
+    <ClCompile Include="Src\CodeFromOlderProjects\AssimpLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CodeFromOlderProjects\boundingVolumes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -221,7 +224,10 @@
     <ClInclude Include="Src\Graphics\AccelerationStructure.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\ModelLoader.h">
+    <ClInclude Include="Src\CodeFromOlderProjects\AssimpLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\CodeFromOlderProjects\boundingVolumes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

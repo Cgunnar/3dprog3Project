@@ -116,11 +116,11 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	struct MaterialCB
 	{
 		rfm::Vector4 albedoFactor;
-		rfm::Vector4 emissionFactor;
+		rfm::Vector3 emissionFactor;
 		int albedoTextureIndex = -1;
 	} cbData;
 	cbData.albedoFactor = materialAsset.material->albedoFactor;
-	cbData.emissionFactor = materialAsset.material->emissionFactor;
+	cbData.emissionFactor = materialAsset.material->emissiveFactor;
 
 	if (materialAsset.albedoTexture.valid)
 	{

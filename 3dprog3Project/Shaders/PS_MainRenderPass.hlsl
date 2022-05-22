@@ -18,7 +18,7 @@ cbuffer CameraCB : register(b0)
 struct Material
 {
 	float4 albedoFactor;
-	float4 emissionFactor;
+	float3 emissionFactor;
 	int albedoTextureIndex;
 };
 
