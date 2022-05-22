@@ -4,7 +4,7 @@ struct VS_OUT
 	float4 posWorld : WORLD_POS;
 	float4 normal : NORMAL;
 	float2 uv : UV;
-	int materialID : MATERIAL_ID;
+	int materialIndex : MATERIAL_INDEX;
 };
 
 cbuffer CameraCB : register(b0)
@@ -52,11 +52,11 @@ float Attenuate(float length, float constAtt, float linAtt , float expAtt)
 	return 1.0f / (constAtt + linAtt * length + expAtt * length * length);
 }
 
-float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int matID)
+float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int matIndex)
 {
 	float3 outputColor = float3(0, 0, 0);
 	float4 albedo;
-	Material mat = materials[NonUniformResourceIndex(matID)];
+    Material mat = materials[NonUniformResourceIndex(matIndex)];
 	
 	//https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
 	//if no texture exists, texture is assumed to gave value 1 for each pixel => factor is the color
@@ -65,7 +65,6 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 		albedo = mat.albedoFactor * albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
 	else
 		albedo = mat.albedoFactor;
-    //return float4(albedo.rgb, 1);
 	unsigned int lightSize = 0;
 	unsigned int numLights = 0;
 	dynamicPointLights.GetDimensions(numLights, lightSize);
@@ -75,6 +74,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
         float3 vecToLight = pl.position - pos;
         float3 dirToLight = normalize(vecToLight);
 		
+        //shadows does not look good in the current scene
         //RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
         //     RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
         //     RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
@@ -142,11 +142,13 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
         Vertex vertex1 = vertices[NonUniformResourceIndex(obj.meshIndex)][index1];
         Vertex vertex2 = vertices[NonUniformResourceIndex(obj.meshIndex)][index2];
 
-        float3x4 w3 = q.CommittedObjectToWorld3x4();
-        float4x4 w = float4x4(w3[0], w3[1], w3[2], float4(0,0,0,1));
-        vertex0.position = mul(w, float4(vertex0.position, 1));
-        vertex1.position = mul(w, float4(vertex1.position, 1));
-        vertex2.position = mul(w, float4(vertex2.position, 1));
+        float3x4 worldMatrix = q.CommittedObjectToWorld3x4();
+        vertex0.position = mul(worldMatrix, float4(vertex0.position, 1));
+        vertex1.position = mul(worldMatrix, float4(vertex1.position, 1));
+        vertex2.position = mul(worldMatrix, float4(vertex2.position, 1));
+        vertex0.normal = normalize(mul(worldMatrix, float4(vertex0.normal, 0)));
+        vertex1.normal = normalize(mul(worldMatrix, float4(vertex1.normal, 0)));
+        vertex2.normal = normalize(mul(worldMatrix, float4(vertex2.normal, 0)));
         
         obj.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
         obj.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
@@ -156,7 +158,6 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
     {
         obj.hit = false;
     }
-    
     return obj;
 }
 
@@ -164,13 +165,12 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
 float4 main(VS_OUT input) : SV_TARGET
 {
 	float4 outputColor = float4(0,0,0,0);
-	outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, input.normal.xyz, input.uv, input.materialID);
+	outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, input.normal.xyz, input.uv, input.materialIndex);
     
     int bounceCount = 0;
-    
     float3 origin = input.posWorld.xyz;
     float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normalize(input.normal.xyz));
-    while (bounceCount < 4)
+    while (bounceCount < 3)
     {
         RayTracedObject obj1 = RayTrace(origin, dir);
         
