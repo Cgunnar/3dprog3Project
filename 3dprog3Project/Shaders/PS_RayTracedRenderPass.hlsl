@@ -176,7 +176,8 @@ float4 main(VS_OUT input) : SV_TARGET
         
         if (obj1.hit)
         {
-            outputColor =  CalcLightForTexturedMaterial(obj1.position, obj1.normal, obj1.uv, obj1.matIndex);
+            outputColor = CalcLightForTexturedMaterial(obj1.position, obj1.normal, obj1.uv, obj1.matIndex);
+            //should not shade first intersection, later bounce might overwrite the color
             origin = obj1.position;
             dir = reflect(dir, obj1.normal);
         }

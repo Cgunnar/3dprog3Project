@@ -102,8 +102,8 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 
 	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, format, 12));
 	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight, format));
-	m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
-	//m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_device, m_numFramesInFlight, format));
+	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
+	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_device, m_numFramesInFlight, format));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};

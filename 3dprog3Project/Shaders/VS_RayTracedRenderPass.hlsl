@@ -33,6 +33,8 @@ cbuffer MaterialBuffer : register(b2, space3)
 	int startOffset;
     uint ibIndex;
     uint vbIndex;
+    uint indexStart;
+    uint vertexStart;
 }
 
 ConstantBuffer<InstancedData> transformIns[] : register(b0, space1);
@@ -50,8 +52,8 @@ struct VS_IN
 VS_OUT main(VS_IN input)
 {
 	VS_OUT output;
-	InstancedData insData = transformIns[NonUniformResourceIndex(startOffset + input.instanceID)];
-    Vertex vertex = vertices[vbIndex][indices[ibIndex][input.vertexID]];
+    InstancedData insData = transformIns[NonUniformResourceIndex(startOffset + input.instanceID)];
+    Vertex vertex = vertices[vbIndex][indices[ibIndex][input.vertexID + indexStart] + vertexStart];
 	output.posWorld = mul(insData.worldMatrix, float4(vertex.position, 1.0f));
 	output.normal = normalize(mul(insData.worldMatrix, float4(vertex.normal, 0.0f)));
 	output.position = mul(viewProjectionMatrix, output.posWorld);

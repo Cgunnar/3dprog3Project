@@ -137,7 +137,7 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 	rootParameters[8].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[8].Constants.ShaderRegister = 2;
 	rootParameters[8].Constants.RegisterSpace = 3;
-	rootParameters[8].Constants.Num32BitValues = 3;
+	rootParameters[8].Constants.Num32BitValues = 5;
 
 
 	D3D12_RASTERIZER_DESC rasterState;
@@ -345,7 +345,13 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 	rfm::Vector3 cameraPos = cameraCBData.pos;
 
 	std::sort(entities.begin(), entities.end(), [](rfe::Entity& a, rfe::Entity& b) {
-		return a.GetComponent<MeshComp>()->meshID < b.GetComponent<MeshComp>()->meshID;
+		const auto& meshA = a.GetComponent<MeshComp>();
+		const auto& meshB = b.GetComponent<MeshComp>();
+		if (meshA->meshID == meshB->meshID)
+		{
+			return meshA->indexCount < meshB->indexCount;
+		}
+		return meshA->meshID < meshB->meshID;
 		});
 
 	Draw(0, m_device, cmdList, descriptorHandle, entities, frameResource,
@@ -399,19 +405,32 @@ static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdLis
 	counter = 0;
 	int numInstances = 1;
 	uint64_t nextMeshID = 0;
+	uint64_t nextMeshIndexStart = 0;
+	uint64_t nextMeshIndexCount = 0;
+	uint64_t nextMeshVertexStart = 0;
+	uint64_t nextMeshVertexCount = 0;
 	int numEntitiesToDraw = entitiesToDraw.size();
 
 	for (int i = 0; i < numEntitiesToDraw; i++)
 	{
 		auto& entity = entitiesToDraw[i];
 
-		uint64_t meshID = i == 0 ? entity.GetComponent<MeshComp>()->meshID : nextMeshID;
+		const auto& meshComp = entity.GetComponent<MeshComp>();
+		uint64_t meshID = i == 0 ? meshComp->meshID : nextMeshID;
 		if (i < numEntitiesToDraw - 1)
 		{
-			nextMeshID = entitiesToDraw[i + 1].GetComponent<MeshComp>()->meshID;
+			const auto& nextMeshComp = entitiesToDraw[i + 1].GetComponent<MeshComp>();
+			nextMeshIndexCount = nextMeshComp->indexCount;
+			nextMeshIndexStart = nextMeshComp->indexStart;
+			nextMeshVertexCount = nextMeshComp->vertexCount;
+			nextMeshVertexStart = nextMeshComp->vertexStart;
+			nextMeshID = nextMeshComp->meshID;
 		}
 
-		if (meshID != nextMeshID || i == numEntitiesToDraw - 1)
+		bool differentSubMesh = meshComp->indexCount != nextMeshIndexCount || meshComp->indexStart != nextMeshIndexStart
+			|| meshComp->vertexCount != nextMeshVertexCount || meshComp->vertexStart != nextMeshVertexStart;
+
+		if (meshID != nextMeshID || differentSubMesh || i == numEntitiesToDraw - 1)
 		{
 			const auto& mesh = am.GetMesh(meshID);
 
@@ -420,15 +439,12 @@ static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdLis
 
 			if (!vb.valid || !ib.valid) assert(false);
 
-			//device->CopyDescriptorsSimple(2, currentCpuHandle, am.GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			//currentCpuHandle.ptr += 2 * visBaseDescHandle.incrementSize;
-
-			//cmdList->SetGraphicsRootDescriptorTable(0, visBaseDescHandle.gpuHandle);
-			//visBaseDescHandle.gpuHandle.ptr += RayTracedRenderPass::numDescriptorsInRootTable0 * visBaseDescHandle.incrementSize;
 			cmdList->SetGraphicsRoot32BitConstant(8, counter, 0);
 			cmdList->SetGraphicsRoot32BitConstant(8, ib.descIndex, 1);
 			cmdList->SetGraphicsRoot32BitConstant(8, vb.descIndex, 2);
-			cmdList->DrawInstanced(ib.elementCount, numInstances, 0, 0);
+			cmdList->SetGraphicsRoot32BitConstant(8, meshComp->indexStart, 3);
+			cmdList->SetGraphicsRoot32BitConstant(8, meshComp->vertexStart, 4);
+			cmdList->DrawInstanced(meshComp->indexCount != 0 ? meshComp->indexCount : ib.elementCount, numInstances, 0, 0);
 			counter += numInstances;
 			numInstances = 1;
 		}
