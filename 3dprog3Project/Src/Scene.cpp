@@ -4,11 +4,131 @@
 #include "AssetManager.h"
 #include "Window.h"
 #include "CameraControllerScript.h"
+#include "AssimpLoader.h"
 
 using namespace rfe;
 
+struct ModelPart
+{
+	uint64_t meshID;
+	uint64_t materialID;
+	uint32_t indexStart;
+	uint32_t indexCount;
+	uint32_t vertexStart;
+	uint32_t vertexCount;
+};
+
+void BuildModel(SubMeshTree& node, std::vector<ModelPart>& modelPartsOut)
+{
+	for (auto& p : node.subMeshes)
+	{
+		ModelPart part;
+		part.indexStart = p.indexStart;
+		part.indexCount = p.indexCount;
+		part.vertexStart = p.vertexStart;
+		part.vertexCount = p.vertexCount;
+		part.materialID = AssetManager::Get().AddMaterial(p.pbrMaterial);
+		AssetManager::Get().MoveMaterialToGPU(part.materialID);
+		modelPartsOut.push_back(part);
+	}
+
+	for (auto& n : node.nodes)
+	{
+		BuildModel(n, modelPartsOut);
+	}
+}
+
 Scene::Scene()
 {
+	//AssimpLoader loader;
+	//auto sponza = loader.loadStaticModel("Assets/Arrows/DXRefSys.obj");
+	////auto sponza = loader.loadStaticModel("Assets/nanosuit/nanosuit.obj");
+	////auto sponza = loader.loadStaticModel("Assets/UV_Sphere/sphere.obj");
+	////auto sponza = loader.loadStaticModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
+	//std::vector<uint32_t> sponzaIndexBuffer;
+	//sponzaIndexBuffer.resize(sponza.getIndicesCount());
+	//memcpy(sponzaIndexBuffer.data(), sponza.getIndicesData(), sizeof(uint32_t) * sponzaIndexBuffer.size());
+	//Mesh newSponzaMesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV),
+	//	sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
+	//	sponzaIndexBuffer, MeshType::POS_NOR_UV);
+
+	//AssimpLoader loader;
+	////auto sponza = loader.loadStaticModel("Assets/Arrows/DXRefSys.obj");
+	//auto sponza = loader.loadStaticModel("Assets/nanosuit/nanosuit.obj");
+	////auto sponza = loader.loadStaticModel("Assets/UV_Sphere/sphere.obj");
+	////auto sponza = loader.loadStaticModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
+	//std::vector<uint32_t> sponzaIndexBuffer;
+	//sponzaIndexBuffer.resize(sponza.getIndicesCount());
+	//memcpy(sponzaIndexBuffer.data(), sponza.getIndicesData(), sizeof(uint32_t) * sponzaIndexBuffer.size());
+	//Mesh newSponzaMesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV),
+	//	sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
+	//	sponzaIndexBuffer, MeshType::POS_NOR_UV);
+	//
+	//m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh);
+	//AssetManager::Get().MoveMeshToGPU(m_sponzaMesh);
+
+
+
+
+	AssimpLoader loader;
+	//auto sponza = loader.loadStaticModel("Assets/Arrows/DXRefSys.obj");
+	auto sponza = loader.loadStaticModel("Assets/nanosuit/nanosuit.obj");
+	//auto sponza = loader.loadStaticModel("Assets/UV_Sphere/sphere.obj");
+	//auto sponza = loader.loadStaticModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
+	std::vector<uint32_t> sponzaIndexBuffer;
+	sponzaIndexBuffer.resize(sponza.getIndicesCount());
+	memcpy(sponzaIndexBuffer.data(), sponza.getIndicesData(), sizeof(uint32_t) * sponzaIndexBuffer.size());
+	Mesh newSponzaMesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV),
+		sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
+		sponzaIndexBuffer, MeshType::POS_NOR_UV);
+
+	m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh);
+	AssetManager::Get().MoveMeshToGPU(m_sponzaMesh);
+
+	std::vector<ModelPart> model;
+	BuildModel(sponza.subsetsInfo, model);
+
+	for (auto& part : model)
+	{
+		part.meshID = m_sponzaMesh;
+	}
+
+
+	for (auto& part : model)
+	{
+		Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+		auto& tr = newEntity.AddComponent<TransformComp>()->transform;
+		tr.setScale(0.2);
+		tr.setTranslation(4, 0, 0);
+		newEntity.AddComponent<MaterialComp>()->materialID = part.materialID;
+		MeshComp* mesh = newEntity.AddComponent<MeshComp>();
+		mesh->meshID = part.meshID;
+		mesh->indexStart = part.indexStart;
+		mesh->indexCount = part.indexCount;
+		mesh->vertexStart = part.vertexStart;
+		mesh->vertexCount = part.vertexCount;
+		mesh->useStartAndCount = true;
+	}
+
+	for (auto& part : model)
+	{
+		Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+		auto& tr = newEntity.AddComponent<TransformComp>()->transform;
+		tr.setScale(0.2);
+		tr.setTranslation(-4, 0, 0);
+		newEntity.AddComponent<MaterialComp>()->materialID = part.materialID;
+		MeshComp* mesh = newEntity.AddComponent<MeshComp>();
+		mesh->meshID = part.meshID;
+		mesh->indexStart = part.indexStart;
+		mesh->indexCount = part.indexCount;
+		mesh->vertexStart = part.vertexStart;
+		mesh->vertexCount = part.vertexCount;
+		mesh->useStartAndCount = true;
+	}
+
+
+	//---------------------------------------------
+	
 	Geometry::Sphere_POS_NOR_UV sphere = Geometry::Sphere_POS_NOR_UV(32, 0.5f);
 	Geometry::AABB_POS_NOR_UV box = Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
 	Mesh newSphereMesh = Mesh(reinterpret_cast<const float*>(sphere.VertexData().data()), sphere.ArraySize(), sphere.IndexData(), MeshType::POS_NOR_UV);
@@ -47,6 +167,13 @@ Scene::Scene()
 	m_rustedIronMaterial = AssetManager::Get().AddMaterial(rustedIron);
 	AssetManager::Get().MoveMaterialToGPU(m_rustedIronMaterial);
 
+	Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+	auto& transform = newEntity.AddComponent<TransformComp>()->transform;
+	transform.setTranslation(0,0,-14);
+	transform.setScale(0.1f);
+	//newEntity.AddComponent<MeshComp>()->meshID = m_sponzaMesh;
+	//newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
+	//newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
 
 	std::default_random_engine eng(4);
 	std::uniform_int_distribution<> dist1(0, 4);
@@ -54,7 +181,7 @@ Scene::Scene()
 	
 	int l = 16;
 #ifdef _DEBUG
-	l = 8;
+	l = 0;
 #endif // _DEBUG
 
 	for (int i = 0; i < l; i++)
@@ -124,8 +251,8 @@ Scene::Scene()
 		uint64_t matId = AssetManager::Get().AddMaterial(lightMat);
 		AssetManager::Get().MoveMaterialToGPU(matId);
 
-		newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
-		newEntity.AddComponent<MaterialComp>()->materialID = matId;
+		//newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
+		//newEntity.AddComponent<MaterialComp>()->materialID = matId;
 	}
 
 

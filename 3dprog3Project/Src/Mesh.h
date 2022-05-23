@@ -27,4 +27,5 @@ private:
 	std::vector<float> m_vertexData;
 	std::vector<uint32_t> m_indices;
 	uint32_t m_vertexStride = 0;
+	uint32_t m_vertexCount = 0;
 };

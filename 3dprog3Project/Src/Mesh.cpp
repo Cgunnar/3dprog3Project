@@ -6,7 +6,8 @@ Mesh::Mesh(const float* vertexData, size_t vertexDataBytes, const std::vector<ui
 {
 	m_type = type;
 	m_indices = indices;
-	m_vertexData.resize(vertexDataBytes / sizeof(float));
+	m_vertexCount = vertexDataBytes / sizeof(float);
+	m_vertexData.resize(m_vertexCount);
 	std::memcpy(m_vertexData.data(), vertexData, vertexDataBytes);
 	switch (type)
 	{

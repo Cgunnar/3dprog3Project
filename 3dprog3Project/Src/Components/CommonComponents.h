@@ -15,6 +15,11 @@ struct MeshComp : public rfe::Component<MeshComp>
 {
 	MeshComp(uint64_t id = 0) : meshID(id) {}
 	uint64_t meshID;
+	uint32_t indexStart = 0;
+	uint32_t indexCount = 0;
+	uint32_t vertexStart = 0;
+	uint32_t vertexCount = 0;
+	bool useStartAndCount = false;
 };
 
 struct MaterialComp : public rfe::Component<MaterialComp>

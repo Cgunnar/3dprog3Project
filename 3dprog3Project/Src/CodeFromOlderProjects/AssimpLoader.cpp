@@ -64,12 +64,10 @@ EngineMeshData AssimpLoader::loadStaticModel(const std::string& filePath)
 	m_vertices.reserve(totalVertexCount);
 	m_verticesTBN.reserve(totalVertexCount);
 	m_indices.reserve(totalVertexCount);
-	//m_subsets.reserve(totalSubsetCount);
 
 	SubMeshTree modelGraph;
 
 	modelGraph = processNode(scene->mRootNode, scene, path);
-	//assert(modelGraph.subMeshes.empty()); // i want to know if this can be filled or if the root always is empty
 
 
 
@@ -77,13 +75,11 @@ EngineMeshData AssimpLoader::loadStaticModel(const std::string& filePath)
 	data.indices = m_indices;
 	data.vertices = m_vertices;
 	data.verticesTBN = m_verticesTBN;
-	//data.subMeshesVector = m_subsets;
 	data.subsetsInfo = modelGraph;
 
 	m_indices.clear();
 	m_vertices.clear();
 	m_verticesTBN.clear();
-	//m_subsets.clear();
 	m_meshVertexCount = 0;
 	m_meshIndexCount = 0;
 
@@ -104,8 +100,6 @@ SubMeshTree AssimpLoader::processNode(aiNode* node, const aiScene* scene, const 
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		EngineMeshSubset subMesh = processMesh(mesh, scene, path);
 		meshTree.subMeshes.push_back(subMesh);
-		//m_subsets.push_back(subMesh);
-		//meshTree.subMeshesIndex.push_back(m_subsets.size() - 1);
 	}
 
 	for (unsigned int i = 0; i < node->mNumChildren; ++i)
@@ -198,6 +192,7 @@ EngineMeshSubset AssimpLoader::processMesh(aiMesh* mesh, const aiScene* scene, c
 
 	subsetData.indexCount = indicesThisMesh;
 	subsetData.indexStart = m_meshIndexCount;
+
 	m_meshIndexCount += indicesThisMesh;
 
 	return subsetData;

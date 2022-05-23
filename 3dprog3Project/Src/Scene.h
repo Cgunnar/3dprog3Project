@@ -16,6 +16,7 @@ private:
 	std::vector<rfe::Entity> m_entities;
 	rfe::Entity m_camera;
 
+	uint64_t m_sponzaMesh;
 	uint64_t m_sphereMesh;
 	uint64_t m_boxMesh;
 	uint64_t m_redMaterial;

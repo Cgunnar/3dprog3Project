@@ -135,7 +135,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[6].Constants.ShaderRegister = 2;
 	rootParameters[6].Constants.RegisterSpace = 3;
-	rootParameters[6].Constants.Num32BitValues = 3;
+	rootParameters[6].Constants.Num32BitValues = 5;
 
 
 	D3D12_RASTERIZER_DESC rasterState;
@@ -154,9 +154,9 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 
 	D3D12_STATIC_SAMPLER_DESC staticSampler;
 	staticSampler.Filter = D3D12_FILTER_ANISOTROPIC;
-	staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 	staticSampler.MipLODBias = 0.0f;
 	staticSampler.MaxAnisotropy = 16;
 	staticSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
@@ -416,19 +416,25 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	counter = 0;
 	int numInstances = 1;
 	uint64_t nextMeshID = 0;
+	uint64_t nextMeshIndexCount = 0;
+	uint64_t nextMeshIndexStart = 0;
 	int numEntitiesToDraw = entitiesToDraw.size();
 
 	for (int i = 0; i < numEntitiesToDraw; i++)
 	{
 		auto& entity = entitiesToDraw[i];
-
-		uint64_t meshID = i == 0 ? entity.GetComponent<MeshComp>()->meshID : nextMeshID;
+		const auto& meshComp = entity.GetComponent<MeshComp>();
+		uint64_t meshID = i == 0 ? meshComp->meshID : nextMeshID;
 		if (i < numEntitiesToDraw - 1)
 		{
-			nextMeshID = entitiesToDraw[i + 1].GetComponent<MeshComp>()->meshID;
+			const auto& nextMeshComp = entitiesToDraw[i + 1].GetComponent<MeshComp>();
+			nextMeshIndexCount = nextMeshComp->indexCount;
+			nextMeshIndexStart = nextMeshComp->indexStart;
+			nextMeshID = nextMeshComp->meshID;
 		}
 
-		if (meshID != nextMeshID || i == numEntitiesToDraw - 1)
+		bool differentSubMesh = meshComp->indexCount != nextMeshIndexCount;
+		if (meshID != nextMeshID || meshComp->useStartAndCount || i == numEntitiesToDraw - 1)
 		{
 			const auto& mesh = am.GetMesh(meshID);
 
@@ -445,7 +451,10 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 			cmdList->SetGraphicsRoot32BitConstant(6, counter, 0);
 			cmdList->SetGraphicsRoot32BitConstant(6, ib.descIndex, 1);
 			cmdList->SetGraphicsRoot32BitConstant(6, vb.descIndex, 2);
-			cmdList->DrawInstanced(ib.elementCount, numInstances, 0, 0);
+			cmdList->SetGraphicsRoot32BitConstant(6, meshComp->indexStart, 3);
+			cmdList->SetGraphicsRoot32BitConstant(6, meshComp->vertexStart, 4);
+			//cmdList->DrawInstanced(ib.elementCount, numInstances, 0, 0);
+			cmdList->DrawInstanced(meshComp->indexCount != 0 ? meshComp->indexCount : ib.elementCount, numInstances, 0, 0);
 			counter += numInstances;
 			numInstances = 1;
 		}
