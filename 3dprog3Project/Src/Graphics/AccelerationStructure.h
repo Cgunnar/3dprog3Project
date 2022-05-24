@@ -4,15 +4,16 @@
 class AccelerationStructure
 {
 public:
+	AccelerationStructure() = default;
 	AccelerationStructure(ID3D12Device5* device, ID3D12GraphicsCommandList4* cmdList);
 	~AccelerationStructure();
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetAccelerationStructureCpuHandle() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE GetInstanceMetaDataCpuHandle() const;
-	void UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
+	bool UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
 
 private:
-
+	bool m_valid = false;
 	struct TopLevelInstanceMetaData
 	{
 		int32_t materialDescriptorIndex;
@@ -34,7 +35,8 @@ private:
 		ID3D12Resource* resultBuffer = nullptr;
 		ID3D12Resource* scratchBuffer = nullptr;
 	};
-	std::unordered_map<uint64_t, AccelerationLevel> m_bottomLevels;
+	std::unordered_map<uint64_t, std::unordered_map<uint64_t, AccelerationLevel>> m_bottomLevels;
+	std::unordered_map<uint64_t, size_t> m_instanceToEntityMap;
 	AccelerationLevel m_topLevel;
 	ID3D12DescriptorHeap* m_descriptorHeap = nullptr;
 

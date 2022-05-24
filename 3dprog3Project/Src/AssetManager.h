@@ -97,6 +97,7 @@ public:
 	static void Init(Renderer* renderer);
 	static void Destroy();
 	static AssetManager& Get();
+	static bool IsValid();
 
 	uint64_t AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure = true, const std::optional<SubMeshes>& subMeshes = std::nullopt);
 	uint64_t AddMaterial(const Material &material);

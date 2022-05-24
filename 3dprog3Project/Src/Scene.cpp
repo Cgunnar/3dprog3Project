@@ -61,7 +61,7 @@ Scene::Scene()
 		subMeshes.push_back(p.subMesh);
 	}
 
-	m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh, false, subMeshes);
+	m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh, true, subMeshes);
 	AssetManager::Get().MoveMeshToGPU(m_sponzaMesh);
 
 	for (auto& part : model)
@@ -70,16 +70,16 @@ Scene::Scene()
 	}
 
 	Entity modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
-	modelEntity.AddComponent<TransformComp>();
+	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.2f);
 	modelEntity.AddComponent<MaterialComp>()->materialID = model.front().subMesh.materialID;
 	modelEntity.AddComponent<MeshComp>()->meshID = model.front().meshID;
 
-	Entity modelEntity2 = m_entities.emplace_back(EntityReg::CreateEntity());
+	/*Entity modelEntity2 = m_entities.emplace_back(EntityReg::CreateEntity());
 	modelEntity2.AddComponent<TransformComp>()->transform.setTranslation(-10);
 	modelEntity2.AddComponent<MaterialComp>()->materialID = model.front().subMesh.materialID;
-	modelEntity2.AddComponent<MeshComp>()->meshID = model.front().meshID;
+	modelEntity2.AddComponent<MeshComp>()->meshID = model.front().meshID;*/
 
-
+	
 
 
 	Geometry::Sphere_POS_NOR_UV sphere = Geometry::Sphere_POS_NOR_UV(32, 0.5f);
@@ -122,19 +122,26 @@ Scene::Scene()
 
 	Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	auto& transform = newEntity.AddComponent<TransformComp>()->transform;
-	transform.setTranslation(0,0,-14);
-	transform.setScale(0.1f);
-	//newEntity.AddComponent<MeshComp>()->meshID = m_sponzaMesh;
-	//newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
-	//newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
+	transform.setTranslation(0,0,-11);
+	transform.setScale(10);
+	newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
+	newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
+
+
+	Geometry::AABB_POS_NOR_UV box2 = Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
+	Mesh newBoxMesh2 = Mesh(reinterpret_cast<const float*>(box.VertexData().data()), box.ArraySize(), box.IndexData(), MeshType::POS_NOR_UV);
+
+
+
+
 
 	std::default_random_engine eng(4);
 	std::uniform_int_distribution<> distMat(0, 4);
 	std::uniform_int_distribution<> distMesh(0, 5);
 	
-	int l = 12;
+	int l = 5;
 #ifdef _DEBUG
-	l = 8;
+	l = 2;
 #endif // _DEBUG
 
 	for (int i = 0; i < l; i++)
@@ -222,7 +229,7 @@ Scene::Scene()
 
 
 	m_camera = EntityReg::CreateEntity();
-	m_camera.AddComponent<TransformComp>()->transform.setTranslation(0, 0, -20);
+	m_camera.AddComponent<TransformComp>()->transform.setTranslation(0, 0, -10);
 	m_camera.AddComponent<CameraComp>();
 	auto controller = m_camera.AddComponent<CameraControllerScript>();
 	controller->ToggleCameraLock();

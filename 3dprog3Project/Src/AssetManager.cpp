@@ -31,6 +31,11 @@ AssetManager& AssetManager::Get()
 	return *s_instance;
 }
 
+bool AssetManager::IsValid()
+{
+	return s_instance;
+}
+
 uint64_t AssetManager::AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure, const std::optional<SubMeshes>& subMeshes)
 {
 	uint64_t id = utl::GenerateRandomID();

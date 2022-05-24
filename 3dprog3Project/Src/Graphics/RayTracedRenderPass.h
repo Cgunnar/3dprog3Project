@@ -5,6 +5,19 @@
 #include "CommonComponents.h"
 #include "AccelerationStructure.h"
 
+struct RenderUnit
+{
+	rfm::Matrix worldMatrix;
+	uint64_t subMeshID;
+	uint64_t meshID;
+	uint32_t indexBufferDescriptorIndex;
+	uint32_t vertexBufferDescriptorIndex;
+	uint32_t indexStart;
+	uint32_t indexCount;
+	uint32_t vertexStart;
+	int32_t materialDescriptorIndex;
+};
+
 class RayTracedRenderPass : public RenderPass
 {
 public:
@@ -30,9 +43,13 @@ private:
 	DXGI_FORMAT m_rtFormat;
 	std::vector<ConstantBufferManager*> m_constantBuffers;
 
+	std::vector<RenderUnit> m_renderUnits;
+
 	std::vector<std::unique_ptr<StructuredBuffer<PointLight>>> m_dynamicPointLightBuffer;
 	std::vector<std::unique_ptr<AccelerationStructure>> m_accelerationStructures;
 	int m_numberOfFramesInFlight;
+	int m_rayBounceCount = 2;
+	int FindObjectsToRender();
 	void UpdateDynamicLights(int frameIndex);
 };
 

@@ -15,6 +15,11 @@ cbuffer CameraCB : register(b0)
 	float3 cameraPosition;
 }
 
+cbuffer RootConstants : register(b3)
+{
+    int numberOfBounces;
+}
+
 struct Material
 {
 	float4 albedoFactor;
@@ -139,22 +144,20 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
     {
         obj.hit = true;
         uint combinedMatIndexAndMeshIndex = q.CommittedInstanceContributionToHitGroupIndex();
-        //obj.meshIndex = combinedMatIndexAndMeshIndex >> 16;
-        //obj.matIndex = combinedMatIndexAndMeshIndex & 0xffff;
-        //topLevelInstanceMetaData[combinedMatIndexAndMeshIndex]
-        obj.meshIndex = topLevelInstanceMetaData[combinedMatIndexAndMeshIndex].indexBufferDescriptorIndex;
-        obj.matIndex = topLevelInstanceMetaData[combinedMatIndexAndMeshIndex].materialDescriptorIndex;
+        TopLevelInstanceMetaData topLevelData = topLevelInstanceMetaData[combinedMatIndexAndMeshIndex];
+        obj.meshIndex = topLevelData.indexBufferDescriptorIndex;
+        obj.matIndex = topLevelData.materialDescriptorIndex;
         
         
         uint primitiveIndex = 3 * q.CommittedPrimitiveIndex();
         float2 bar = q.CommittedTriangleBarycentrics();
-        uint index0 = indices[NonUniformResourceIndex(obj.meshIndex)][primitiveIndex + 0];
-        uint index1 = indices[NonUniformResourceIndex(obj.meshIndex)][primitiveIndex + 1];
-        uint index2 = indices[NonUniformResourceIndex(obj.meshIndex)][primitiveIndex + 2];
+        uint index0 = indices[NonUniformResourceIndex(obj.meshIndex)][topLevelData.indexStart + primitiveIndex + 0];
+        uint index1 = indices[NonUniformResourceIndex(obj.meshIndex)][topLevelData.indexStart + primitiveIndex + 1];
+        uint index2 = indices[NonUniformResourceIndex(obj.meshIndex)][topLevelData.indexStart + primitiveIndex + 2];
         
-        Vertex vertex0 = vertices[NonUniformResourceIndex(obj.meshIndex)][index0];
-        Vertex vertex1 = vertices[NonUniformResourceIndex(obj.meshIndex)][index1];
-        Vertex vertex2 = vertices[NonUniformResourceIndex(obj.meshIndex)][index2];
+        Vertex vertex0 = vertices[NonUniformResourceIndex(obj.meshIndex)][topLevelData.vertexStart + index0];
+        Vertex vertex1 = vertices[NonUniformResourceIndex(obj.meshIndex)][topLevelData.vertexStart + index1];
+        Vertex vertex2 = vertices[NonUniformResourceIndex(obj.meshIndex)][topLevelData.vertexStart + index2];
 
         float3x4 worldMatrix = q.CommittedObjectToWorld3x4();
         vertex0.position = mul(worldMatrix, float4(vertex0.position, 1));
@@ -184,13 +187,13 @@ float4 main(VS_OUT input) : SV_TARGET
     int bounceCount = 0;
     float3 origin = input.posWorld.xyz;
     float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normalize(input.normal.xyz));
-    while (bounceCount < 0)
+    while (bounceCount < numberOfBounces)
     {
         RayTracedObject obj1 = RayTrace(origin, dir);
         
         if (obj1.hit)
         {
-            outputColor = CalcLightForTexturedMaterial(obj1.position, obj1.normal, obj1.uv, obj1.matIndex);
+            outputColor = lerp(outputColor, CalcLightForTexturedMaterial(obj1.position, obj1.normal, obj1.uv, obj1.matIndex), 0.2);
             //should not shade first intersection, later bounce might overwrite the color
             origin = obj1.position;
             dir = reflect(dir, obj1.normal);
