@@ -33,9 +33,19 @@ struct PointLight
 	float linAtt;
 	float expAtt;
 };
+
+struct TopLevelInstanceMetaData
+{
+    int materialDescriptorIndex;
+    uint indexBufferDescriptorIndex;
+    uint vertexBufferDescriptorIndex;
+    uint indexStart;
+    uint vertexStart;
+};
 SamplerState anisotropicSampler : register(s0);
 StructuredBuffer<PointLight> dynamicPointLights : register(t0);
 RaytracingAccelerationStructure accelerationStructure : register(t1);
+StructuredBuffer<TopLevelInstanceMetaData> topLevelInstanceMetaData : register(t2);
 Texture2D albedoMap[] : register(t0, space1);
 
 struct Vertex
@@ -129,8 +139,12 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
     {
         obj.hit = true;
         uint combinedMatIndexAndMeshIndex = q.CommittedInstanceContributionToHitGroupIndex();
-        obj.meshIndex = combinedMatIndexAndMeshIndex >> 16;
-        obj.matIndex = combinedMatIndexAndMeshIndex & 0xffff;
+        //obj.meshIndex = combinedMatIndexAndMeshIndex >> 16;
+        //obj.matIndex = combinedMatIndexAndMeshIndex & 0xffff;
+        //topLevelInstanceMetaData[combinedMatIndexAndMeshIndex]
+        obj.meshIndex = topLevelInstanceMetaData[combinedMatIndexAndMeshIndex].indexBufferDescriptorIndex;
+        obj.matIndex = topLevelInstanceMetaData[combinedMatIndexAndMeshIndex].materialDescriptorIndex;
+        
         
         uint primitiveIndex = 3 * q.CommittedPrimitiveIndex();
         float2 bar = q.CommittedTriangleBarycentrics();
@@ -170,7 +184,7 @@ float4 main(VS_OUT input) : SV_TARGET
     int bounceCount = 0;
     float3 origin = input.posWorld.xyz;
     float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normalize(input.normal.xyz));
-    while (bounceCount < 3)
+    while (bounceCount < 32)
     {
         RayTracedObject obj1 = RayTrace(origin, dir);
         

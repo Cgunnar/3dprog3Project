@@ -26,11 +26,25 @@ struct GPUAsset
 	bool valid = false;
 };
 
+struct SubMesh
+{
+	uint32_t indexStart = 0;
+	uint32_t indexCount = 0;
+	uint32_t vertexStart = 0;
+	uint32_t vertexCount = 0;
+};
+
+struct SubMeshes
+{
+	uint64_t subMeshID;
+	std::vector<SubMesh> subMeshes;
+};
+
 struct MeshAsset
 {
 	MeshAsset() = default;
-	MeshAsset(const Mesh& mesh, bool inludeInAccelerationStructure)
-		: inludedInAccelerationStructure(inludeInAccelerationStructure)
+	MeshAsset(const Mesh& mesh, bool inludeInAccelerationStructure, const std::optional<SubMeshes>& subMeshes = std::nullopt)
+		: inludedInAccelerationStructure(inludeInAccelerationStructure), subMeshes(subMeshes)
 	{
 		this->mesh = std::make_shared<Mesh>(mesh);
 		vertexBuffer.elementCount = mesh.GetVertexCount();
@@ -39,8 +53,10 @@ struct MeshAsset
 		indexBuffer.elementCount = mesh.GetIndices().size();
 		indexBuffer.elementSize = sizeof(uint32_t);
 		indexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::SRV | GPUAsset::BUFFER);
+		if (this->subMeshes) this->subMeshes->subMeshID = utl::GenerateRandomID();
 	}
 	std::shared_ptr<Mesh> mesh;
+	std::optional<SubMeshes> subMeshes = std::nullopt;
 	GPUAsset vertexBuffer;
 	GPUAsset indexBuffer;
 	bool inludedInAccelerationStructure = false;
@@ -73,7 +89,7 @@ public:
 	static void Destroy();
 	static AssetManager& Get();
 
-	uint64_t AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure = true);
+	uint64_t AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure = true, const std::optional<SubMeshes>& subMeshes = std::nullopt);
 	uint64_t AddMaterial(const Material &material);
 	uint64_t AddTextureFromFile(const std::string& path, bool mipmapping, bool linearColorSpace);
 

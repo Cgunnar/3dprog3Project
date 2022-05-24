@@ -56,9 +56,14 @@ AccelerationStructure::~AccelerationStructure()
 	if (m_descriptorHeap) m_descriptorHeap->Release();
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE AccelerationStructure::GetCpuHandle() const
+D3D12_CPU_DESCRIPTOR_HANDLE AccelerationStructure::GetAccelerationStructureCpuHandle() const
 {
 	return m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE AccelerationStructure::GetInstanceMetaDataCpuHandle() const
+{
+	return m_instanceMetaDataBuffer->CpuHandle();
 }
 
 void AccelerationStructure::UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
@@ -70,15 +75,22 @@ void AccelerationStructure::UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsC
 	hr = cmdList->QueryInterface(__uuidof(ID3D12GraphicsCommandList4), reinterpret_cast<void**>(&cmdList4));
 	assert(SUCCEEDED(hr));
 
-	for (auto& inst : m_instances)
+	for (int i = 0; i < m_instances.size(); i++)
 	{
+		auto& inst = m_instances[i];
+		auto& instMetaData = m_instanceMetaData[i];
 		rfm::Matrix worldMatrix = rfe::EntityReg::GetComponent<TransformComp>(inst.InstanceID)->transform;
 		inst.Transform[0][0] = worldMatrix[0][0]; inst.Transform[0][1] = worldMatrix[1][0]; inst.Transform[0][2] = worldMatrix[2][0]; inst.Transform[0][3] = worldMatrix[3][0];
 		inst.Transform[1][0] = worldMatrix[0][1]; inst.Transform[1][1] = worldMatrix[1][1]; inst.Transform[1][2] = worldMatrix[2][1]; inst.Transform[1][3] = worldMatrix[3][1];
 		inst.Transform[2][0] = worldMatrix[0][2]; inst.Transform[2][1] = worldMatrix[1][2]; inst.Transform[2][2] = worldMatrix[2][2]; inst.Transform[2][3] = worldMatrix[3][2];
+
+		//this should allow for dynamic changing of materials
+		uint64_t matID = rfe::EntityReg::GetComponent<MaterialComp>(inst.InstanceID)->materialID;
+		instMetaData.materialDescriptorIndex = AssetManager::Get().GetMaterial(matID).constantBuffer.descIndex;
 	}
 
 	m_instanceBuffer->Update(m_instances.data(), m_instances.size());
+	m_instanceMetaDataBuffer->Update(m_instanceMetaData.data(), m_instanceMetaData.size());
 
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC accStructureDesc{};
@@ -178,20 +190,22 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 {
 	auto entitis = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp>();
 	m_instances.reserve(entitis.size());
+	m_instanceMetaData.reserve(entitis.size());
 
-	
-	
 	const auto& am = AssetManager::Get();
 
 	UINT numInstances = 0;
 	for (auto& e : entitis)
 	{
 		const MaterialAsset& mat = am.GetMaterial(e.GetComponent<MaterialComp>()->materialID);
-		uint64_t meshID = e.GetComponent<MeshComp>()->meshID;
+		const auto& meshComp = e.GetComponent<MeshComp>();
+		uint64_t meshID = meshComp->meshID;
 		assert(am.GetMesh(meshID).indexBuffer.descIndex == am.GetMesh(meshID).vertexBuffer.descIndex);
 		const MeshAsset& mesh = am.GetMesh(meshID);
 		if (mesh.inludedInAccelerationStructure)
 		{
+			TopLevelInstanceMetaData instMetaData{};
+
 			D3D12_RAYTRACING_INSTANCE_DESC instDesc{};
 			instDesc.Transform[0][0] = 1;
 			instDesc.Transform[1][1] = 1;
@@ -202,14 +216,24 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 			//meshIndex is the index of the ib and vb, assumed to have the same index
 
 
-			UINT meshBuffersIndex = am.GetMesh(meshID).indexBuffer.descIndex;
+			/*UINT meshBuffersIndex = am.GetMesh(meshID).indexBuffer.descIndex;
 			assert(mat.constantBuffer.descIndex < 0xffff && meshBuffersIndex < 0xffff);
-			instDesc.InstanceContributionToHitGroupIndex = mat.constantBuffer.descIndex | (meshBuffersIndex << 16);
+			instDesc.InstanceContributionToHitGroupIndex = mat.constantBuffer.descIndex | (meshBuffersIndex << 16);*/
+			instMetaData.materialDescriptorIndex = mat.constantBuffer.descIndex;
+			instMetaData.indexBufferDescriptorIndex = am.GetMesh(meshID).indexBuffer.descIndex;
+			instMetaData.vertexBufferDescriptorIndex = am.GetMesh(meshID).vertexBuffer.descIndex;
+			instMetaData.indexStart = meshComp->indexStart;
+			instMetaData.vertexStart = meshComp->vertexStart;
+
+			instDesc.InstanceContributionToHitGroupIndex = m_instanceMetaData.size();
+
+
 			instDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 			instDesc.InstanceMask = 0xFF;
 			instDesc.AccelerationStructure = m_bottomLevels[meshID].resultBuffer->GetGPUVirtualAddress();
 
 			m_instances.push_back(instDesc);
+			m_instanceMetaData.push_back(instMetaData);
 			numInstances++;
 		}
 		
@@ -218,6 +242,8 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 	m_instanceBuffer = std::make_unique<StructuredBuffer<D3D12_RAYTRACING_INSTANCE_DESC>>(device, numInstances, false, true);
 	m_instanceBuffer->Update(m_instances.data(), m_instances.size());
 
+	m_instanceMetaDataBuffer = std::make_unique<StructuredBuffer<TopLevelInstanceMetaData>>(device, numInstances, true, true);
+	m_instanceMetaDataBuffer->Update(m_instanceMetaData.data(), m_instanceMetaData.size());
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC accStructureDesc{};
 	accStructureDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;

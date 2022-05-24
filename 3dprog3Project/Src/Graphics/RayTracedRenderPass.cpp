@@ -46,17 +46,21 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 
 	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable3> tableSlot3;
 	descriptorRange.NumDescriptors = 1;
-	descriptorRange.BaseShaderRegister = 0;
 	descriptorRange.RegisterSpace = 0;
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
 	//dynamicPointLights buffer
+	descriptorRange.BaseShaderRegister = 0;
 	tableSlot3[0] = descriptorRange;
 
 	//ray traicing acceleration structure
 	descriptorRange.BaseShaderRegister = 1;
 	tableSlot3[1] = descriptorRange;
+
+	//data for indexOffset and materialIndex
+	descriptorRange.BaseShaderRegister = 2;
+	tableSlot3[2] = descriptorRange;
 
 	//bindless
 	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable4> psPerDrawCallDescriptors;
@@ -156,9 +160,9 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 
 	D3D12_STATIC_SAMPLER_DESC staticSampler;
 	staticSampler.Filter = D3D12_FILTER_ANISOTROPIC;
-	staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 	staticSampler.MipLODBias = 0.0f;
 	staticSampler.MaxAnisotropy = 16;
 	staticSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
@@ -329,7 +333,9 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 	auto& descriptorHandle = descriptorHandles.front();
 	m_device->CopyDescriptorsSimple(1, descriptorHandle.cpuHandle, m_dynamicPointLightBuffer[frameIndex]->CpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	descriptorHandle.cpuHandle.ptr += descriptorHandle.incrementSize;
-	m_device->CopyDescriptorsSimple(1, descriptorHandle.cpuHandle, m_accelerationStructures[frameIndex]->GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_device->CopyDescriptorsSimple(1, descriptorHandle.cpuHandle, m_accelerationStructures[frameIndex]->GetAccelerationStructureCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	descriptorHandle.cpuHandle.ptr += descriptorHandle.incrementSize;
+	m_device->CopyDescriptorsSimple(1, descriptorHandle.cpuHandle, m_accelerationStructures[frameIndex]->GetInstanceMetaDataCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	descriptorHandle.cpuHandle.ptr += descriptorHandle.incrementSize;
 	auto& cmdList = cmdLists.front();
 	cmdList->SetGraphicsRootSignature(m_rootSignature);

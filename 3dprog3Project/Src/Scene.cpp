@@ -10,23 +10,23 @@ using namespace rfe;
 
 struct ModelPart
 {
-	uint64_t meshID;
 	uint64_t materialID;
-	uint32_t indexStart;
-	uint32_t indexCount;
-	uint32_t vertexStart;
-	uint32_t vertexCount;
+	uint64_t meshID;
+	SubMesh subMesh;
+
 };
+
+
 
 void BuildModel(SubMeshTree& node, std::vector<ModelPart>& modelPartsOut)
 {
 	for (auto& p : node.subMeshes)
 	{
 		ModelPart part;
-		part.indexStart = p.indexStart;
-		part.indexCount = p.indexCount;
-		part.vertexStart = p.vertexStart;
-		part.vertexCount = p.vertexCount;
+		part.subMesh.indexStart = p.indexStart;
+		part.subMesh.indexCount = p.indexCount;
+		part.subMesh.vertexStart = p.vertexStart;
+		part.subMesh.vertexCount = p.vertexCount;
 		part.materialID = AssetManager::Get().AddMaterial(p.pbrMaterial);
 		AssetManager::Get().MoveMaterialToGPU(part.materialID);
 		modelPartsOut.push_back(part);
@@ -257,10 +257,10 @@ void AddModel(const std::vector<ModelPart>& model, rfm::Transform transform, std
 		newEntity.AddComponent<MaterialComp>()->materialID = part.materialID;
 		MeshComp* mesh = newEntity.AddComponent<MeshComp>();
 		mesh->meshID = part.meshID;
-		mesh->indexStart = part.indexStart;
-		mesh->indexCount = part.indexCount;
-		mesh->vertexStart = part.vertexStart;
-		mesh->vertexCount = part.vertexCount;
+		mesh->indexStart = part.subMesh.indexStart;
+		mesh->indexCount = part.subMesh.indexCount;
+		mesh->vertexStart = part.subMesh.vertexStart;
+		mesh->vertexCount = part.subMesh.vertexCount;
 		mesh->useStartAndCount = true;
 	}
 }
