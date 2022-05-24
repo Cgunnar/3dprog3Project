@@ -53,7 +53,7 @@ Scene::Scene()
 		sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
 		sponzaIndexBuffer, MeshType::POS_NOR_UV);
 
-	m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh);
+	m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh, false);
 	AssetManager::Get().MoveMeshToGPU(m_sponzaMesh);
 
 	std::vector<ModelPart> model;

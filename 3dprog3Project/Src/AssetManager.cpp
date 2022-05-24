@@ -31,10 +31,10 @@ AssetManager& AssetManager::Get()
 	return *s_instance;
 }
 
-uint64_t AssetManager::AddMesh(const Mesh& mesh)
+uint64_t AssetManager::AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure)
 {
 	uint64_t id = utl::GenerateRandomID();
-	m_meshes[id] = MeshAsset(mesh);
+	m_meshes[id] = MeshAsset(mesh, inludeInAccelerationStructure);
 	return id;
 }
 

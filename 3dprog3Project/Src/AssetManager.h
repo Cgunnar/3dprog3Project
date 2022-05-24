@@ -29,7 +29,8 @@ struct GPUAsset
 struct MeshAsset
 {
 	MeshAsset() = default;
-	MeshAsset(const Mesh& mesh)
+	MeshAsset(const Mesh& mesh, bool inludeInAccelerationStructure)
+		: inludedInAccelerationStructure(inludeInAccelerationStructure)
 	{
 		this->mesh = std::make_shared<Mesh>(mesh);
 		vertexBuffer.elementCount = mesh.GetVertexCount();
@@ -42,6 +43,7 @@ struct MeshAsset
 	std::shared_ptr<Mesh> mesh;
 	GPUAsset vertexBuffer;
 	GPUAsset indexBuffer;
+	bool inludedInAccelerationStructure = false;
 };
 
 struct MaterialAsset
@@ -71,7 +73,7 @@ public:
 	static void Destroy();
 	static AssetManager& Get();
 
-	uint64_t AddMesh(const Mesh& mesh);
+	uint64_t AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure = true);
 	uint64_t AddMaterial(const Material &material);
 	uint64_t AddTextureFromFile(const std::string& path, bool mipmapping, bool linearColorSpace);
 
