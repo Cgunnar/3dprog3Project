@@ -35,6 +35,11 @@ uint64_t AssetManager::AddMesh(const Mesh& mesh, bool inludeInAccelerationStruct
 {
 	uint64_t id = utl::GenerateRandomID();
 	m_meshes[id] = MeshAsset(mesh, inludeInAccelerationStructure, subMeshes);
+	if (m_meshes[id].subMeshes)
+	{
+		m_meshes[id].subMeshes->meshAssetID = id;
+		
+	}
 	return id;
 }
 

@@ -10,10 +10,8 @@ using namespace rfe;
 
 struct ModelPart
 {
-	uint64_t materialID;
 	uint64_t meshID;
 	SubMesh subMesh;
-
 };
 
 
@@ -27,8 +25,8 @@ void BuildModel(SubMeshTree& node, std::vector<ModelPart>& modelPartsOut)
 		part.subMesh.indexCount = p.indexCount;
 		part.subMesh.vertexStart = p.vertexStart;
 		part.subMesh.vertexCount = p.vertexCount;
-		part.materialID = AssetManager::Get().AddMaterial(p.pbrMaterial);
-		AssetManager::Get().MoveMaterialToGPU(part.materialID);
+		part.subMesh.materialID = AssetManager::Get().AddMaterial(p.pbrMaterial);
+		AssetManager::Get().MoveMaterialToGPU(part.subMesh.materialID);
 		modelPartsOut.push_back(part);
 	}
 
@@ -53,16 +51,35 @@ Scene::Scene()
 		sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
 		sponzaIndexBuffer, MeshType::POS_NOR_UV);
 
-	m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh, false);
-	AssetManager::Get().MoveMeshToGPU(m_sponzaMesh);
 
 	std::vector<ModelPart> model;
 	BuildModel(sponza.subsetsInfo, model);
+
+	std::vector<SubMesh> subMeshes;
+	for (auto& p : model)
+	{
+		subMeshes.push_back(p.subMesh);
+	}
+
+	m_sponzaMesh = AssetManager::Get().AddMesh(newSponzaMesh, false, subMeshes);
+	AssetManager::Get().MoveMeshToGPU(m_sponzaMesh);
 
 	for (auto& part : model)
 	{
 		part.meshID = m_sponzaMesh;
 	}
+
+	Entity modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+	modelEntity.AddComponent<TransformComp>();
+	modelEntity.AddComponent<MaterialComp>()->materialID = model.front().subMesh.materialID;
+	modelEntity.AddComponent<MeshComp>()->meshID = model.front().meshID;
+
+	Entity modelEntity2 = m_entities.emplace_back(EntityReg::CreateEntity());
+	modelEntity2.AddComponent<TransformComp>()->transform.setTranslation(-10);
+	modelEntity2.AddComponent<MaterialComp>()->materialID = model.front().subMesh.materialID;
+	modelEntity2.AddComponent<MeshComp>()->meshID = model.front().meshID;
+
+
 
 
 	Geometry::Sphere_POS_NOR_UV sphere = Geometry::Sphere_POS_NOR_UV(32, 0.5f);
@@ -115,7 +132,7 @@ Scene::Scene()
 	std::uniform_int_distribution<> distMat(0, 4);
 	std::uniform_int_distribution<> distMesh(0, 5);
 	
-	int l = 16;
+	int l = 12;
 #ifdef _DEBUG
 	l = 8;
 #endif // _DEBUG
@@ -130,7 +147,7 @@ Scene::Scene()
 				int randMesh = distMesh(eng);
 				rfm::Vector3 pos = rfm::Vector3( 2*i, 2*j, 2*k ) - rfm::Vector3(l);
 
-				if (randMesh == 4 && i < l/2 && j < l/2)
+				if (false && randMesh == 4 && i < l/2 && j < l/2)
 				{
 					rfm::Transform tr;
 					tr.setTranslation(pos);
@@ -250,11 +267,16 @@ void Scene::Update(float dt)
 
 void AddModel(const std::vector<ModelPart>& model, rfm::Transform transform, std::vector<rfe::Entity>& out)
 {
-	for (auto& part : model)
+	Entity newEntity = out.emplace_back(EntityReg::CreateEntity());
+	newEntity.AddComponent<TransformComp>()->transform = transform;
+	newEntity.AddComponent<MaterialComp>()->materialID = model.front().subMesh.materialID;
+	MeshComp* mesh = newEntity.AddComponent<MeshComp>();
+	mesh->meshID = model.front().meshID;
+	/*for (auto& part : model)
 	{
 		Entity newEntity = out.emplace_back(EntityReg::CreateEntity());
 		newEntity.AddComponent<TransformComp>()->transform = transform;
-		newEntity.AddComponent<MaterialComp>()->materialID = part.materialID;
+		newEntity.AddComponent<MaterialComp>()->materialID = part.subMesh.materialID;
 		MeshComp* mesh = newEntity.AddComponent<MeshComp>();
 		mesh->meshID = part.meshID;
 		mesh->indexStart = part.subMesh.indexStart;
@@ -262,5 +284,5 @@ void AddModel(const std::vector<ModelPart>& model, rfm::Transform transform, std
 		mesh->vertexStart = part.subMesh.vertexStart;
 		mesh->vertexCount = part.subMesh.vertexCount;
 		mesh->useStartAndCount = true;
-	}
+	}*/
 }

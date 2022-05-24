@@ -184,7 +184,7 @@ float4 main(VS_OUT input) : SV_TARGET
     int bounceCount = 0;
     float3 origin = input.posWorld.xyz;
     float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normalize(input.normal.xyz));
-    while (bounceCount < 32)
+    while (bounceCount < 0)
     {
         RayTracedObject obj1 = RayTrace(origin, dir);
         

@@ -32,11 +32,14 @@ struct SubMesh
 	uint32_t indexCount = 0;
 	uint32_t vertexStart = 0;
 	uint32_t vertexCount = 0;
+	uint64_t materialID = 0;
+	uint64_t subMeshID = 0;
 };
 
 struct SubMeshes
 {
-	uint64_t subMeshID;
+	SubMeshes(const std::vector<SubMesh>& submeshes = {}) : subMeshes(submeshes){}
+	uint64_t meshAssetID = 0;
 	std::vector<SubMesh> subMeshes;
 };
 
@@ -53,7 +56,13 @@ struct MeshAsset
 		indexBuffer.elementCount = mesh.GetIndices().size();
 		indexBuffer.elementSize = sizeof(uint32_t);
 		indexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::SRV | GPUAsset::BUFFER);
-		if (this->subMeshes) this->subMeshes->subMeshID = utl::GenerateRandomID();
+		if (this->subMeshes)
+		{
+			for (auto& subMesh : this->subMeshes->subMeshes)
+			{
+				subMesh.subMeshID = utl::GenerateRandomID();
+			}
+		}
 	}
 	std::shared_ptr<Mesh> mesh;
 	std::optional<SubMeshes> subMeshes = std::nullopt;
