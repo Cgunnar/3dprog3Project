@@ -2,6 +2,7 @@
 #include "CameraControllerScript.h"
 #include "commonComponents.h"
 #include "Mouse.h"
+#include "KeyBoard.h"
 
 using namespace rfm;
 
@@ -19,29 +20,23 @@ void CameraControllerScript::OnUpdate(float dt)
 	m_yaw = fmod(m_yaw, PI2);
 
 	Vector3 moveDir{ 0,0,0 };
-	if (in.State().MMBHeld)
-	{
-		moveDir += {0, 0, 1};
-	}
-	//if (in.keyBeingPressed(Input::Keys::D)) moveDir += {1, 0, 0};
-	//if (in.keyBeingPressed(Input::Keys::A)) moveDir += {-1, 0, 0};
-	//if (in.keyBeingPressed(Input::Keys::W)) moveDir += {0, 0, 1};
-	//if (in.keyBeingPressed(Input::Keys::S)) moveDir += {0, 0, -1};
 
+	KeyBoard& kb = KeyBoard::Get();
+	if (kb.GetKey(Key::D, KeyState::held)) moveDir += {1, 0, 0};
+	if (kb.GetKey(Key::A, KeyState::held)) moveDir += {-1, 0, 0};
+	if (kb.GetKey(Key::W, KeyState::held)) moveDir += {0, 0, 1};
+	if (kb.GetKey(Key::S, KeyState::held)) moveDir += {0, 0, -1};
 
 	Transform& cameraTransform = GetComponent<TransformComp>()->transform;
 	cameraTransform.setRotation(m_pitch, m_yaw, 0);
 
-	/*moveDir = cameraTransform.getRotationMatrix() * moveDir;
-
-	if (in.keyBeingPressed(Input::Keys::Space)) moveDir += {0, 1, 0};
-	if (in.keyBeingPressed(Input::Keys::C)) moveDir += {0, -1, 0};
+	if (kb.GetKey(Key::space, KeyState::held)) moveDir += {0, 1, 0};
+	if (kb.GetKey(Key::C, KeyState::held)) moveDir += {0, -1, 0};
 	moveDir.normalize();
 
-	if (in.keyBeingPressed(Input::Keys::LeftShift)) moveDir *= 2;
+	if (kb.GetKey(Key::lShift, KeyState::held)) moveDir *= 2;
 	moveDir *= m_moveSpeed;
-	cameraTransform.translateW(moveDir * dt);*/
-	cameraTransform.translateL(3*moveDir * dt);
+	cameraTransform.translateL(moveDir * dt);
 	
 }
 

@@ -78,7 +78,7 @@
     <ClCompile Include="Src\Graphics\ConstantBufferManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Mouse.cpp">
+    <ClCompile Include="Src\CodeFromOlderProjects\Mouse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Src\CodeFromOlderProjects\CameraControllerScript.cpp">
@@ -115,6 +115,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Src\CodeFromOlderProjects\boundingVolumes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\KeyBoard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -191,7 +194,7 @@
     <ClInclude Include="Src\Graphics\ConstantBufferManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Mouse.h">
+    <ClInclude Include="Src\CodeFromOlderProjects\Mouse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\CodeFromOlderProjects\CameraControllerScript.h">
@@ -228,6 +231,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\CodeFromOlderProjects\boundingVolumes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\KeyBoard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

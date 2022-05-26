@@ -5,6 +5,7 @@
 #include "rfEntity.hpp"
 #include "AssetManager.h"
 #include "Mouse.h"
+#include "KeyBoard.h"
 #include "RenderingTypes.h"
 #include "CameraControllerScript.h"
 #include "CommonComponents.h"
@@ -67,6 +68,7 @@ void Application::Run()
 		{
 			float dt = FrameTimer::NewFrame();
 			Mouse::Get().Update();
+			KeyBoard::Get().Update();
 			static uint64_t frameCounter = 0;
 			static uint64_t avgFramesFrameTimeNanoSec = 0;
 			static uint64_t avgOver2000FramesFrameTimeNanoSec = 0;

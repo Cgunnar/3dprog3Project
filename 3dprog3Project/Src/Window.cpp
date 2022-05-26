@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "Mouse.h"
+#include "KeyBoard.h"
 #include "RenderingTypes.h"
 #include <imgui_impl_win32.h>
 
@@ -56,6 +57,7 @@ Window::Window()
 	ImGui_ImplWin32_Init(m_hWnd);
 
 	Mouse::Init(m_hWnd);
+	KeyBoard::Init();
 
 	m_isStarting = false;
 }
@@ -63,6 +65,7 @@ Window::Window()
 Window::~Window()
 {
 	Mouse::Destroy();
+	KeyBoard::Destroy();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 	s_windowInstance = nullptr;
@@ -330,6 +333,35 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				SetFullscreen(FullscreenState::fullscreen);
 			else if (m_fullscreenState == FullscreenState::fullscreen)
 				SetFullscreen(FullscreenState::windowed);
+			return 0;
+		}
+		break;
+	}
+	case WM_KEYDOWN:
+	{
+		if (KeyBoard::IsValid())
+		{
+			if (lParam & (1 << 30)) return 0; //repeted key press
+			KeyBoard& kb = KeyBoard::Get();
+			if (wParam == VK_SHIFT)
+				wParam = MapVirtualKey((lParam & 0xff0000) >> 16, MAPVK_VSC_TO_VK_EX);
+			else if (wParam == VK_CONTROL)
+				wParam = lParam & 0x01000000 ? VK_RCONTROL : VK_LCONTROL;
+			kb.m_keyState0[wParam] = KeyState::clicked | KeyState::held;
+			return 0;
+		}
+		break;
+	}
+	case WM_KEYUP:
+	{
+		if (KeyBoard::IsValid())
+		{
+			KeyBoard& kb = KeyBoard::Get();
+			if (wParam == VK_SHIFT)
+				wParam = MapVirtualKey((lParam & 0xff0000) >> 16, MAPVK_VSC_TO_VK_EX);
+			else if (wParam == VK_CONTROL)
+				wParam = lParam & 0x01000000 ? VK_RCONTROL : VK_LCONTROL;
+			kb.m_keyState0[wParam] = KeyState::released;
 			return 0;
 		}
 		break;
