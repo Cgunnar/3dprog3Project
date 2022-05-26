@@ -114,6 +114,8 @@ void AssetManager::MoveMeshToGPU(uint64_t id)
 	m_renderer->GetDevice()->CreateShaderResourceView(meshAsset.indexBuffer.resource.Get(), &viewDesc, handle.cpuHandle);
 	meshAsset.indexBuffer.descIndex = m_ibViewCount++;
 	meshAsset.indexBuffer.valid = true;
+
+	meshAsset.mesh.reset();
 }
 
 void AssetManager::MoveMaterialToGPU(uint64_t id)

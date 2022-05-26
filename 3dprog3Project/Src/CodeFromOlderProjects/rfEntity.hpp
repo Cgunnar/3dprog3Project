@@ -763,7 +763,7 @@ namespace rfe
 			}
 			script.OnUpdate(dt);
 		}
-		static float deltaTime = 0;
+		static double deltaTime = 0;
 		deltaTime += dt;
 		while (timeStep < deltaTime)
 		{

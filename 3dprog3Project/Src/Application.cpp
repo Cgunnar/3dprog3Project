@@ -124,7 +124,7 @@ void Application::Run()
 			FullscreenState selectedFullscreenState = newSettings.fullscreemState;
 			ImGui::Text("fullscreen mode");
 			ImGui::SameLine();
-			ImGui::Combo("##1", reinterpret_cast<int*>(&newSettings.fullscreemState), fullscreenCompo.data(), fullscreenCompo.size());
+			ImGui::Combo("##1", reinterpret_cast<int*>(&newSettings.fullscreemState), fullscreenCompo.data(), static_cast<int>(fullscreenCompo.size()));
 			if (m_renderSettings.fullscreemState != newSettings.fullscreemState)
 			{
 				m_window->SetFullscreen(newSettings.fullscreemState);
@@ -240,7 +240,7 @@ void Application::Run()
 			{
 				c.GetComponent<CameraComp>()->projectionMatrix
 					= rfm::PerspectiveProjectionMatrix(rfm::PIDIV4,
-						static_cast<float>(width) / static_cast<float>(height), 0.001, 1000);
+						static_cast<float>(width) / static_cast<float>(height), 0.001f, 1000);
 			}
 			rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
 			if(!pauseSceneUpdate)

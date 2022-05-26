@@ -28,9 +28,9 @@ EngineMeshData AssimpLoader::loadStaticModel(const std::string& filePath)
 {
 	m_hasNormalMap = false;
 
-	Assimp::Importer importer;
+	Assimp::Importer* importer = new Assimp::Importer();
 
-	const aiScene* scene = importer.ReadFile(
+	const aiScene* scene = importer->ReadFile(
 		filePath,
 		aiProcess_Triangulate |
 		aiProcess_ConvertToLeftHanded |

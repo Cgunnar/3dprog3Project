@@ -283,7 +283,8 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 	UINT numInstances = 0;
 	for (auto& e : entitis)
 	{
-		const MaterialAsset& mat = am.GetMaterial(e.GetComponent<MaterialComp>()->materialID);
+		const MaterialComp* matComp = e.GetComponent<MaterialComp>();
+		
 		const auto& meshComp = e.GetComponent<MeshComp>();
 		uint64_t meshID = meshComp->meshID;
 		assert(am.GetMesh(meshID).indexBuffer.descIndex == am.GetMesh(meshID).vertexBuffer.descIndex);
@@ -337,6 +338,16 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 				//InstanceContributionToHitGroupIndex is not used when using inline raytracing, use it for materialIndex and meshIndex
 				//meshIndex is the index of the ib and vb, assumed to have the same index
 
+				uint64_t matID = 0;
+				if (matComp)
+				{
+					matID = matComp->materialID;
+				}
+				else
+				{
+					assert(false); //missing material
+				}
+				const MaterialAsset& mat = am.GetMaterial(matID);
 
 				instMetaData.materialDescriptorIndex = mat.constantBuffer.descIndex;
 				instMetaData.indexBufferDescriptorIndex = mesh.indexBuffer.descIndex;

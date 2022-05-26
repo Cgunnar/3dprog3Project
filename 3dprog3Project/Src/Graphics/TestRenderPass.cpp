@@ -121,7 +121,7 @@ TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignDesc;
 	rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-	rootSignDesc.NumParameters = rootParameters.size();
+	rootSignDesc.NumParameters = static_cast<UINT>(rootParameters.size());
 	rootSignDesc.pParameters = rootParameters.data();
 	rootSignDesc.NumStaticSamplers = 0;
 	rootSignDesc.pStaticSamplers = nullptr;
@@ -182,7 +182,7 @@ TestRenderPass::~TestRenderPass()
 RenderPassRequirements TestRenderPass::GetRequirements()
 {
 
-	int perThreadSize = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() / m_numThreads;
+	int perThreadSize = static_cast<int>(rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size()) / m_numThreads;
 	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
@@ -229,7 +229,7 @@ void TestRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
 
 	std::vector<std::future<void>> asyncJobs;
-	int segmentSize = entities.size() / m_numThreads;
+	int segmentSize = static_cast<int>(entities.size()) / m_numThreads;
 	for (int i = 0; i < m_numThreads; i++)
 	{
 		int rest = 0;

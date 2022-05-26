@@ -236,7 +236,7 @@ uint64_t Renderer::Render()
 	{
 		auto req = renderPass->GetRequirements();
 		std::vector<DescriptorHandle> handles;
-		for (int i = 0; i < req.numDescriptorHandles; i++)
+		for (int i = 0; i < static_cast<int>(req.numDescriptorHandles); i++)
 		{
 			handles.push_back(m_desriptorPool->DynamicAllocate(req.descriptorHandleSize));
 		}
@@ -245,7 +245,7 @@ uint64_t Renderer::Render()
 			m_3dRenderPassesCmdLists.begin() + m_activeRenderPassCmdListsCount,
 			m_3dRenderPassesCmdLists.begin() + m_activeRenderPassCmdListsCount + req.cmdListCount);
 
-		for (int i = 0; i < req.cmdListCount; i++)
+		for (int i = 0; i < static_cast<int>(req.cmdListCount); i++)
 		{
 			auto& cmdAlloc = m_3dRenderPassesCmdAllocators[m_activeRenderPassCmdListsCount + i][frameIndex];
 			HRESULT hr = cmdAlloc->Reset();
@@ -299,7 +299,7 @@ void Renderer::EndFrame()
 	}
 	tmpCmdList.push_back(m_directCmdListEnd);
 
-	m_directCmdQueue->ExecuteCommandLists(tmpCmdList.size(), tmpCmdList.data());
+	m_directCmdQueue->ExecuteCommandLists(static_cast<UINT>(tmpCmdList.size()), tmpCmdList.data());
 	/*for (auto& l : tmpCmdList)
 	{
 		m_directCmdQueue->ExecuteCommandLists(1, &l);
@@ -368,7 +368,7 @@ bool Renderer::SetFullscreen(bool fullscreen, UINT exitFullscreenWidth, UINT exi
 {
 	BOOL currentState;
 	HRESULT hr = m_swapchain->GetFullscreenState(&currentState, nullptr);
-	if (currentState == fullscreen)
+	if (currentState == static_cast<BOOL>(fullscreen))
 	{
 		utl::PrintDebug("Renderer::SetFullscreen state mismatch");
 		m_fullscreen = currentState;
@@ -564,7 +564,7 @@ void Renderer::CreateSwapChain(IDXGIFactory5* factory, HWND windowHandle)
 	desc.Stereo = false;
 	desc.SampleDesc = { 1u, 0u };
 	desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	desc.BufferCount = m_backbuffers.size();
+	desc.BufferCount = static_cast<UINT>(m_backbuffers.size());
 	desc.Scaling = DXGI_SCALING_STRETCH;
 	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;

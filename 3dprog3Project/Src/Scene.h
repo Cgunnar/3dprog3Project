@@ -24,4 +24,7 @@ private:
 	uint64_t m_blueMaterial;
 	uint64_t m_hejMaterial;
 	uint64_t m_rustedIronMaterial;
+
+
+	uint64_t LoadModels(const std::string& path);
 };

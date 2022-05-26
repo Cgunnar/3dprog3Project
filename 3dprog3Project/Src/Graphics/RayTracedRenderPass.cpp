@@ -467,14 +467,22 @@ int RayTracedRenderPass::FindObjectsToRender()
 		const auto& meshComp = e.GetComponent<MeshComp>();
 		const auto& materialComp = e.GetComponent<MaterialComp>();
 		const auto& meshAsset = am.GetMesh(meshComp->meshID);
-		const auto& materialAsset = am.GetMaterial(materialComp->materialID);
+		uint64_t matID = 0;
+		if (materialComp)
+		{
+			matID = materialComp->materialID;
+		}
+		
 		if (meshAsset.subMeshes)
 		{
 			for (auto& subMesh : meshAsset.subMeshes->subMeshes)
 			{
 				RenderUnit ru;
 				ru.worldMatrix = e.GetComponent<TransformComp>()->transform;
-				ru.materialDescriptorIndex = am.GetMaterial(subMesh.materialID).constantBuffer.descIndex;
+				if(matID)
+					ru.materialDescriptorIndex = am.GetMaterial(matID).constantBuffer.descIndex;
+				else
+					ru.materialDescriptorIndex = am.GetMaterial(subMesh.materialID).constantBuffer.descIndex;
 				ru.indexBufferDescriptorIndex = meshAsset.indexBuffer.descIndex;
 				ru.vertexBufferDescriptorIndex = meshAsset.vertexBuffer.descIndex;
 				ru.indexStart = subMesh.indexStart;
@@ -487,6 +495,8 @@ int RayTracedRenderPass::FindObjectsToRender()
 		}
 		else
 		{
+			assert(matID);
+			const auto& materialAsset = am.GetMaterial(matID);
 			RenderUnit ru;
 			ru.worldMatrix = e.GetComponent<TransformComp>()->transform;
 			ru.materialDescriptorIndex = materialAsset.constantBuffer.descIndex;
