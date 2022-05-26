@@ -168,7 +168,7 @@ OldMainRenderPass::OldMainRenderPass(ID3D12Device* device, int framesInFlight, D
 	rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 	//rtx 2070 mobile does only have shader model 6.5
 	//rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-	rootSignDesc.NumParameters = rootParameters.size();
+	rootSignDesc.NumParameters = static_cast<UINT>(rootParameters.size());
 	rootSignDesc.pParameters = rootParameters.data();
 	rootSignDesc.NumStaticSamplers = 1;
 	rootSignDesc.pStaticSamplers = &staticSampler;
@@ -239,7 +239,7 @@ OldMainRenderPass::~OldMainRenderPass()
 RenderPassRequirements OldMainRenderPass::GetRequirements()
 {
 
-	int perThreadSize = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() / m_numThreads;
+	int perThreadSize = static_cast<int>(rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size()) / m_numThreads;
 	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
@@ -314,7 +314,7 @@ void OldMainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cm
 	else
 	{
 		std::vector<std::future<void>> asyncJobs;
-		int segmentSize = entities.size() / m_numThreads;
+		int segmentSize = static_cast<int>(entities.size()) / m_numThreads;
 		for (int i = 0; i < m_numThreads; i++)
 		{
 			int rest = 0;
@@ -408,6 +408,6 @@ void OldMainRenderPass::UpdateDynamicLights(int frameIndex)
 	//this could be done better, we uppdate all lights even if they have not changed
 	if (!lights.empty())
 	{
-		m_dynamicPointLightBuffer[frameIndex]->Update(lights.data(), lights.size());
+		m_dynamicPointLightBuffer[frameIndex]->Update(lights.data(), static_cast<UINT>(lights.size()));
 	}
 }

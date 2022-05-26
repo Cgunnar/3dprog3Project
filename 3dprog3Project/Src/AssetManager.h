@@ -12,7 +12,7 @@ struct GPUAsset
 	UINT elementSize = 0;
 	UINT elementCount = 0;
 	UINT descIndex = -1;
-	enum Flag
+	enum class Flag
 	{
 		NONE = 0,
 		CBV = 1 << 1,
@@ -25,6 +25,15 @@ struct GPUAsset
 	Flag flag = Flag::NONE;
 	bool valid = false;
 };
+
+inline GPUAsset::Flag operator &(GPUAsset::Flag l, GPUAsset::Flag r)
+{
+	return (GPUAsset::Flag)((int)l & (int)r);
+}
+inline GPUAsset::Flag operator |(GPUAsset::Flag l, GPUAsset::Flag r)
+{
+	return (GPUAsset::Flag)((int)l | (int)r);
+}
 
 struct SubMesh
 {
@@ -52,10 +61,10 @@ struct MeshAsset
 		this->mesh = std::make_shared<Mesh>(mesh);
 		vertexBuffer.elementCount = mesh.GetVertexCount();
 		vertexBuffer.elementSize = mesh.GetVertexStride();
-		vertexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::SRV | GPUAsset::BUFFER);
+		vertexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::SRV | GPUAsset::Flag::BUFFER);
 		indexBuffer.elementCount = static_cast<UINT>(mesh.GetIndices().size());
 		indexBuffer.elementSize = sizeof(uint32_t);
-		indexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::SRV | GPUAsset::BUFFER);
+		indexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::SRV | GPUAsset::Flag::BUFFER);
 		if (this->subMeshes)
 		{
 			for (auto& subMesh : this->subMeshes->subMeshes)

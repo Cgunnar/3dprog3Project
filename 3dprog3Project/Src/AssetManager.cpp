@@ -406,10 +406,10 @@ void AssetManager::CreateBuffer(GPUAsset& buffer)
 	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-	if (buffer.flag & GPUAsset::CBV)
+	if ((buffer.flag & GPUAsset::Flag::CBV) == GPUAsset::Flag::CBV)
 		desc.Width = utl::AlignSize(desc.Width, 256);
 
-	if (buffer.flag & GPUAsset::CPU_WRITE)
+	if ((buffer.flag & GPUAsset::Flag::CPU_WRITE) == GPUAsset::Flag::CPU_WRITE)
 	{
 		D3D12_HEAP_PROPERTIES heapProps{};
 		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;

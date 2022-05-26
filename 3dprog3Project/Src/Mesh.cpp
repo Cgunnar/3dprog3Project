@@ -6,7 +6,7 @@ Mesh::Mesh(const float* vertexData, size_t vertexDataBytes, const std::vector<ui
 {
 	m_type = type;
 	m_indices = indices;
-	m_vertexCount = vertexDataBytes / sizeof(float);
+	m_vertexCount = static_cast<uint32_t>(vertexDataBytes / sizeof(float));
 	m_vertexData.resize(m_vertexCount);
 	std::memcpy(m_vertexData.data(), vertexData, vertexDataBytes);
 	switch (type)
@@ -26,7 +26,7 @@ Mesh::Mesh(const float* vertexData, size_t vertexDataBytes, const std::vector<ui
 	}
 }
 
-uint32_t Mesh::GetVertexCount() const { return m_vertexData.size() * sizeof(float) / m_vertexStride; }
+uint32_t Mesh::GetVertexCount() const { return static_cast<uint32_t>(m_vertexData.size() * sizeof(float) / m_vertexStride); }
 uint32_t Mesh::GetVertexStride() const { return m_vertexStride; }
 MeshType Mesh::GetVertexType() const { return m_type; }
 const std::vector<float>& Mesh::GetVertexData() const { return m_vertexData; }
