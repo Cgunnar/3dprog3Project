@@ -94,7 +94,7 @@ PostProcessingPass::PostProcessingPass(ID3D12Device* device, int framesInFlight)
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignDesc;
 	rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-	rootSignDesc.NumParameters = rootParameters.size();
+	rootSignDesc.NumParameters = static_cast<UINT>(rootParameters.size());
 	rootSignDesc.pParameters = rootParameters.data();
 	rootSignDesc.NumStaticSamplers = 1;
 	rootSignDesc.pStaticSamplers = &staticSampler;

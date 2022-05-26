@@ -108,11 +108,13 @@ public:
 	static AssetManager& Get();
 	static bool IsValid();
 
+	uint64_t LoadModel(const std::string& path, bool inludeInAccelerationStructure = true, bool keepInCopyInMainMemory = false);
+
 	uint64_t AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure = true, const std::optional<SubMeshes>& subMeshes = std::nullopt);
 	uint64_t AddMaterial(const Material &material);
 	uint64_t AddTextureFromFile(const std::string& path, bool mipmapping, bool linearColorSpace);
 
-	void MoveMeshToGPU(uint64_t id);
+	void MoveMeshToGPU(uint64_t id, bool keepCopyInMainMemory = false);
 	void MoveMaterialToGPU(uint64_t id);
 
 	const MeshAsset& GetMesh(uint64_t id) const;

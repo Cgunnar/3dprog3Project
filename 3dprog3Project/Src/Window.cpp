@@ -124,7 +124,7 @@ std::pair<uint32_t, uint32_t> Window::GetWidthAndHeight()
 	}
 	else
 	{
-		std::pair<uint32_t, uint32_t>();
+		return std::pair<uint32_t, uint32_t>();
 	}
 }
 
@@ -347,7 +347,7 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				wParam = MapVirtualKey((lParam & 0xff0000) >> 16, MAPVK_VSC_TO_VK_EX);
 			else if (wParam == VK_CONTROL)
 				wParam = lParam & 0x01000000 ? VK_RCONTROL : VK_LCONTROL;
-			kb.m_keyState0[wParam] = KeyState::clicked | KeyState::held;
+			kb.m_keyState0[static_cast<int>(wParam)] = KeyState::clicked | KeyState::held;
 			return 0;
 		}
 		break;
@@ -361,7 +361,7 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				wParam = MapVirtualKey((lParam & 0xff0000) >> 16, MAPVK_VSC_TO_VK_EX);
 			else if (wParam == VK_CONTROL)
 				wParam = lParam & 0x01000000 ? VK_RCONTROL : VK_LCONTROL;
-			kb.m_keyState0[wParam] = KeyState::released;
+			kb.m_keyState0[static_cast<int>(wParam)] = KeyState::released;
 			return 0;
 		}
 		break;

@@ -8,39 +8,9 @@
 
 using namespace rfe;
 
-struct ModelPart
-{
-	uint64_t meshID = 0;
-	SubMesh subMesh;
-};
-
-
-
-void BuildModel(SubMeshTree& node, std::vector<ModelPart>& modelPartsOut)
-{
-	for (auto& p : node.subMeshes)
-	{
-		ModelPart part;
-		part.subMesh.indexStart = p.indexStart;
-		part.subMesh.indexCount = p.indexCount;
-		part.subMesh.vertexStart = p.vertexStart;
-		part.subMesh.vertexCount = p.vertexCount;
-		part.subMesh.materialID = AssetManager::Get().AddMaterial(p.pbrMaterial);
-		AssetManager::Get().MoveMaterialToGPU(part.subMesh.materialID);
-		modelPartsOut.push_back(part);
-	}
-
-	for (auto& n : node.nodes)
-	{
-		BuildModel(n, modelPartsOut);
-	}
-}
-
-void AddModel(const std::vector<ModelPart>& model, rfm::Transform transform, std::vector<rfe::Entity>& out);
-
 Scene::Scene()
 {
-	m_sponzaMesh = LoadModels("Assets/Sponza_gltf/glTF/Sponza.gltf");
+	m_sponzaMesh = AssetManager::Get().LoadModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
 
 	Entity modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.2f);
@@ -217,43 +187,4 @@ void Scene::Update(float dt)
 			plComp.pointLight.position = tr.getTranslation();
 		}
 	}
-}
-
-uint64_t Scene::LoadModels(const std::string& path)
-{
-	AssimpLoader loader;
-	//auto sponza = loader.loadStaticModel("Assets/Arrows/DXRefSys.obj");
-	//auto sponza = loader.loadStaticModel("Assets/nanosuit/nanosuit.obj");
-	//EngineMeshData* sponza = new EngineMeshData();
-	//EngineMeshData sponza = loader.loadStaticModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
-	EngineMeshData sponza = loader.loadStaticModel(path);
-	std::vector<uint32_t> sponzaIndexBuffer;
-	sponzaIndexBuffer.resize(sponza.getIndicesCount());
-	memcpy(sponzaIndexBuffer.data(), sponza.getIndicesData(), sizeof(uint32_t) * sponzaIndexBuffer.size());
-	Mesh newSponzaMesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV),
-		sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
-		sponzaIndexBuffer, MeshType::POS_NOR_UV);
-
-
-	std::vector<ModelPart> model;
-	BuildModel(sponza.subsetsInfo, model);
-
-	std::vector<SubMesh> subMeshes;
-	for (auto& p : model)
-	{
-		subMeshes.push_back(p.subMesh);
-	}
-
-	uint64_t meshID = AssetManager::Get().AddMesh(newSponzaMesh, true, subMeshes);
-	AssetManager::Get().MoveMeshToGPU(meshID);
-	return meshID;
-}
-
-void AddModel(const std::vector<ModelPart>& model, rfm::Transform transform, std::vector<rfe::Entity>& out)
-{
-	Entity newEntity = out.emplace_back(EntityReg::CreateEntity());
-	newEntity.AddComponent<TransformComp>()->transform = transform;
-	newEntity.AddComponent<MaterialComp>()->materialID = model.front().subMesh.materialID;
-	MeshComp* mesh = newEntity.AddComponent<MeshComp>();
-	mesh->meshID = model.front().meshID;
 }

@@ -5,8 +5,8 @@ struct DescriptorHandle
 	DescriptorHandle operator[](int index) const
 	{
 		DescriptorHandle handle = *this;
-		handle.cpuHandle.ptr += index * incrementSize;
-		handle.gpuHandle.ptr += index * incrementSize;
+		handle.cpuHandle.ptr += static_cast<SIZE_T>(index) * incrementSize;
+		handle.gpuHandle.ptr += static_cast<SIZE_T>(index) * incrementSize;
 		handle.index += index;
 		return handle;
 	}

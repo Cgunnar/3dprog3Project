@@ -26,5 +26,5 @@ private:
 	uint64_t m_rustedIronMaterial;
 
 
-	uint64_t LoadModels(const std::string& path);
+	
 };

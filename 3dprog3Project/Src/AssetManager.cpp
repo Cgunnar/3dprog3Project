@@ -7,6 +7,7 @@
 
 #include "AssetManager.h"
 #include "FrameTimer.h"
+#include "AssimpLoader.h"
 
 
 
@@ -34,6 +35,51 @@ AssetManager& AssetManager::Get()
 bool AssetManager::IsValid()
 {
 	return s_instance;
+}
+
+struct ModelPart
+{
+	uint64_t meshID = 0;
+	SubMesh subMesh;
+};
+
+void BuildModel(SubMeshTree& node, std::vector<SubMesh>& modelPartsOut)
+{
+	for (auto& p : node.subMeshes)
+	{
+		SubMesh part;
+		part.indexStart = p.indexStart;
+		part.indexCount = p.indexCount;
+		part.vertexStart = p.vertexStart;
+		part.vertexCount = p.vertexCount;
+		part.materialID = AssetManager::Get().AddMaterial(p.pbrMaterial);
+		AssetManager::Get().MoveMaterialToGPU(part.materialID);
+		modelPartsOut.push_back(part);
+	}
+
+	for (auto& n : node.nodes)
+	{
+		BuildModel(n, modelPartsOut);
+	}
+}
+
+uint64_t AssetManager::LoadModel(const std::string& path, bool inludeInAccelerationStructure, bool keepInCopyInMainMemory)
+{
+	AssimpLoader loader;
+	EngineMeshData sponza = loader.loadStaticModel(path);
+	std::vector<uint32_t> sponzaIndexBuffer;
+	sponzaIndexBuffer.resize(sponza.getIndicesCount());
+	memcpy(sponzaIndexBuffer.data(), sponza.getIndicesData(), sizeof(uint32_t) * sponzaIndexBuffer.size());
+	Mesh newSponzaMesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV),
+		sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
+		sponzaIndexBuffer, MeshType::POS_NOR_UV);
+
+	std::vector<SubMesh> subMeshes;
+	BuildModel(sponza.subsetsInfo, subMeshes);
+
+	uint64_t meshID = AssetManager::Get().AddMesh(newSponzaMesh, inludeInAccelerationStructure, subMeshes);
+	AssetManager::Get().MoveMeshToGPU(meshID, keepInCopyInMainMemory);
+	return meshID;
 }
 
 uint64_t AssetManager::AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure, const std::optional<SubMeshes>& subMeshes)
@@ -79,7 +125,7 @@ uint64_t AssetManager::AddTextureFromFile(const std::string& path, bool mipmappi
 	return id;
 }
 
-void AssetManager::MoveMeshToGPU(uint64_t id)
+void AssetManager::MoveMeshToGPU(uint64_t id, bool keepCopyInMainMemory)
 {
 	assert(m_meshes.contains(id));
 
@@ -115,7 +161,7 @@ void AssetManager::MoveMeshToGPU(uint64_t id)
 	meshAsset.indexBuffer.descIndex = m_ibViewCount++;
 	meshAsset.indexBuffer.valid = true;
 
-	meshAsset.mesh.reset();
+	if(!keepCopyInMainMemory) meshAsset.mesh.reset();
 }
 
 void AssetManager::MoveMaterialToGPU(uint64_t id)
