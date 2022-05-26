@@ -17,18 +17,20 @@ Scene::Scene()
 	modelEntity.AddComponent<MaterialComp>();
 	modelEntity.AddComponent<MeshComp>()->meshID = m_sponzaMesh;
 
-
 	Geometry::Sphere_POS_NOR_UV* sphere = new Geometry::Sphere_POS_NOR_UV(32, 0.5f);
-	Geometry::AABB_POS_NOR_UV* box = new Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
-	Mesh newSphereMesh = Mesh(reinterpret_cast<const float*>(sphere->VertexData().data()), sphere->ArraySize(), sphere->IndexData(), MeshType::POS_NOR_UV);
-	Mesh newBoxMesh = Mesh(reinterpret_cast<const float*>(box->VertexData().data()), box->ArraySize(), box->IndexData(), MeshType::POS_NOR_UV);
+	Mesh* newSphereMesh = new Mesh(reinterpret_cast<const float*>(sphere->VertexData().data()), sphere->ArraySize(), sphere->IndexData(), MeshType::POS_NOR_UV);
 	delete sphere;
-	delete box;
-	m_sphereMesh = AssetManager::Get().AddMesh(newSphereMesh);
+	m_sphereMesh = AssetManager::Get().AddMesh(*newSphereMesh);
+	delete newSphereMesh;
 	AssetManager::Get().MoveMeshToGPU(m_sphereMesh);
 
-	m_boxMesh = AssetManager::Get().AddMesh(newBoxMesh);
+	Geometry::AABB_POS_NOR_UV* box = new Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
+	Mesh* newBoxMesh = new Mesh(reinterpret_cast<const float*>(box->VertexData().data()), box->ArraySize(), box->IndexData(), MeshType::POS_NOR_UV);
+	delete box;
+	m_boxMesh = AssetManager::Get().AddMesh(*newBoxMesh);
+	delete newBoxMesh;
 	AssetManager::Get().MoveMeshToGPU(m_boxMesh);
+
 
 	Material whiteEmissiveMat;
 	whiteEmissiveMat.albedoFactor = { 0, 0, 0, 1 };
@@ -58,8 +60,14 @@ Scene::Scene()
 	AssetManager::Get().MoveMaterialToGPU(m_rustedIronMaterial);
 
 
-	/*Geometry::AABB_POS_NOR_UV box2 = Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
-	Mesh newBoxMesh2 = Mesh(reinterpret_cast<const float*>(box.VertexData().data()), box.ArraySize(), box.IndexData(), MeshType::POS_NOR_UV);*/
+	Geometry::Sphere_POS_NOR_UV* smallSphere = new Geometry::Sphere_POS_NOR_UV(16, 0.2f);
+	Mesh* smallSphereMesh = new Mesh(reinterpret_cast<const float*>(smallSphere->VertexData().data()), smallSphere->ArraySize(), smallSphere->IndexData(), MeshType::POS_NOR_UV);
+	uint64_t smallSphereMeshID = AssetManager::Get().AddMesh(*smallSphereMesh, false);
+	AssetManager::Get().MoveMeshToGPU(smallSphereMeshID);
+	delete smallSphere;
+	delete smallSphereMesh;
+	
+
 
 	std::default_random_engine eng(4);
 	std::uniform_int_distribution<> distMat(0, 4);
@@ -126,7 +134,6 @@ Scene::Scene()
 
 		Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 		auto& tr0 = newEntity.AddComponent<TransformComp>()->transform;
-		tr0.setScale(0.2f);
 		tr0.setTranslation(pos);
 		auto& pl0 = newEntity.AddComponent<PointLightComp>()->pointLight;
 		pl0.color = light;
@@ -135,13 +142,13 @@ Scene::Scene()
 
 		Material lightMat;
 		lightMat.albedoFactor = { 0, 0, 0, 1 };
-		lightMat.emissiveFactor = rfm::Vector4(light, 1);
+		lightMat.emissiveFactor = pl0.strength * rfm::Vector4(light, 1);
 
 		uint64_t matId = AssetManager::Get().AddMaterial(lightMat);
 		AssetManager::Get().MoveMaterialToGPU(matId);
 
-		//newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
-		//newEntity.AddComponent<MaterialComp>()->materialID = matId;
+		newEntity.AddComponent<MeshComp>()->meshID = smallSphereMeshID;
+		newEntity.AddComponent<MaterialComp>()->materialID = matId;
 	}
 
 

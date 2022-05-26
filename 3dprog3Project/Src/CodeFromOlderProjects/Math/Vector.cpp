@@ -391,6 +391,6 @@ namespace rfm
 	}
 	float Vector2I::length() const
 	{
-		return sqrt(x * x + y * y);
+		return static_cast<float>(sqrt(x * x + y * y));
 	}
 }

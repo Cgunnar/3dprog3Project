@@ -21,7 +21,7 @@ private:
 	std::byte* m_beginPtr = nullptr;
 	UINT m_maxNumConstantBuffers = 0;
 	UINT m_numUsedConstantBuffers = 0;
-	UINT m_bufferSize = 256;
+	UINT64 m_bufferSize = 256;
 	DescriptorVector* m_heapDescriptors = nullptr;
 };
 

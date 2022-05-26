@@ -36,7 +36,7 @@ ConstantBufferManager::ConstantBufferManager(ID3D12Device* device, UINT numConst
 	{
 		D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc;
 		viewDesc.BufferLocation = m_constantBufferPool->GetGPUVirtualAddress() + i * m_bufferSize;
-		viewDesc.SizeInBytes = m_bufferSize;
+		viewDesc.SizeInBytes = static_cast<UINT>(m_bufferSize);
 		m_heapDescriptors->CreateConstantBuffer(device, &viewDesc);
 	}
 }
