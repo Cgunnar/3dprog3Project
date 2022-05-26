@@ -145,7 +145,7 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	ExecuteUpload();
 	D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc;
 	viewDesc.BufferLocation = materialAsset.constantBuffer.resource->GetGPUVirtualAddress();
-	viewDesc.SizeInBytes = materialAsset.constantBuffer.resource->GetDesc().Width;
+	viewDesc.SizeInBytes = static_cast<UINT>(materialAsset.constantBuffer.resource->GetDesc().Width);
 	DescriptorHandle handle = m_materialViewsHandle[m_materialViewCount];
 	m_renderer->GetDevice()->CreateConstantBufferView(&viewDesc, handle.cpuHandle);
 	materialAsset.constantBuffer.descIndex = m_materialViewCount++;
@@ -377,8 +377,15 @@ void AssetManager::ExecuteUpload()
 		HANDLE eventHandle = CreateEventEx(nullptr, 0, 0, EVENT_ALL_ACCESS);
 		hr = m_fence->SetEventOnCompletion(m_fenceValue, eventHandle);
 		assert(SUCCEEDED(hr));
-		WaitForSingleObject(eventHandle, INFINITE);
-		CloseHandle(eventHandle);
+		if (eventHandle != NULL)
+		{
+			WaitForSingleObject(eventHandle, INFINITE);
+			CloseHandle(eventHandle);
+		}
+		else
+		{
+			assert(false);
+		}
 	}
 	m_uploadBufferOffset = 0;
 }
@@ -440,7 +447,7 @@ void AssetManager::CreateTexture2D(GPUAsset& texture, uint32_t width, uint32_t h
 	desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 	desc.Height = width;
 	desc.Width = height;
-	desc.MipLevels = mipmapping ? CalcMipNumber(desc.Width, desc.Height) : 1;
+	desc.MipLevels = mipmapping ? CalcMipNumber(static_cast<UINT>(desc.Width), static_cast<UINT>(desc.Height)) : 1;
 	desc.DepthOrArraySize = 1;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;

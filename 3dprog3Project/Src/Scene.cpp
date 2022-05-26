@@ -10,7 +10,7 @@ using namespace rfe;
 
 struct ModelPart
 {
-	uint64_t meshID;
+	uint64_t meshID = 0;
 	SubMesh subMesh;
 };
 
@@ -141,7 +141,7 @@ Scene::Scene()
 			{
 				int randMat = distMat(eng);
 				int randMesh = distMesh(eng);
-				rfm::Vector3 pos = rfm::Vector3( 2*i, 2*j, 2*k ) - rfm::Vector3(l);
+				rfm::Vector3 pos = rfm::Vector3( 2.0f*i, 2.0f*j, 2.0f*k ) - rfm::Vector3(static_cast<float>(l));
 
 				if (false && randMesh == 4 && i < l/2 && j < l/2)
 				{
@@ -193,13 +193,13 @@ Scene::Scene()
 		std::mt19937 eng2(52121 + i);
 		std::uniform_real_distribution<> posDist(-15, 15);
 		std::uniform_real_distribution<> lightDist(0, 1);
-		rfm::Vector3 pos(posDist(eng0), posDist(eng1), posDist(eng2));
-		rfm::Vector3 light(lightDist(eng0), lightDist(eng1), lightDist(eng2));
+		rfm::Vector3 pos(static_cast<float>(posDist(eng0)), static_cast<float>(posDist(eng1)), static_cast<float>(posDist(eng2)));
+		rfm::Vector3 light(static_cast<float>(lightDist(eng0)), static_cast<float>(lightDist(eng1)), static_cast<float>(lightDist(eng2)));
 
 
 		Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 		auto& tr0 = newEntity.AddComponent<TransformComp>()->transform;
-		tr0.setScale(0.2);
+		tr0.setScale(0.2f);
 		tr0.setTranslation(pos);
 		auto& pl0 = newEntity.AddComponent<PointLightComp>()->pointLight;
 		pl0.color = light;
@@ -251,7 +251,7 @@ void Scene::Update(float dt)
 		if (transformComp)
 		{
 			rfm::Transform& tr = transformComp->transform;
-			if ((orbitPoint - tr.getTranslation()).length() == 0) orbitPoint += {0.1, 0, 0};
+			if ((orbitPoint - tr.getTranslation()).length() == 0) orbitPoint += {0.1f, 0, 0};
 			rfm::Vector3 rotNormal = rfm::cross(tr.right(), tr.getTranslation() - orbitPoint);
 			if (rotNormal.length() == 0) rotNormal = rfm::cross(tr.up(), tr.getTranslation() - orbitPoint);
 			tr.translateW(-orbitPoint);

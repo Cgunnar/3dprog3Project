@@ -30,7 +30,7 @@ AccelerationStructure::AccelerationStructure(ID3D12Device5* device, ID3D12Graphi
 				barriers.push_back(barrier);
 			}
 		}
-		cmdList->ResourceBarrier(barriers.size(), barriers.data());
+		cmdList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
 
 		BuildTopLevel(device, cmdList);
 
@@ -108,15 +108,15 @@ bool AccelerationStructure::UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsC
 		//instMetaData.materialDescriptorIndex = AssetManager::Get().GetMaterial(matID).constantBuffer.descIndex;
 	}
 
-	m_instanceBuffer->Update(m_instances.data(), m_instances.size());
-	m_instanceMetaDataBuffer->Update(m_instanceMetaData.data(), m_instanceMetaData.size());
+	m_instanceBuffer->Update(m_instances.data(), static_cast<UINT>(m_instances.size()));
+	m_instanceMetaDataBuffer->Update(m_instanceMetaData.data(), static_cast<UINT>(m_instanceMetaData.size()));
 
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC accStructureDesc{};
 	accStructureDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 	accStructureDesc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 	accStructureDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	accStructureDesc.Inputs.NumDescs = m_instances.size();
+	accStructureDesc.Inputs.NumDescs = static_cast<UINT>(m_instances.size());
 	accStructureDesc.Inputs.InstanceDescs = m_instanceBuffer->GpuAddress();
 
 	accStructureDesc.DestAccelerationStructureData = m_topLevel.resultBuffer->GetGPUVirtualAddress();
@@ -359,16 +359,16 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 	}
 
 	m_instanceBuffer = std::make_unique<StructuredBuffer<D3D12_RAYTRACING_INSTANCE_DESC>>(device, numInstances, false, true);
-	m_instanceBuffer->Update(m_instances.data(), m_instances.size());
+	m_instanceBuffer->Update(m_instances.data(), static_cast<UINT>(m_instances.size()));
 
 	m_instanceMetaDataBuffer = std::make_unique<StructuredBuffer<TopLevelInstanceMetaData>>(device, numInstances, true, true);
-	m_instanceMetaDataBuffer->Update(m_instanceMetaData.data(), m_instanceMetaData.size());
+	m_instanceMetaDataBuffer->Update(m_instanceMetaData.data(), static_cast<UINT>(m_instanceMetaData.size()));
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC accStructureDesc{};
 	accStructureDesc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 	accStructureDesc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 	accStructureDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	accStructureDesc.Inputs.NumDescs = m_instances.size();
+	accStructureDesc.Inputs.NumDescs = static_cast<UINT>(m_instances.size());
 	accStructureDesc.Inputs.InstanceDescs = m_instanceBuffer->GpuAddress();
 
 

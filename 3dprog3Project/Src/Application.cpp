@@ -66,7 +66,7 @@ void Application::Run()
 		bool runApplicationLoop = true;
 		while (runApplicationLoop)
 		{
-			float dt = FrameTimer::NewFrame();
+			float dt = static_cast<float>(FrameTimer::NewFrame());
 			Mouse::Get().Update();
 			KeyBoard::Get().Update();
 			static uint64_t frameCounter = 0;
@@ -163,12 +163,12 @@ void Application::Run()
 			static int resIndex = 3;
 			ImGui::Text("resolution");
 			ImGui::SameLine();
-			if(ImGui::Combo("##2", &resIndex, res.data(), res.size()))
+			if(ImGui::Combo("##2", &resIndex, res.data(), static_cast<int>(res.size())))
 			{
 				if (resIndex == 0)
 					newSettings.renderHeight = 4;
 				else if (resIndex == res.size() - 1)
-					newSettings.renderHeight = 10000000000;
+					newSettings.renderHeight = 1000000000u;
 				else
 					newSettings.renderHeight = std::stoi(res[resIndex]);
 				newSettings.renderWidth = newSettings.renderHeight * width / height;
@@ -181,7 +181,7 @@ void Application::Run()
 			ImGui::Checkbox("profiling", &profiling);
 			ImGui::Text("frames in flight");
 			ImGui::SameLine();
-			if (ImGui::Combo("##3", &numFramesIndex, numframes.data(), numframes.size()))
+			if (ImGui::Combo("##3", &numFramesIndex, numframes.data(), static_cast<int>(numframes.size())))
 			{
 				newSettings.numberOfFramesInFlight = numFramesIndex + 1;
 			}
@@ -189,7 +189,7 @@ void Application::Run()
 			static int numBackbuffersIndex = 0;
 			ImGui::Text("backbuffers");
 			ImGui::SameLine();
-			if (ImGui::Combo("##4", &numBackbuffersIndex, numBackbuffers.data(), numBackbuffers.size()))
+			if (ImGui::Combo("##4", &numBackbuffersIndex, numBackbuffers.data(), static_cast<int>(numBackbuffers.size())))
 			{
 				newSettings.numberOfBackbuffers = numBackbuffersIndex + 2;
 			}

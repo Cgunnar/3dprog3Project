@@ -206,9 +206,7 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignDesc;
 	rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-	//rtx 2070 mobile does only have shader model 6.5
-	//rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-	rootSignDesc.NumParameters = rootParameters.size();
+	rootSignDesc.NumParameters = static_cast<UINT>(rootParameters.size());
 	rootSignDesc.pParameters = rootParameters.data();
 	rootSignDesc.NumStaticSamplers = 1;
 	rootSignDesc.pStaticSamplers = &staticSampler;
@@ -415,7 +413,7 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 	int numInstances = 1;
 	uint64_t nextMeshID = 0;
 	uint64_t nextSubMeshID = 0;
-	int numEntitiesToDraw = renderUnits.size();
+	int numEntitiesToDraw = static_cast<int>(renderUnits.size());
 
 	for (int i = 0; i < numEntitiesToDraw; i++)
 	{
@@ -502,7 +500,7 @@ int RayTracedRenderPass::FindObjectsToRender()
 			m_renderUnits.push_back(std::move(ru));
 		}
 	}
-	return m_renderUnits.size();
+	return static_cast<int>(m_renderUnits.size());
 }
 
 int RayTracedRenderPass::UpdateDynamicLights(int frameIndex)
@@ -517,7 +515,7 @@ int RayTracedRenderPass::UpdateDynamicLights(int frameIndex)
 	//this could be done better, we uppdate all lights even if they have not changed
 	if (!lights.empty())
 	{
-		m_dynamicPointLightBuffer[frameIndex]->Update(lights.data(), lights.size());
+		m_dynamicPointLightBuffer[frameIndex]->Update(lights.data(), static_cast<UINT>(lights.size()));
 	}
-	return lights.size();
+	return static_cast<int>(lights.size());
 }

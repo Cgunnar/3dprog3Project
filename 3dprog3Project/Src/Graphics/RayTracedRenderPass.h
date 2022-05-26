@@ -8,14 +8,14 @@
 struct RenderUnit
 {
 	rfm::Matrix worldMatrix;
-	uint64_t subMeshID;
-	uint64_t meshID;
-	uint32_t indexBufferDescriptorIndex;
-	uint32_t vertexBufferDescriptorIndex;
-	uint32_t indexStart;
-	uint32_t indexCount;
-	uint32_t vertexStart;
-	int32_t materialDescriptorIndex;
+	uint64_t subMeshID = 0;
+	uint64_t meshID = 0;
+	uint32_t indexBufferDescriptorIndex = 0;
+	uint32_t vertexBufferDescriptorIndex = 0;
+	uint32_t indexStart = 0;
+	uint32_t indexCount = 0;
+	uint32_t vertexStart = 0;
+	int32_t materialDescriptorIndex = -1;
 };
 
 class RayTracedRenderPass : public RenderPass

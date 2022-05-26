@@ -53,7 +53,7 @@ struct MeshAsset
 		vertexBuffer.elementCount = mesh.GetVertexCount();
 		vertexBuffer.elementSize = mesh.GetVertexStride();
 		vertexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::SRV | GPUAsset::BUFFER);
-		indexBuffer.elementCount = mesh.GetIndices().size();
+		indexBuffer.elementCount = static_cast<UINT>(mesh.GetIndices().size());
 		indexBuffer.elementSize = sizeof(uint32_t);
 		indexBuffer.flag = static_cast<GPUAsset::Flag>(GPUAsset::SRV | GPUAsset::BUFFER);
 		if (this->subMeshes)
@@ -163,8 +163,8 @@ private:
 	struct Image
 	{
 		std::byte* dataPtr = nullptr;
-		int width;
-		int height;
+		int width = 0;
+		int height = 0;
 		std::string filePath;
 	};
 
