@@ -42,8 +42,8 @@ Scene::Scene()
 {
 	AssimpLoader loader;
 	//auto sponza = loader.loadStaticModel("Assets/Arrows/DXRefSys.obj");
-	auto sponza = loader.loadStaticModel("Assets/nanosuit/nanosuit.obj");
-	//auto sponza = loader.loadStaticModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
+	//auto sponza = loader.loadStaticModel("Assets/nanosuit/nanosuit.obj");
+	auto sponza = loader.loadStaticModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
 	std::vector<uint32_t> sponzaIndexBuffer;
 	sponzaIndexBuffer.resize(sponza.getIndicesCount());
 	memcpy(sponzaIndexBuffer.data(), sponza.getIndicesData(), sizeof(uint32_t) * sponzaIndexBuffer.size());
@@ -120,30 +120,19 @@ Scene::Scene()
 	m_rustedIronMaterial = AssetManager::Get().AddMaterial(rustedIron);
 	AssetManager::Get().MoveMaterialToGPU(m_rustedIronMaterial);
 
-	Entity newEntity = m_entities.emplace_back(EntityReg::CreateEntity());
-	auto& transform = newEntity.AddComponent<TransformComp>()->transform;
-	transform.setTranslation(0,0,-11);
-	transform.setScale(10);
-	newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
-	newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
 
-
-	Geometry::AABB_POS_NOR_UV box2 = Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
-	Mesh newBoxMesh2 = Mesh(reinterpret_cast<const float*>(box.VertexData().data()), box.ArraySize(), box.IndexData(), MeshType::POS_NOR_UV);
-
-
-
-
+	/*Geometry::AABB_POS_NOR_UV box2 = Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
+	Mesh newBoxMesh2 = Mesh(reinterpret_cast<const float*>(box.VertexData().data()), box.ArraySize(), box.IndexData(), MeshType::POS_NOR_UV);*/
 
 	std::default_random_engine eng(4);
 	std::uniform_int_distribution<> distMat(0, 4);
 	std::uniform_int_distribution<> distMesh(0, 5);
-	
-	int l = 5;
-#ifdef _DEBUG
-	l = 2;
-#endif // _DEBUG
 
+	int l = 8;
+#ifdef _DEBUG
+	l = 4;
+#endif // _DEBUG
+	l = std::min(l, 100000);
 	for (int i = 0; i < l; i++)
 	{
 		for (int j = 0; j < l; j++)
@@ -196,6 +185,7 @@ Scene::Scene()
 #ifdef _DEBUG
 	numLight = 1;
 #endif // _DEBUG
+	numLight = std::min(numLight, 10);
 	for (int i = 0; i < numLight; i++)
 	{
 		std::mt19937 eng0(12 + i);

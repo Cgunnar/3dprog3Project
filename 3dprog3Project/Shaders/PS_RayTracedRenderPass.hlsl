@@ -18,6 +18,8 @@ cbuffer CameraCB : register(b0)
 cbuffer RootConstants : register(b3)
 {
     int numberOfBounces;
+    int numberOfPointLights;
+    int shadows;
 }
 
 struct Material
@@ -80,28 +82,28 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 		albedo = mat.albedoFactor * albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
 	else
 		albedo = mat.albedoFactor;
-	unsigned int lightSize = 0;
-	unsigned int numLights = 0;
-	dynamicPointLights.GetDimensions(numLights, lightSize);
-	for (int i = 0; i < numLights; i++)
+    
+	for (int i = 0; i < numberOfPointLights; i++)
 	{
 		PointLight pl = dynamicPointLights[i];
         float3 vecToLight = pl.position - pos;
         float3 dirToLight = normalize(vecToLight);
-		
-        //shadows does not look good in the current scene
-        //RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
-        //     RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
-        //     RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
-        //RayDesc ray;
-        //ray.Origin = pos;
-        //ray.Direction = dirToLight;
-        //ray.TMin = 1.0f;
-        //ray.TMax = length(vecToLight) - 0.21; //pointlights has a sphere mesh with radius 0.2, and i have no mask for the mesh to filter
-        //q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
-        //q.Proceed();
-        //if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-        //    continue;
+        
+        if (shadows == 1)
+        {
+            RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+            RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+            RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+            RayDesc ray;
+            ray.Origin = pos;
+            ray.Direction = dirToLight;
+            ray.TMin = 1.0f;
+            ray.TMax = length(vecToLight) - 0.21; //pointlights has a sphere mesh with radius 0.2, and i have no mask for the mesh to filter
+            q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
+            q.Proceed();
+            if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+                continue;
+        }
 
 		float diffFactor = saturate(dot(normal, dirToLight));
 		float3 r = normalize(reflect(-dirToLight, normal));
@@ -136,7 +138,7 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
     RayDesc ray;
     ray.Origin = origin;
     ray.Direction = dir;
-    ray.TMin = 0.5f;
+    ray.TMin = 0.001f;
     ray.TMax = 100.0f;
     q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
     q.Proceed();

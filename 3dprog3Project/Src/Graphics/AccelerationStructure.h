@@ -10,7 +10,7 @@ public:
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetAccelerationStructureCpuHandle() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE GetInstanceMetaDataCpuHandle() const;
-	bool UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
+	[[nodiscard]] bool UpdateTopLevel(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
 
 private:
 	bool m_valid = false;

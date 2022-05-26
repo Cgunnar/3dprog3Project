@@ -91,7 +91,7 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[0].Constants.ShaderRegister = 3;
 	rootParameters[0].Constants.RegisterSpace = 0;
-	rootParameters[0].Constants.Num32BitValues = 1;
+	rootParameters[0].Constants.Num32BitValues = 3;
 	//ib
 	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
@@ -300,13 +300,13 @@ void RayTracedRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList*
 }
 
 
-static void Draw2(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
+static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<RenderUnit>& renderUnits, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex);
 
 void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
-	UpdateDynamicLights(frameIndex);
+	int numPointLights = UpdateDynamicLights(frameIndex);
 	bool hasAccelerationStructure = m_accelerationStructures[frameIndex]->UpdateTopLevel(m_device, cmdLists.front());
 	m_constantBuffers[frameIndex]->Clear();
 
@@ -345,23 +345,23 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 	if (!hasAccelerationStructure)
 	{
 		cmdList->SetGraphicsRoot32BitConstant(0, 0, 0);
+		cmdList->SetGraphicsRoot32BitConstant(0, 0, 2);
 	}
 	else
 	{
 		cmdList->SetGraphicsRoot32BitConstant(0, m_rayBounceCount, 0);
+		cmdList->SetGraphicsRoot32BitConstant(0, m_useShadows, 2);
 	}
-
-	//fix a better way of allocating memory
+	cmdList->SetGraphicsRoot32BitConstant(0, numPointLights, 1);
 	
 
-	Draw2(m_device, cmdList, descriptorHandle, m_renderUnits, frameResource,
-		m_constantBuffers[frameIndex], frameIndex);
-}
+	const AssetManager& am = AssetManager::Get();
+	cmdList->SetGraphicsRootDescriptorTable(1, am.GetBindlessMaterialStart().gpuHandle);
+	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
+	cmdList->SetGraphicsRootDescriptorTable(6, am.GetBindlessIndexBufferStart().gpuHandle);
+	cmdList->SetGraphicsRootDescriptorTable(7, am.GetBindlessVertexBufferStart().gpuHandle);
 
-static void Draw2(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
-	std::vector<RenderUnit>& renderUnits, FrameResource& frameResource,
-	ConstantBufferManager* cbManager, int frameIndex)
-{
+
 	auto [width, height] = frameResource.GetResolution();
 	D3D12_VIEWPORT viewport = { 0, 0, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 	cmdList->RSSetViewports(1, &viewport);
@@ -374,13 +374,16 @@ static void Draw2(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Desc
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
 	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
 
-	const AssetManager& am = AssetManager::Get();
-	cmdList->SetGraphicsRootDescriptorTable(1, am.GetBindlessMaterialStart().gpuHandle);
-	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
-	cmdList->SetGraphicsRootDescriptorTable(6, am.GetBindlessIndexBufferStart().gpuHandle);
-	cmdList->SetGraphicsRootDescriptorTable(7, am.GetBindlessVertexBufferStart().gpuHandle);
+	
 
+	Draw(m_device, cmdList, descriptorHandle, m_renderUnits, frameResource,
+		m_constantBuffers[frameIndex], frameIndex);
+}
 
+static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
+	std::vector<RenderUnit>& renderUnits, FrameResource& frameResource,
+	ConstantBufferManager* cbManager, int frameIndex)
+{
 	std::sort(renderUnits.begin(), renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
 		if (a.meshID == b.meshID)
 		{
@@ -404,8 +407,6 @@ static void Draw2(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Desc
 		device->CopyDescriptorsSimple(1, descHandle[counter].cpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		counter++;
 	}
-
-
 
 	cmdList->SetGraphicsRootDescriptorTable(5, descHandle.gpuHandle);
 	DescriptorHandle visBaseDescHandle = descHandle[counter];
@@ -504,7 +505,7 @@ int RayTracedRenderPass::FindObjectsToRender()
 	return m_renderUnits.size();
 }
 
-void RayTracedRenderPass::UpdateDynamicLights(int frameIndex)
+int RayTracedRenderPass::UpdateDynamicLights(int frameIndex)
 {
 	const auto& lightComps = rfe::EntityReg::GetComponentArray<PointLightComp>();
 
@@ -518,4 +519,5 @@ void RayTracedRenderPass::UpdateDynamicLights(int frameIndex)
 	{
 		m_dynamicPointLightBuffer[frameIndex]->Update(lights.data(), lights.size());
 	}
+	return lights.size();
 }

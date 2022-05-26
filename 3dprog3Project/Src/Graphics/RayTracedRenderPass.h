@@ -49,7 +49,8 @@ private:
 	std::vector<std::unique_ptr<AccelerationStructure>> m_accelerationStructures;
 	int m_numberOfFramesInFlight;
 	int m_rayBounceCount = 2;
+	int m_useShadows = 1;
 	int FindObjectsToRender();
-	void UpdateDynamicLights(int frameIndex);
+	[[nodiscard]] int UpdateDynamicLights(int frameIndex);
 };
 
