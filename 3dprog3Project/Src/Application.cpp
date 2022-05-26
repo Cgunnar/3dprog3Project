@@ -15,8 +15,18 @@
 
 Application::Application()
 {
-	FrameTimer::Init();
 	m_window = new Window();
+
+	m_renderSettings.vsync = false;
+	m_renderSettings.numberOfFramesInFlight = 3;
+	m_renderSettings.numberOfBackbuffers = 3;
+	m_renderSettings.renderHeight = 1080;
+
+	auto [w, h] = m_window->GetWidthAndHeight();
+	m_renderSettings.renderWidth = m_renderSettings.renderHeight * w / h;
+
+
+	FrameTimer::Init();
 	m_renderer = new Renderer(m_window->GetHWND(), m_renderSettings);
 	m_window->SetRenderer(m_renderer);
 	AssetManager::Init(m_renderer);
@@ -114,6 +124,7 @@ void Application::Run()
 			//ImGui::ShowDemoWindow();
 
 			static RenderingSettings newSettings;
+			if (frameNumber == 0) newSettings = m_renderSettings;
 			newSettings.fullscreemState = m_window->GetFullscreenState();
 			ImGui::Begin("Settings");
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -161,6 +172,17 @@ void Application::Run()
 			};
 
 			static int resIndex = 3;
+			if (frameNumber == 0)
+			{
+				resIndex = [&]()->int {
+					for (int i = 1; i < res.size() - 1; i++)
+					{
+						if (newSettings.renderHeight == std::stoi(res[i])) return i;
+					}
+					return 3;
+				}();
+			}
+
 			ImGui::Text("resolution");
 			ImGui::SameLine();
 			if(ImGui::Combo("##2", &resIndex, res.data(), static_cast<int>(res.size())))
@@ -172,10 +194,13 @@ void Application::Run()
 				else
 					newSettings.renderHeight = std::stoi(res[resIndex]);
 				newSettings.renderWidth = newSettings.renderHeight * width / height;
-				m_renderer->SetRenderResolution(newSettings.renderWidth, newSettings.renderWidth);
+				m_renderSettings.renderWidth = newSettings.renderWidth;
+				m_renderSettings.renderHeight = newSettings.renderHeight;
+				m_renderer->SetRenderResolution(m_renderSettings.renderWidth, m_renderSettings.renderHeight);
 			}
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
 			static int numFramesIndex = 1;
+			if (frameNumber == 0) numFramesIndex = newSettings.numberOfFramesInFlight - 1;
 			ImGui::Separator();
 			ImGui::Text("Restart renderer to apply");
 			ImGui::Checkbox("profiling", &profiling);
@@ -187,16 +212,16 @@ void Application::Run()
 			}
 			std::vector<const char*> numBackbuffers = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"};
 			static int numBackbuffersIndex = 0;
+			if (frameNumber == 0) numBackbuffersIndex = newSettings.numberOfBackbuffers - 2;
 			ImGui::Text("backbuffers");
 			ImGui::SameLine();
 			if (ImGui::Combo("##4", &numBackbuffersIndex, numBackbuffers.data(), static_cast<int>(numBackbuffers.size())))
 			{
 				newSettings.numberOfBackbuffers = numBackbuffersIndex + 2;
 			}
-			static bool applySettingsOnce = true; //should realy not do this, but this will give me the imgui settings as default init
-			if (ImGui::Button("Restart renderer") || applySettingsOnce)
+
+			if (ImGui::Button("Restart renderer"))
 			{
-				applySettingsOnce = false;
 				restartRenderer = true;
 				runApplicationLoop = false;
 				m_renderSettings = newSettings;

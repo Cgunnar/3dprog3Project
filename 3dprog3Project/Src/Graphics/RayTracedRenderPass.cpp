@@ -351,7 +351,6 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 		cmdList->SetGraphicsRoot32BitConstant(0, m_useShadows, 2);
 	}
 	cmdList->SetGraphicsRoot32BitConstant(0, numPointLights, 1);
-	
 
 	const AssetManager& am = AssetManager::Get();
 	cmdList->SetGraphicsRootDescriptorTable(1, am.GetBindlessMaterialStart().gpuHandle);
@@ -372,8 +371,6 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = frameResource.GetDsvCpuHandle();
 	cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
 
-	
-
 	Draw(m_device, cmdList, descriptorHandle, m_renderUnits, frameResource,
 		m_constantBuffers[frameIndex], frameIndex);
 }
@@ -382,14 +379,6 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 	std::vector<RenderUnit>& renderUnits, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex)
 {
-	std::sort(renderUnits.begin(), renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
-		if (a.meshID == b.meshID)
-		{
-			return a.subMeshID < b.subMeshID;
-		}
-		return a.meshID < b.meshID;
-		});
-
 	int counter = 0;
 	for (auto& ru : renderUnits)
 	{
@@ -510,6 +499,13 @@ int RayTracedRenderPass::FindObjectsToRender()
 			m_renderUnits.push_back(std::move(ru));
 		}
 	}
+	std::sort(m_renderUnits.begin(), m_renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
+		if (a.meshID == b.meshID)
+		{
+			return a.subMeshID < b.subMeshID;
+		}
+		return a.meshID < b.meshID;
+		});
 	return static_cast<int>(m_renderUnits.size());
 }
 
