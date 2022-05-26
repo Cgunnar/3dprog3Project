@@ -2,9 +2,10 @@
 #include "RayTracedRenderPass.h"
 #include "AssetManager.h"
 
-RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat)
-	: m_device(device), m_rtFormat(renderTargetFormat), m_numberOfFramesInFlight(framesInFlight)
+RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat, bool shadows, int numberOfbounces)
+	: m_device(device), m_rtFormat(renderTargetFormat), m_numberOfFramesInFlight(framesInFlight), m_rayBounceCount(numberOfbounces)
 {
+	m_useShadows = shadows ? 1 : 0;// fix so that shadow is a number that has to do with if shadows are used in reflections
 	m_constantBuffers.resize(framesInFlight);
 
 	for (auto& cbManager : m_constantBuffers)

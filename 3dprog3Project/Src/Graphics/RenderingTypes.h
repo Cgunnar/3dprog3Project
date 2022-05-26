@@ -19,5 +19,7 @@ struct RenderingSettings
 	UINT renderHeight = 720;
 	UINT numberOfBackbuffers = 2;
 	UINT numberOfFramesInFlight = 2;
+	UINT numberOfBounces = 0;
+	bool shadows = false;
 	bool vsync = false;
 };

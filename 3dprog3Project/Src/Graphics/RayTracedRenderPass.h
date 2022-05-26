@@ -21,7 +21,7 @@ struct RenderUnit
 class RayTracedRenderPass : public RenderPass
 {
 public:
-	RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat);
+	RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat, bool shadows, int numberOfbounces);
 	~RayTracedRenderPass();
 	RenderPassRequirements GetRequirements() override;
 	void Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) override;

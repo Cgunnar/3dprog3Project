@@ -203,6 +203,11 @@ void Application::Run()
 			if (frameNumber == 0) numFramesIndex = newSettings.numberOfFramesInFlight - 1;
 			ImGui::Separator();
 			ImGui::Text("Restart renderer to apply");
+			if (ImGui::Checkbox("shadows", &newSettings.shadows))
+			{
+				m_renderer->SetVSync(newSettings.vsync);
+				m_renderSettings.shadows = newSettings.shadows;
+			}
 			ImGui::Checkbox("profiling", &profiling);
 			ImGui::Text("frames in flight");
 			ImGui::SameLine();

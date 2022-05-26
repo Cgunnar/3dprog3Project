@@ -28,6 +28,7 @@ public:
 	std::pair<UINT, UINT> GetDisplayResolution() const;
 	void SetRenderResolution(UINT width, UINT height);
 	void SetVSync(bool value);
+	void SetShadows(bool value);
 	DescriptorPool& GetResourceDescriptorHeap();
 
 private:

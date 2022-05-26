@@ -103,7 +103,8 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, format, 12));
 	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight, format));
 	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
-	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_device, m_numFramesInFlight, format));
+	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_device, m_numFramesInFlight, format,
+		m_renderingSettings.shadows, m_renderingSettings.numberOfBounces));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -645,6 +646,11 @@ void Renderer::SetRenderResolution(UINT width, UINT height)
 void Renderer::SetVSync(bool value)
 {
 	m_renderingSettings.vsync = value;
+}
+
+void Renderer::SetShadows(bool value)
+{
+	m_renderingSettings.shadows = value;
 }
 
 DescriptorPool& Renderer::GetResourceDescriptorHeap()
