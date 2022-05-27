@@ -24,6 +24,13 @@ Scene::Scene()
 	delete newSphereMesh;
 	AssetManager::Get().MoveMeshToGPU(m_sphereMesh);
 
+	Geometry::Sphere_POS_NOR_UV_TAN_BITAN* sphereT = new Geometry::Sphere_POS_NOR_UV_TAN_BITAN(32, 0.5f);
+	Mesh* newSphereMeshT = new Mesh(reinterpret_cast<const float*>(sphereT->VertexData().data()), sphereT->ArraySize(), sphereT->IndexData(), MeshType::POS_NOR_UV_TAN_BITAN);
+	delete sphereT;
+	m_sphereMeshT = AssetManager::Get().AddMesh(*newSphereMeshT);
+	delete newSphereMeshT;
+	AssetManager::Get().MoveMeshToGPU(m_sphereMeshT);
+
 	Geometry::AABB_POS_NOR_UV* box = new Geometry::AABB_POS_NOR_UV({ -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f });
 	Mesh* newBoxMesh = new Mesh(reinterpret_cast<const float*>(box->VertexData().data()), box->ArraySize(), box->IndexData(), MeshType::POS_NOR_UV);
 	delete box;
@@ -43,10 +50,11 @@ Scene::Scene()
 	matBlue.albedoFactor = { 0, 0, 1, 1 };
 	Material texturedMaterial;
 	texturedMaterial.albedoFactor = { 1, 1, 1, 1 };
-	texturedMaterial.albedoID = AssetManager::Get().AddTextureFromFile("Assets/Hej.png", false, false);
+	texturedMaterial.albedoID = AssetManager::Get().AddTextureFromFile("Assets/Hej.png", TextureType::albedo, false, false);
 	Material rustedIron;
 	rustedIron.albedoFactor = { 1, 1, 1, 1 };
-	rustedIron.albedoID = AssetManager::Get().AddTextureFromFile("Assets/rusted_iron_albedo.png", false, false);
+	rustedIron.albedoID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/basecolor.png", TextureType::albedo, false, false);
+	rustedIron.normalID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/normal.png", TextureType::normalMap, false, true);
 
 	m_redMaterial = AssetManager::Get().AddMaterial(matRed);
 	AssetManager::Get().MoveMaterialToGPU(m_redMaterial);
@@ -70,9 +78,9 @@ Scene::Scene()
 
 	std::default_random_engine eng(4);
 	std::uniform_int_distribution<> distMat(0, 4);
-	std::uniform_int_distribution<> distMesh(0, 2);
+	std::uniform_int_distribution<> distMesh(0, 3);
 
-	int l = 4;
+	int l = 8;
 #ifdef _DEBUG
 	l = 4;
 #endif // _DEBUG
@@ -92,14 +100,21 @@ Scene::Scene()
 				transform.setTranslation(pos);
 				transform.setScale(0.5f);
 
-
 				if (randMesh == 0)
 				{
 					newEntity.AddComponent<MeshComp>()->meshID = m_boxMesh;
 					newEntity.AddComponent<SpinnComp>()->rotSpeed = pos;
 				}
+				else if (randMesh == 1)
+				{
+					newEntity.AddComponent<MeshComp>()->meshID = m_sphereMeshT;
+					newEntity.AddComponent<SpinnComp>()->rotSpeed = pos;
+					randMat = 10;
+				}
 				else
+				{
 					newEntity.AddComponent<MeshComp>()->meshID = m_sphereMesh;
+				}
 
 				if (randMat == 0)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_redMaterial;
@@ -107,7 +122,7 @@ Scene::Scene()
 					newEntity.AddComponent<MaterialComp>()->materialID = m_blueMaterial;
 				else if (randMat == 2)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_greenMaterial;
-				else if (randMat == 3)
+				else if (randMat == 10)
 					newEntity.AddComponent<MaterialComp>()->materialID = m_rustedIronMaterial;
 				else
 					newEntity.AddComponent<MaterialComp>()->materialID = m_hejMaterial;
@@ -115,7 +130,7 @@ Scene::Scene()
 		}
 	}
 
-	int numLight = 8;
+	int numLight = 4;
 #ifdef _DEBUG
 	numLight = 1;
 #endif // _DEBUG

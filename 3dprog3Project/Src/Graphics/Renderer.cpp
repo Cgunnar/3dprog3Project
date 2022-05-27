@@ -260,6 +260,12 @@ std::vector<RenderUnit> Renderer::FindObjectsToRender()
 			ru.vertexStart = subMesh.vertexStart;
 			ru.subMeshID = subMesh.subMeshID;
 			ru.meshID = modelComp->meshID;
+			if (meshAsset.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV))
+				ru.vertexType = 0;
+			else if (meshAsset.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV_TAN_BITAN))
+				ru.vertexType = 1;
+			else
+				assert(false);
 			renderUnits.push_back(std::move(ru));
 		}
 	}
@@ -281,6 +287,12 @@ std::vector<RenderUnit> Renderer::FindObjectsToRender()
 		ru.vertexStart = 0;
 		ru.subMeshID = 0;
 		ru.meshID = meshComp->meshID;
+		if (meshAsset.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV))
+			ru.vertexType = 0;
+		else if (meshAsset.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV_TAN_BITAN))
+			ru.vertexType = 1;
+		else
+			assert(false);
 		renderUnits.push_back(std::move(ru));
 	}
 	return renderUnits;

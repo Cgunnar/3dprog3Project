@@ -21,6 +21,7 @@ private:
 		uint32_t vertexBufferDescriptorIndex;
 		uint32_t indexStart;
 		uint32_t vertexStart;
+		int32_t vertexType;
 	};
 
 	std::unique_ptr<StructuredBuffer<TopLevelInstanceMetaData>> m_instanceMetaDataBuffer;

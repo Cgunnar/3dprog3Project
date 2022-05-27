@@ -315,6 +315,12 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 				instMetaData.vertexBufferDescriptorIndex = mesh.vertexBuffer.descIndex;
 				instMetaData.indexStart = subMesh.indexStart;
 				instMetaData.vertexStart = subMesh.vertexStart;
+				if (mesh.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV))
+					instMetaData.vertexType = 0;
+				else if (mesh.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV_TAN_BITAN))
+					instMetaData.vertexType = 1;
+				else
+					assert(false);
 
 				instDesc.InstanceContributionToHitGroupIndex = m_instanceMetaData.size();
 
@@ -367,6 +373,12 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 			instMetaData.vertexBufferDescriptorIndex = mesh.vertexBuffer.descIndex;
 			instMetaData.indexStart = 0;
 			instMetaData.vertexStart = 0;
+			if (mesh.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV))
+				instMetaData.vertexType = 0;
+			else if (mesh.vertexBuffer.elementSize == sizeof(Geometry::Vertex_POS_NOR_UV_TAN_BITAN))
+				instMetaData.vertexType = 1;
+			else
+				assert(false);
 
 			instDesc.InstanceContributionToHitGroupIndex = m_instanceMetaData.size();
 

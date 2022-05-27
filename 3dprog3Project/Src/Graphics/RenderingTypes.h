@@ -36,4 +36,5 @@ struct RenderUnit
 	uint32_t indexCount = 0;
 	uint32_t vertexStart = 0;
 	int32_t materialDescriptorIndex = -1;
+	int32_t vertexType = 0; // 1 == has tangents and bitangents
 };

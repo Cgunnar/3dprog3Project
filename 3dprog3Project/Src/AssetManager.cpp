@@ -70,14 +70,24 @@ uint64_t AssetManager::LoadModel(const std::string& path, bool inludeInAccelerat
 	std::vector<uint32_t> sponzaIndexBuffer;
 	sponzaIndexBuffer.resize(sponza.getIndicesCount());
 	memcpy(sponzaIndexBuffer.data(), sponza.getIndicesData(), sizeof(uint32_t) * sponzaIndexBuffer.size());
-	Mesh newSponzaMesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV),
-		sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
-		sponzaIndexBuffer, MeshType::POS_NOR_UV);
+	Mesh mesh;
+	if (sponza.hasNormalMaps())
+	{
+		mesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV_TAN_BITAN),
+			sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV_TAN_BITAN) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV_TAN_BITAN),
+			sponzaIndexBuffer, MeshType::POS_NOR_UV_TAN_BITAN);
+	}
+	else
+	{
+		mesh = Mesh((const float*)sponza.getVertextBuffer(Geometry::VertexFormat::POS_NOR_UV),
+			sponza.getVertexSize(Geometry::VertexFormat::POS_NOR_UV) * sponza.getVertexCount(Geometry::VertexFormat::POS_NOR_UV),
+			sponzaIndexBuffer, MeshType::POS_NOR_UV);
+	}
 
 	std::vector<SubMesh> subMeshes;
 	BuildModel(sponza.subsetsInfo, subMeshes);
 
-	uint64_t meshID = AssetManager::Get().AddMesh(newSponzaMesh, inludeInAccelerationStructure, subMeshes);
+	uint64_t meshID = AssetManager::Get().AddMesh(mesh, inludeInAccelerationStructure, subMeshes);
 	AssetManager::Get().MoveMeshToGPU(meshID, keepInCopyInMainMemory);
 	return meshID;
 }
@@ -99,13 +109,13 @@ uint64_t AssetManager::AddMaterial(const Material& material)
 	m_materials[id] = MaterialAsset(material);
 
 	if (m_textures.contains(material.albedoID))
-	{
 		m_materials[id].albedoTexture = m_textures[material.albedoID];
-	}
+	if (m_textures.contains(material.normalID))
+		m_materials[id].normalMap = m_textures[material.normalID];
 	return id;
 }
 
-uint64_t AssetManager::AddTextureFromFile(const std::string& path, bool mipmapping, bool linearColorSpace)
+uint64_t AssetManager::AddTextureFromFile(const std::string& path, TextureType type, bool mipmapping, bool linearColorSpace)
 {
 	Image image = AssetManager::LoadImageFromFile(path);
 	uint64_t id = utl::GenerateRandomID();
@@ -115,9 +125,25 @@ uint64_t AssetManager::AddTextureFromFile(const std::string& path, bool mipmappi
 	RecordUpload();
 	UploadTextureStaged(m_textures[id], image.dataPtr);
 	ExecuteUpload();
-	DescriptorHandle handle = m_albedoViewsHandle[m_albedoViewCount];
+	DescriptorHandle handle;
+	switch (type)
+	{
+	case TextureType::unknown:
+		break;
+	case TextureType::albedo:
+		m_textures[id].descIndex = m_albedoViewCount;
+		handle = m_albedoViewsHandle[m_albedoViewCount++];
+		break;
+	case TextureType::normalMap:
+		m_textures[id].descIndex = m_normalMapViewCount;
+		handle = m_normalMapViewsHandle[m_normalMapViewCount++];
+		break;
+	case TextureType::emissive:
+		break;
+	case TextureType::metallicRoughness:
+		break;
+	}
 	m_renderer->GetDevice()->CreateShaderResourceView(m_textures[id].resource.Get(), nullptr, handle.cpuHandle);
-	m_textures[id].descIndex = m_albedoViewCount++;
 	m_textures[id].valid = true;
 	m_textures[id].flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::TEXTURE_2D | GPUAsset::Flag::SRV);
 	stbi_image_free(image.dataPtr);
@@ -170,23 +196,19 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	MaterialAsset &materialAsset = m_materials[id];
 	CreateBuffer(materialAsset.constantBuffer);
 	RecordUpload();
-	struct MaterialCB
-	{
-		rfm::Vector4 albedoFactor;
-		rfm::Vector3 emissionFactor;
-		int albedoTextureIndex = -1;
-	} cbData;
+	MaterialCB cbData;
 	cbData.albedoFactor = materialAsset.material->albedoFactor;
-	cbData.emissionFactor = materialAsset.material->emissiveFactor;
+	cbData.emissiveFactor = materialAsset.material->emissiveFactor;
 
 	if (materialAsset.albedoTexture.valid)
-	{
 		cbData.albedoTextureIndex = materialAsset.albedoTexture.descIndex;
-	}
 	else
-	{
 		cbData.albedoTextureIndex = -1;
-	}
+
+	if (materialAsset.normalMap.valid)
+		cbData.normalMapIndex = materialAsset.normalMap.descIndex;
+	else
+		cbData.normalMapIndex = -1;
 
 	UploadBufferStaged(materialAsset.constantBuffer, &cbData);
 	ExecuteUpload();
@@ -276,9 +298,19 @@ const std::unordered_map<uint64_t, MeshAsset>& AssetManager::GetAllMeshes() cons
 //	return m_heapDescriptor;
 //}
 
+DescriptorHandle AssetManager::GetBindlessPBRTexturesStart() const
+{
+	return m_albedoViewsHandle;
+}
+
 DescriptorHandle AssetManager::GetBindlessAlbedoTexturesStart() const
 {
 	return m_albedoViewsHandle;
+}
+
+DescriptorHandle AssetManager::GetBindlessNormalMapStart() const
+{
+	return m_normalMapViewsHandle;
 }
 
 DescriptorHandle AssetManager::GetBindlessMaterialStart() const
@@ -302,6 +334,7 @@ AssetManager::AssetManager(Renderer* renderer) : m_renderer(renderer)
 	m_heapDescriptor.Init(device);
 	m_materialViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumMaterials);
 	m_albedoViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumAlbedoTextures);
+	m_normalMapViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumNormalTextures);
 	m_ibViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumIndexBuffers);
 	m_vbViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumVertexBuffers);
 

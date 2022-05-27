@@ -5,6 +5,14 @@
 #include "DescriptorVector.h"
 #include "Renderer.h"
 
+enum class TextureType
+{
+	unknown,
+	albedo,
+	normalMap,
+	emissive,
+	metallicRoughness,
+};
 
 struct GPUAsset
 {
@@ -80,6 +88,15 @@ struct MeshAsset
 	bool inludedInAccelerationStructure = false;
 };
 
+struct MaterialCB
+{
+	rfm::Vector4 albedoFactor;
+	rfm::Vector3 emissiveFactor;
+	float metallicFactor = 0;
+	int albedoTextureIndex = -1;
+	int normalMapIndex = -1;
+};
+
 struct MaterialAsset
 {
 	MaterialAsset() = default;
@@ -87,12 +104,13 @@ struct MaterialAsset
 	{
 		this->material = std::make_shared<Material>(material);
 		constantBuffer.elementCount = 1;
-		constantBuffer.elementSize = 2 * sizeof(rfm::Vector4) + sizeof(int);
+		constantBuffer.elementSize = sizeof(MaterialCB);
 		constantBuffer.flag = GPUAsset::Flag::CBV;
 	}
 	std::shared_ptr<Material> material;
 	GPUAsset constantBuffer;
 	GPUAsset albedoTexture;
+	GPUAsset normalMap;
 };
 
 class AssetManager
@@ -100,6 +118,7 @@ class AssetManager
 public:
 	static constexpr int maxNumMaterials = 20000;
 	static constexpr int maxNumAlbedoTextures = 100;
+	static constexpr int maxNumNormalTextures = 100;
 	static constexpr int maxNumIndexBuffers = 100;
 	static constexpr int maxNumVertexBuffers = 100;
 
@@ -112,7 +131,7 @@ public:
 
 	uint64_t AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure = true, const std::optional<SubMeshes>& subMeshes = std::nullopt);
 	uint64_t AddMaterial(const Material &material);
-	uint64_t AddTextureFromFile(const std::string& path, bool mipmapping, bool linearColorSpace);
+	uint64_t AddTextureFromFile(const std::string& path, TextureType type, bool mipmapping, bool linearColorSpace);
 
 	void MoveMeshToGPU(uint64_t id, bool keepCopyInMainMemory = false);
 	void MoveMaterialToGPU(uint64_t id);
@@ -130,7 +149,9 @@ public:
 
 	const std::unordered_map<uint64_t, MeshAsset>& GetAllMeshes() const;
 
+	DescriptorHandle GetBindlessPBRTexturesStart() const;
 	DescriptorHandle GetBindlessAlbedoTexturesStart() const;
+	DescriptorHandle GetBindlessNormalMapStart() const;
 	DescriptorHandle GetBindlessMaterialStart() const;
 	DescriptorHandle GetBindlessIndexBufferStart() const;
 	DescriptorHandle GetBindlessVertexBufferStart() const;
@@ -151,6 +172,8 @@ private:
 
 	DescriptorHandle m_albedoViewsHandle;
 	int m_albedoViewCount = 0;
+	DescriptorHandle m_normalMapViewsHandle;
+	int m_normalMapViewCount = 0;
 	DescriptorHandle m_materialViewsHandle;
 	int m_materialViewCount = 0;
 	DescriptorHandle m_vbViewsHandle;
