@@ -66,7 +66,6 @@ Scene::Scene()
 	AssetManager::Get().MoveMeshToGPU(smallSphereMeshID);
 	delete smallSphere;
 	delete smallSphereMesh;
-	
 
 
 	std::default_random_engine eng(4);
