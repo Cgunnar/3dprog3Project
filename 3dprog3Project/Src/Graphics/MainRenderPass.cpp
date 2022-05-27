@@ -277,8 +277,8 @@ MainRenderPass::~MainRenderPass()
 RenderPassRequirements MainRenderPass::GetRequirements()
 {
 
-	int perThreadSize = static_cast<int>(rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size()) / m_numThreads;
-	perThreadSize += rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>().size() % m_numThreads;
+	int perThreadSize = static_cast<int>(m_renderUnits.size()) / m_numThreads;
+	perThreadSize += static_cast<int>(m_renderUnits.size()) % m_numThreads;
 	RenderPassRequirements req;
 	req.cmdListCount = m_numThreads;
 	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * perThreadSize + numDescriptorsInRootTable3
@@ -294,11 +294,19 @@ void MainRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdL
 
 void MainRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& renderUnits)
 {
-
+	m_renderUnits = renderUnits;
+	//sort so that we have them in order of meshes, we will draw them instanced
+	std::sort(m_renderUnits.begin(), m_renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
+		if (a.meshID == b.meshID)
+		{
+			return a.subMeshID < b.subMeshID;
+		}
+		return a.meshID < b.meshID;
+	});
 }
 
 static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
-	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
+	std::vector<RenderUnit> entitiesToDraw, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex);
 
 void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
@@ -340,37 +348,24 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 	descriptorHandles.front().gpuHandle.ptr += descriptorHandles.front().incrementSize;
 	descriptorHandles.front().index++;
 
-
-	//fix a better way of allocating memory
-	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
 	rfm::Vector3 cameraPos = cameraCBData.pos;
-
-	std::sort(entities.begin(), entities.end(), [](rfe::Entity& a, rfe::Entity& b) {
-		const auto& meshA = a.GetComponent<MeshComp>();
-		const auto& meshB = b.GetComponent<MeshComp>();
-		if (meshA->meshID == meshB->meshID)
-		{
-			return meshA->indexCount < meshB->indexCount;
-		}
-		return meshA->meshID < meshB->meshID;
-		});
 
 	if (m_numThreads == 1)
 	{
-		Draw(0, m_device, cmdLists[0], std::ref(descriptorHandles[0]), entities, std::ref(frameResource),
+		Draw(0, m_device, cmdLists[0], std::ref(descriptorHandles[0]), m_renderUnits, std::ref(frameResource),
 			m_constantBuffers[0][frameIndex], frameIndex);
 	}
 	else
 	{
 		std::vector<std::future<void>> asyncJobs;
-		int segmentSize = static_cast<int>(entities.size()) / m_numThreads;
+		int segmentSize = static_cast<int>(m_renderUnits.size()) / m_numThreads;
 		for (int i = 0; i < m_numThreads; i++)
 		{
 			int rest = 0;
 			if (i == m_numThreads - 1)
-				rest = entities.size() % m_numThreads;
+				rest = m_renderUnits.size() % m_numThreads;
 
-			std::vector<rfe::Entity> entitiesPerThread(entities.begin() + i * segmentSize, entities.begin() + (i + 1) * segmentSize + rest);
+			std::vector<RenderUnit> entitiesPerThread(m_renderUnits.begin() + i * segmentSize, m_renderUnits.begin() + (i + 1) * segmentSize + rest);
 
 			asyncJobs.push_back(std::async(std::launch::async, Draw, i, m_device, cmdLists[i], std::ref(descriptorHandles[i]), entitiesPerThread, std::ref(frameResource),
 				m_constantBuffers[i][frameIndex], frameIndex));
@@ -381,7 +376,7 @@ void MainRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 }
 
 static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdList, DescriptorHandle & descHandle,
-	std::vector<rfe::Entity> entitiesToDraw, FrameResource& frameResource,
+	std::vector<RenderUnit> entitiesToDraw, FrameResource& frameResource,
 	ConstantBufferManager* cbManager, int frameIndex)
 {
 	auto [width, height] = frameResource.GetResolution();
@@ -403,18 +398,15 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	cmdList->SetGraphicsRootDescriptorTable(8, am.GetBindlessVertexBufferStart().gpuHandle);
 
 	int counter = 0;
-	for (auto& entity : entitiesToDraw)
+	for (auto& ru : entitiesToDraw)
 	{
-		const auto& transform = entity.GetComponent<TransformComp>()->transform;
-		uint64_t matID = entity.GetComponent<MaterialComp>()->materialID;
-		int matDescIndex = am.GetMaterial(matID).constantBuffer.descIndex;
 		UINT worldMatrixCB = cbManager->PushConstantBuffer();
 		struct PerInstanceData
 		{
 			rfm::Matrix worldMatrix;
 			int materialDescriptorIndex;
 		};
-		PerInstanceData instanceData{ transform, matDescIndex };
+		PerInstanceData instanceData{ ru.worldMatrix, ru.materialDescriptorIndex };
 		cbManager->UpdateConstantBuffer(worldMatrixCB, &instanceData, sizeof(PerInstanceData));
 
 		device->CopyDescriptorsSimple(1, descHandle[counter].cpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -424,48 +416,33 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	cmdList->SetGraphicsRootDescriptorTable(5, descHandle.gpuHandle);
 	DescriptorHandle visBaseDescHandle = descHandle[counter];
 	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
+
+
 	counter = 0;
 	int numInstances = 1;
 	uint64_t nextMeshID = 0;
-	uint64_t nextMeshIndexStart = 0;
-	uint64_t nextMeshIndexCount = 0;
-	uint64_t nextMeshVertexStart = 0;
-	uint64_t nextMeshVertexCount = 0;
+	uint64_t nextSubMeshID = 0;
 	int numEntitiesToDraw = static_cast<int>(entitiesToDraw.size());
-
 	for (int i = 0; i < numEntitiesToDraw; i++)
 	{
-		auto& entity = entitiesToDraw[i];
-		const auto& meshComp = entity.GetComponent<MeshComp>();
-		uint64_t meshID = i == 0 ? meshComp->meshID : nextMeshID;
+		auto& ru = entitiesToDraw[i];
+
+		uint64_t meshID = i == 0 ? ru.meshID : nextMeshID;
+		uint64_t subMeshID = i == 0 ? ru.subMeshID : nextSubMeshID;
 		if (i < numEntitiesToDraw - 1)
 		{
-			const auto& nextMeshComp = entitiesToDraw[i + 1].GetComponent<MeshComp>();
-			nextMeshIndexCount = nextMeshComp->indexCount;
-			nextMeshIndexStart = nextMeshComp->indexStart;
-			nextMeshVertexCount = nextMeshComp->vertexCount;
-			nextMeshVertexStart = nextMeshComp->vertexStart;
-			nextMeshID = nextMeshComp->meshID;
+			nextMeshID = entitiesToDraw[i + 1].meshID;
+			nextSubMeshID = entitiesToDraw[i + 1].subMeshID;
 		}
 
-		bool differentSubMesh = meshComp->indexCount != nextMeshIndexCount || meshComp->indexStart != nextMeshIndexStart
-			|| meshComp->vertexCount != nextMeshVertexCount || meshComp->vertexStart != nextMeshVertexStart;
-
-		if (meshID != nextMeshID || differentSubMesh || i == numEntitiesToDraw - 1)
+		if (meshID != nextMeshID || subMeshID != nextSubMeshID || i == numEntitiesToDraw - 1)
 		{
-			const auto& mesh = am.GetMesh(meshID);
-
-			const GPUAsset& vb = mesh.vertexBuffer;
-			const GPUAsset& ib = mesh.indexBuffer;
-
-			if (!vb.valid || !ib.valid) assert(false);
-
 			cmdList->SetGraphicsRoot32BitConstant(6, counter, 0);
-			cmdList->SetGraphicsRoot32BitConstant(6, ib.descIndex, 1);
-			cmdList->SetGraphicsRoot32BitConstant(6, vb.descIndex, 2);
-			cmdList->SetGraphicsRoot32BitConstant(6, meshComp->indexStart, 3);
-			cmdList->SetGraphicsRoot32BitConstant(6, meshComp->vertexStart, 4);
-			cmdList->DrawInstanced(meshComp->indexCount != 0 ? meshComp->indexCount : ib.elementCount, numInstances, 0, 0);
+			cmdList->SetGraphicsRoot32BitConstant(6, ru.indexBufferDescriptorIndex, 1);
+			cmdList->SetGraphicsRoot32BitConstant(6, ru.vertexBufferDescriptorIndex, 2);
+			cmdList->SetGraphicsRoot32BitConstant(6, ru.indexStart, 3);
+			cmdList->SetGraphicsRoot32BitConstant(6, ru.vertexStart, 4);
+			cmdList->DrawInstanced(ru.indexCount, numInstances, 0, 0);
 			counter += numInstances;
 			numInstances = 1;
 		}

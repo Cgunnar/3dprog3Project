@@ -273,7 +273,7 @@ RayTracedRenderPass::~RayTracedRenderPass()
 
 RenderPassRequirements RayTracedRenderPass::GetRequirements()
 {
-	int renderCount = m_renderUnits.size();
+	int renderCount = static_cast<int>(m_renderUnits.size());
 	RenderPassRequirements req;
 	req.cmdListCount = 1;
 	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * renderCount + numDescriptorsInRootTable3
@@ -300,6 +300,15 @@ void RayTracedRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList*
 void RayTracedRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& renderUnits)
 {
 	m_renderUnits = renderUnits;
+
+	//sort so that we have them in order of meshes, we will draw them instanced
+	std::sort(m_renderUnits.begin(), m_renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
+		if (a.meshID == b.meshID)
+		{
+			return a.subMeshID < b.subMeshID;
+		}
+		return a.meshID < b.meshID;
+	});
 }
 
 

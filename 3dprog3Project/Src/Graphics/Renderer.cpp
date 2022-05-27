@@ -103,6 +103,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 
 	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_renderingSettings, m_device, format, 12));
 	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_renderingSettings, m_device, format));
+	//I have not tested Old and Test renderpasses in a while, thay might not work
 	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_renderingSettings, m_device, format, 1));
 	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_renderingSettings, m_device, format));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_renderingSettings, m_device));
@@ -282,13 +283,6 @@ std::vector<RenderUnit> Renderer::FindObjectsToRender()
 		ru.meshID = meshComp->meshID;
 		renderUnits.push_back(std::move(ru));
 	}
-	std::sort(renderUnits.begin(), renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
-		if (a.meshID == b.meshID)
-		{
-			return a.subMeshID < b.subMeshID;
-		}
-		return a.meshID < b.meshID;
-		});
 	return renderUnits;
 }
 

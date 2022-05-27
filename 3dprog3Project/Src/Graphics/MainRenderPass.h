@@ -29,7 +29,7 @@ private:
 	int m_numThreads;
 	DXGI_FORMAT m_rtFormat;
 	std::vector<std::vector<ConstantBufferManager*>> m_constantBuffers;
-	
+	std::vector<RenderUnit> m_renderUnits;
 	std::vector<std::unique_ptr<StructuredBuffer<PointLight>>> m_dynamicPointLightBuffer;
 
 	void UpdateDynamicLights(int frameIndex);
