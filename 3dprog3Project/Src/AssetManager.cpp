@@ -89,7 +89,6 @@ uint64_t AssetManager::AddMesh(const Mesh& mesh, bool inludeInAccelerationStruct
 	if (m_meshes[id].subMeshes)
 	{
 		m_meshes[id].subMeshes->meshAssetID = id;
-		
 	}
 	return id;
 }

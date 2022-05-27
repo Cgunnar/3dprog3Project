@@ -275,56 +275,26 @@ bool AccelerationStructure::BuildBottomLevel(ID3D12Device5* device, ID3D12Graphi
 void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsCommandList4* cmdList)
 {
 	auto entitis = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp>();
-	m_instances.reserve(entitis.size());
-	m_instanceMetaData.reserve(entitis.size());
+	auto modelEntitis = rfe::EntityReg::ViewEntities<ModelComp>();
+	m_instances.reserve(entitis.size() + modelEntitis.size() * 10);
+	m_instanceMetaData.reserve(entitis.size() + modelEntitis.size() * 10);
 
 	const auto& am = AssetManager::Get();
 
 	UINT numInstances = 0;
-	for (auto& e : entitis)
+	for (auto& e : modelEntitis)
 	{
 		const MaterialComp* matComp = e.GetComponent<MaterialComp>();
-		
-		const auto& meshComp = e.GetComponent<MeshComp>();
-		uint64_t meshID = meshComp->meshID;
+		uint64_t matID = 0;
+		if (matComp) matID = matComp->materialID;
+		const auto& modelComp = e.GetComponent<ModelComp>();
+		uint64_t meshID = modelComp->meshID;
 		assert(am.GetMesh(meshID).indexBuffer.descIndex == am.GetMesh(meshID).vertexBuffer.descIndex);
 		const MeshAsset& mesh = am.GetMesh(meshID);
 		if (mesh.inludedInAccelerationStructure)
 		{
-			if (mesh.subMeshes)
-			{
-				for (auto& subMesh : mesh.subMeshes->subMeshes)
-				{
-					TopLevelInstanceMetaData instMetaData{};
-
-					D3D12_RAYTRACING_INSTANCE_DESC instDesc{};
-					instDesc.Transform[0][0] = 1;
-					instDesc.Transform[1][1] = 1;
-					instDesc.Transform[2][2] = 1;
-					instDesc.InstanceID = utl::GenerateRandomID();
-					m_instanceToEntityMap[instDesc.InstanceID] = e.GetID();
-
-					//InstanceContributionToHitGroupIndex is not used when using inline raytracing, use it for materialIndex and meshIndex
-					//meshIndex is the index of the ib and vb, assumed to have the same index
-
-					instMetaData.materialDescriptorIndex = am.GetMaterial(subMesh.materialID).constantBuffer.descIndex;
-					instMetaData.indexBufferDescriptorIndex = mesh.indexBuffer.descIndex;
-					instMetaData.vertexBufferDescriptorIndex = mesh.vertexBuffer.descIndex;
-					instMetaData.indexStart = subMesh.indexStart;
-					instMetaData.vertexStart = subMesh.vertexStart;
-
-					instDesc.InstanceContributionToHitGroupIndex = m_instanceMetaData.size();
-
-					instDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
-					instDesc.InstanceMask = 0xFF;
-					instDesc.AccelerationStructure = m_bottomLevels[meshID][subMesh.subMeshID].resultBuffer->GetGPUVirtualAddress();
-
-					m_instances.push_back(instDesc);
-					m_instanceMetaData.push_back(instMetaData);
-					numInstances++;
-				}
-			}
-			else
+			assert(mesh.subMeshes);
+			for (auto& subMesh : mesh.subMeshes->subMeshes)
 			{
 				TopLevelInstanceMetaData instMetaData{};
 
@@ -337,35 +307,77 @@ void AccelerationStructure::BuildTopLevel(ID3D12Device5* device, ID3D12GraphicsC
 
 				//InstanceContributionToHitGroupIndex is not used when using inline raytracing, use it for materialIndex and meshIndex
 				//meshIndex is the index of the ib and vb, assumed to have the same index
-
-				uint64_t matID = 0;
-				if (matComp)
-				{
-					matID = matComp->materialID;
-				}
+				if (matID == 0)
+					instMetaData.materialDescriptorIndex = am.GetMaterial(subMesh.materialID).constantBuffer.descIndex;
 				else
-				{
-					assert(false); //missing material
-				}
-				const MaterialAsset& mat = am.GetMaterial(matID);
-
-				instMetaData.materialDescriptorIndex = mat.constantBuffer.descIndex;
+					instMetaData.materialDescriptorIndex = am.GetMaterial(matID).constantBuffer.descIndex;
 				instMetaData.indexBufferDescriptorIndex = mesh.indexBuffer.descIndex;
 				instMetaData.vertexBufferDescriptorIndex = mesh.vertexBuffer.descIndex;
-				instMetaData.indexStart = 0;
-				instMetaData.vertexStart = 0;
+				instMetaData.indexStart = subMesh.indexStart;
+				instMetaData.vertexStart = subMesh.vertexStart;
 
 				instDesc.InstanceContributionToHitGroupIndex = m_instanceMetaData.size();
 
-
 				instDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 				instDesc.InstanceMask = 0xFF;
-				instDesc.AccelerationStructure = m_bottomLevels[meshID][0].resultBuffer->GetGPUVirtualAddress();
+				instDesc.AccelerationStructure = m_bottomLevels[meshID][subMesh.subMeshID].resultBuffer->GetGPUVirtualAddress();
 
 				m_instances.push_back(instDesc);
 				m_instanceMetaData.push_back(instMetaData);
 				numInstances++;
 			}
+		}
+	}
+
+	for (auto& e : entitis)
+	{
+		const MaterialComp* matComp = e.GetComponent<MaterialComp>();
+
+		const auto& meshComp = e.GetComponent<MeshComp>();
+		uint64_t meshID = meshComp->meshID;
+		assert(am.GetMesh(meshID).indexBuffer.descIndex == am.GetMesh(meshID).vertexBuffer.descIndex);
+		const MeshAsset& mesh = am.GetMesh(meshID);
+		if (mesh.inludedInAccelerationStructure)
+		{
+			TopLevelInstanceMetaData instMetaData{};
+
+			D3D12_RAYTRACING_INSTANCE_DESC instDesc{};
+			instDesc.Transform[0][0] = 1;
+			instDesc.Transform[1][1] = 1;
+			instDesc.Transform[2][2] = 1;
+			instDesc.InstanceID = utl::GenerateRandomID();
+			m_instanceToEntityMap[instDesc.InstanceID] = e.GetID();
+
+			//InstanceContributionToHitGroupIndex is not used when using inline raytracing, use it for materialIndex and meshIndex
+			//meshIndex is the index of the ib and vb, assumed to have the same index
+
+			uint64_t matID = 0;
+			if (matComp)
+			{
+				matID = matComp->materialID;
+			}
+			else
+			{
+				assert(false); //missing material
+			}
+			const MaterialAsset& mat = am.GetMaterial(matID);
+
+			instMetaData.materialDescriptorIndex = mat.constantBuffer.descIndex;
+			instMetaData.indexBufferDescriptorIndex = mesh.indexBuffer.descIndex;
+			instMetaData.vertexBufferDescriptorIndex = mesh.vertexBuffer.descIndex;
+			instMetaData.indexStart = 0;
+			instMetaData.vertexStart = 0;
+
+			instDesc.InstanceContributionToHitGroupIndex = m_instanceMetaData.size();
+
+
+			instDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+			instDesc.InstanceMask = 0xFF;
+			instDesc.AccelerationStructure = m_bottomLevels[meshID][0].resultBuffer->GetGPUVirtualAddress();
+
+			m_instances.push_back(instDesc);
+			m_instanceMetaData.push_back(instMetaData);
+			numInstances++;
 		}
 	}
 
