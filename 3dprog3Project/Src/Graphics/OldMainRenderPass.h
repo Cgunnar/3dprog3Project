@@ -11,6 +11,7 @@ public:
 	~OldMainRenderPass();
 	RenderPassRequirements GetRequirements() override;
 	void Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) override;
+	void SubmitObjectsToRender(const std::vector<RenderUnit>& renderUnits) override;
 	void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) override;
 	bool OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device) override;
 	std::string Name() const override;

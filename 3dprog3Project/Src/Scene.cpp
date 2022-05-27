@@ -14,8 +14,8 @@ Scene::Scene()
 
 	Entity modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.2f);
-	modelEntity.AddComponent<MaterialComp>();
-	modelEntity.AddComponent<MeshComp>()->meshID = m_sponzaMesh;
+	//modelEntity.AddComponent<MaterialComp>();
+	modelEntity.AddComponent<ModelComp>()->meshID = m_sponzaMesh;
 
 	Geometry::Sphere_POS_NOR_UV* sphere = new Geometry::Sphere_POS_NOR_UV(32, 0.5f);
 	Mesh* newSphereMesh = new Mesh(reinterpret_cast<const float*>(sphere->VertexData().data()), sphere->ArraySize(), sphere->IndexData(), MeshType::POS_NOR_UV);

@@ -273,7 +273,7 @@ RayTracedRenderPass::~RayTracedRenderPass()
 
 RenderPassRequirements RayTracedRenderPass::GetRequirements()
 {
-	int renderCount = FindObjectsToRender();
+	int renderCount = m_renderUnits.size();
 	RenderPassRequirements req;
 	req.cmdListCount = 1;
 	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * renderCount + numDescriptorsInRootTable3
@@ -295,6 +295,11 @@ void RayTracedRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList*
 		a = std::make_unique<AccelerationStructure>(device5, cmdList4);
 	device5->Release();
 	cmdList4->Release();
+}
+
+void RayTracedRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& renderUnits)
+{
+	m_renderUnits = renderUnits;
 }
 
 
@@ -447,69 +452,71 @@ std::string RayTracedRenderPass::Name() const
 	return "RayTracedRenderPass";
 }
 
-int RayTracedRenderPass::FindObjectsToRender()
-{
-	m_renderUnits.clear();
-	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
-
-	m_renderUnits.reserve(entities.size() * 2);
-	const auto& am = AssetManager::Get();
-	for (auto& e : entities)
-	{
-		const auto& meshComp = e.GetComponent<MeshComp>();
-		const auto& materialComp = e.GetComponent<MaterialComp>();
-		const auto& meshAsset = am.GetMesh(meshComp->meshID);
-		uint64_t matID = 0;
-		if (materialComp)
-		{
-			matID = materialComp->materialID;
-		}
-		
-		if (meshAsset.subMeshes)
-		{
-			for (auto& subMesh : meshAsset.subMeshes->subMeshes)
-			{
-				RenderUnit ru;
-				ru.worldMatrix = e.GetComponent<TransformComp>()->transform;
-				if(matID)
-					ru.materialDescriptorIndex = am.GetMaterial(matID).constantBuffer.descIndex;
-				else
-					ru.materialDescriptorIndex = am.GetMaterial(subMesh.materialID).constantBuffer.descIndex;
-				ru.indexBufferDescriptorIndex = meshAsset.indexBuffer.descIndex;
-				ru.vertexBufferDescriptorIndex = meshAsset.vertexBuffer.descIndex;
-				ru.indexStart = subMesh.indexStart;
-				ru.indexCount = subMesh.indexCount;
-				ru.vertexStart = subMesh.vertexStart;
-				ru.subMeshID = subMesh.subMeshID;
-				ru.meshID = meshComp->meshID;
-				m_renderUnits.push_back(std::move(ru));
-			}
-		}
-		else
-		{
-			const auto& materialAsset = am.GetMaterial(matID);
-			RenderUnit ru;
-			ru.worldMatrix = e.GetComponent<TransformComp>()->transform;
-			ru.materialDescriptorIndex = materialAsset.constantBuffer.descIndex;
-			ru.indexBufferDescriptorIndex = meshAsset.indexBuffer.descIndex;
-			ru.vertexBufferDescriptorIndex = meshAsset.vertexBuffer.descIndex;
-			ru.indexStart = 0;
-			ru.indexCount = meshAsset.indexBuffer.elementCount;
-			ru.vertexStart = 0;
-			ru.subMeshID = 0;
-			ru.meshID = meshComp->meshID;
-			m_renderUnits.push_back(std::move(ru));
-		}
-	}
-	std::sort(m_renderUnits.begin(), m_renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
-		if (a.meshID == b.meshID)
-		{
-			return a.subMeshID < b.subMeshID;
-		}
-		return a.meshID < b.meshID;
-		});
-	return static_cast<int>(m_renderUnits.size());
-}
+//int RayTracedRenderPass::FindObjectsToRender()
+//{
+//	std::vector<RenderUnit> renderUnits;
+//	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
+//	std::vector<rfe::Entity> modelEntities = rfe::EntityReg::ViewEntities<ModelComp, TransformComp>();
+//
+//	//assume 10 is the avg submodel count
+//	m_renderUnits.reserve(entities.size() + modelEntities.size() * 10);
+//	const auto& am = AssetManager::Get();
+//	for (auto& e : modelEntities)
+//	{
+//		const auto& modelComp = e.GetComponent<ModelComp>();
+//		const auto& meshAsset = am.GetMesh(modelComp->meshID);
+//		const auto& materialComp = e.GetComponent<MaterialComp>();
+//		uint64_t matID = 0;
+//		if (materialComp) //if model has a materialComponent use that instead of the models own material
+//			matID = materialComp->materialID;
+//		assert(meshAsset.subMeshes);
+//		for (auto& subMesh : meshAsset.subMeshes->subMeshes)
+//		{
+//			RenderUnit ru;
+//			ru.worldMatrix = e.GetComponent<TransformComp>()->transform;
+//			if (matID)
+//				ru.materialDescriptorIndex = am.GetMaterial(matID).constantBuffer.descIndex;
+//			else
+//				ru.materialDescriptorIndex = am.GetMaterial(subMesh.materialID).constantBuffer.descIndex;
+//			ru.indexBufferDescriptorIndex = meshAsset.indexBuffer.descIndex;
+//			ru.vertexBufferDescriptorIndex = meshAsset.vertexBuffer.descIndex;
+//			ru.indexStart = subMesh.indexStart;
+//			ru.indexCount = subMesh.indexCount;
+//			ru.vertexStart = subMesh.vertexStart;
+//			ru.subMeshID = subMesh.subMeshID;
+//			ru.meshID = modelComp->meshID;
+//			m_renderUnits.push_back(std::move(ru));
+//		}
+//	}
+//	for (auto& e : entities)
+//	{
+//		const auto& meshComp = e.GetComponent<MeshComp>();
+//		const auto& materialComp = e.GetComponent<MaterialComp>();
+//		const auto& meshAsset = am.GetMesh(meshComp->meshID);
+//		uint64_t matID = 0;
+//		if (materialComp) matID = materialComp->materialID;
+//		const auto& materialAsset = am.GetMaterial(matID);
+//		RenderUnit ru;
+//		ru.worldMatrix = e.GetComponent<TransformComp>()->transform;
+//		ru.materialDescriptorIndex = materialAsset.constantBuffer.descIndex;
+//		ru.indexBufferDescriptorIndex = meshAsset.indexBuffer.descIndex;
+//		ru.vertexBufferDescriptorIndex = meshAsset.vertexBuffer.descIndex;
+//		ru.indexStart = 0;
+//		ru.indexCount = meshAsset.indexBuffer.elementCount;
+//		ru.vertexStart = 0;
+//		ru.subMeshID = 0;
+//		ru.meshID = meshComp->meshID;
+//		m_renderUnits.push_back(std::move(ru));
+//	}
+//	std::sort(m_renderUnits.begin(), m_renderUnits.end(), [](RenderUnit& a, RenderUnit& b) {
+//		if (a.meshID == b.meshID)
+//		{
+//			return a.subMeshID < b.subMeshID;
+//		}
+//		return a.meshID < b.meshID;
+//		});
+//	return static_cast<int>(m_renderUnits.size());
+//}
 
 int RayTracedRenderPass::UpdateDynamicLights(int frameIndex)
 {

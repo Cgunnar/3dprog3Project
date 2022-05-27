@@ -5,18 +5,6 @@
 #include "CommonComponents.h"
 #include "AccelerationStructure.h"
 
-struct RenderUnit
-{
-	rfm::Matrix worldMatrix;
-	uint64_t subMeshID = 0;
-	uint64_t meshID = 0;
-	uint32_t indexBufferDescriptorIndex = 0;
-	uint32_t vertexBufferDescriptorIndex = 0;
-	uint32_t indexStart = 0;
-	uint32_t indexCount = 0;
-	uint32_t vertexStart = 0;
-	int32_t materialDescriptorIndex = -1;
-};
 
 class RayTracedRenderPass : public RenderPass
 {
@@ -25,6 +13,7 @@ public:
 	~RayTracedRenderPass();
 	RenderPassRequirements GetRequirements() override;
 	void Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) override;
+	void SubmitObjectsToRender(const std::vector<RenderUnit>& renderUnits) override;
 	void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) override;
 	bool OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device) override;
 	std::string Name() const override;
@@ -47,7 +36,6 @@ private:
 
 	std::vector<std::unique_ptr<StructuredBuffer<PointLight>>> m_dynamicPointLightBuffer;
 	std::vector<std::unique_ptr<AccelerationStructure>> m_accelerationStructures;
-	int FindObjectsToRender();
 	[[nodiscard]] int UpdateDynamicLights(int frameIndex);
 };
 

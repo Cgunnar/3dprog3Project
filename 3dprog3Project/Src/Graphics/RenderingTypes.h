@@ -1,4 +1,5 @@
 #pragma once
+#include "RimfrostMath.hpp"
 
 struct MemoryInfo
 {
@@ -22,4 +23,17 @@ struct RenderingSettings
 	UINT numberOfBounces = 0;
 	bool shadows = false;
 	bool vsync = false;
+};
+
+struct RenderUnit
+{
+	rfm::Matrix worldMatrix;
+	uint64_t subMeshID = 0;
+	uint64_t meshID = 0;
+	uint32_t indexBufferDescriptorIndex = 0;
+	uint32_t vertexBufferDescriptorIndex = 0;
+	uint32_t indexStart = 0;
+	uint32_t indexCount = 0;
+	uint32_t vertexStart = 0;
+	int32_t materialDescriptorIndex = -1;
 };

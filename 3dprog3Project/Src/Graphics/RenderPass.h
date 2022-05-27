@@ -14,6 +14,7 @@ class RenderPass
 public:
 	RenderPass(RenderingSettings settings);
 	virtual ~RenderPass() = default;
+	virtual void SubmitObjectsToRender(const std::vector<RenderUnit>& renderUnits) = 0;
 	virtual RenderPassRequirements GetRequirements() = 0;
 	virtual void Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) = 0;
 	virtual void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) = 0;

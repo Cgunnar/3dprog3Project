@@ -68,6 +68,9 @@ private:
 
 	ID3D12DescriptorHeap* m_imguiDescHeap = nullptr;
 	uint64_t m_counter = 0;
+	std::vector<RenderUnit> m_renderUnits;
+	std::vector<RenderUnit> FindObjectsToRender();
+
 	void BeginFrame();
 	void EndFrame();
 	void CreateDeviceAndDirectCmd(IDXGIFactory6* factory);
