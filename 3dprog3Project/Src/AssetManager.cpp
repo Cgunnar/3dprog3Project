@@ -112,12 +112,21 @@ uint64_t AssetManager::AddMaterial(const Material& material)
 		m_materials[id].albedoTexture = m_textures[material.albedoID];
 	if (m_textures.contains(material.normalID))
 		m_materials[id].normalMap = m_textures[material.normalID];
+	if (m_textures.contains(material.metallicRoughnessID))
+		m_materials[id].metallicRoughnessTexture = m_textures[material.metallicRoughnessID];
 	return id;
 }
 
 uint64_t AssetManager::AddTextureFromFile(const std::string& path, TextureType type, bool mipmapping, bool linearColorSpace)
 {
 	Image image = AssetManager::LoadImageFromFile(path);
+	uint64_t id = AddTextureFromMemory(image, type, mipmapping, linearColorSpace);
+	stbi_image_free(image.dataPtr);
+	return id;
+}
+
+uint64_t AssetManager::AddTextureFromMemory(Image image, TextureType type, bool mipmapping, bool linearColorSpace)
+{
 	uint64_t id = utl::GenerateRandomID();
 	m_textures[id] = GPUAsset();
 
@@ -141,12 +150,14 @@ uint64_t AssetManager::AddTextureFromFile(const std::string& path, TextureType t
 	case TextureType::emissive:
 		break;
 	case TextureType::metallicRoughness:
+		m_textures[id].descIndex = m_metallicRoughnessViewCount;
+		handle = m_metallicRoughnessViewsHandle[m_metallicRoughnessViewCount++];
 		break;
 	}
 	m_renderer->GetDevice()->CreateShaderResourceView(m_textures[id].resource.Get(), nullptr, handle.cpuHandle);
 	m_textures[id].valid = true;
 	m_textures[id].flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::TEXTURE_2D | GPUAsset::Flag::SRV);
-	stbi_image_free(image.dataPtr);
+	
 	return id;
 }
 
@@ -199,6 +210,8 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 	MaterialCB cbData;
 	cbData.albedoFactor = materialAsset.material->albedoFactor;
 	cbData.emissiveFactor = materialAsset.material->emissiveFactor;
+	cbData.metallicFactor = materialAsset.material->metallicFactor;
+	cbData.roughnessFactor = materialAsset.material->roughnessFactor;
 
 	if (materialAsset.albedoTexture.valid)
 		cbData.albedoTextureIndex = materialAsset.albedoTexture.descIndex;
@@ -209,6 +222,11 @@ void AssetManager::MoveMaterialToGPU(uint64_t id)
 		cbData.normalMapIndex = materialAsset.normalMap.descIndex;
 	else
 		cbData.normalMapIndex = -1;
+
+	if (materialAsset.metallicRoughnessTexture.valid)
+		cbData.metallicRoughnessIndex = materialAsset.metallicRoughnessTexture.descIndex;
+	else
+		cbData.metallicRoughnessIndex = -1;
 
 	UploadBufferStaged(materialAsset.constantBuffer, &cbData);
 	ExecuteUpload();
@@ -252,6 +270,8 @@ void AssetManager::RemoveMaterial(uint64_t id)
 	{
 		m_gpuAssetsToRemove.emplace(std::make_pair(m_materials[id].constantBuffer, FrameTimer::Frame()));
 		m_gpuAssetsToRemove.emplace(std::make_pair(m_materials[id].albedoTexture, FrameTimer::Frame()));
+		m_gpuAssetsToRemove.emplace(std::make_pair(m_materials[id].normalMap, FrameTimer::Frame()));
+		m_gpuAssetsToRemove.emplace(std::make_pair(m_materials[id].metallicRoughnessTexture, FrameTimer::Frame()));
 		m_materials.erase(id);
 	}
 }
@@ -313,6 +333,11 @@ DescriptorHandle AssetManager::GetBindlessNormalMapStart() const
 	return m_normalMapViewsHandle;
 }
 
+DescriptorHandle AssetManager::GetBindlessMetallicRoughnessTextureStart() const
+{
+	return m_metallicRoughnessViewsHandle;
+}
+
 DescriptorHandle AssetManager::GetBindlessMaterialStart() const
 {
 	return m_materialViewsHandle;
@@ -335,6 +360,7 @@ AssetManager::AssetManager(Renderer* renderer) : m_renderer(renderer)
 	m_materialViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumMaterials);
 	m_albedoViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumAlbedoTextures);
 	m_normalMapViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumNormalTextures);
+	m_metallicRoughnessViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumMetallicRoughnessTextures);
 	m_ibViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumIndexBuffers);
 	m_vbViewsHandle = renderer->GetResourceDescriptorHeap().StaticAllocate(maxNumVertexBuffers);
 
@@ -439,7 +465,8 @@ AssetManager::Image AssetManager::LoadImageFromFile(const std::string& path)
 	}
 	int numChannels;
 	Image image;
-	image.dataPtr = reinterpret_cast<std::byte*>(stbi_load(path.c_str(), &image.width, &image.height, &numChannels, STBI_rgb_alpha));
+	image.bytePerPixel = 4;
+	image.dataPtr = stbi_load(path.c_str(), &image.width, &image.height, &numChannels, STBI_rgb_alpha);
 	assert(image.dataPtr);
 	image.filePath = path;
 

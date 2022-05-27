@@ -20,7 +20,7 @@ public:
 
 	static constexpr UINT numDescriptorsInRootTable0 = 0; //per draw call vertexshader
 	static constexpr UINT numDescriptorsInRootTable5 = 1; //bindless transforms vertexshader
-	static constexpr UINT numDescriptorsInRootTable4 = 2; //bindless pixelshader
+	static constexpr UINT numDescriptorsInRootTable4 = 3; //bindless pixelshader
 	static constexpr UINT numDescriptorsInRootTable3 = 3; //per frame pixelshader
 	static constexpr UINT numDescriptorsInRootTable1 = 1; //bindless material pixelshader
 	static constexpr UINT numDescriptorsInRootTable6 = 1; //bindless ib

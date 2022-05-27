@@ -77,6 +77,11 @@ RayTracedRenderPass::RayTracedRenderPass(RenderingSettings settings, ID3D12Devic
 	descriptorRange.NumDescriptors = AssetManager::maxNumNormalTextures;
 	table4[1] = descriptorRange;
 
+	descriptorRange.BaseShaderRegister = 0;
+	descriptorRange.RegisterSpace = 6;
+	descriptorRange.NumDescriptors = AssetManager::maxNumMetallicRoughnessTextures;
+	table4[2] = descriptorRange;
+
 	//bindless transforms
 	std::array<D3D12_DESCRIPTOR_RANGE, numDescriptorsInRootTable5> tableSlot5;
 	descriptorRange.BaseShaderRegister = 0;

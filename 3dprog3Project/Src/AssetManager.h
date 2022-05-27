@@ -93,8 +93,10 @@ struct MaterialCB
 	rfm::Vector4 albedoFactor;
 	rfm::Vector3 emissiveFactor;
 	float metallicFactor = 0;
+	float roughnessFactor = 1;
 	int albedoTextureIndex = -1;
 	int normalMapIndex = -1;
+	int metallicRoughnessIndex = -1;
 };
 
 struct MaterialAsset
@@ -111,14 +113,24 @@ struct MaterialAsset
 	GPUAsset constantBuffer;
 	GPUAsset albedoTexture;
 	GPUAsset normalMap;
+	GPUAsset metallicRoughnessTexture;
 };
 
 class AssetManager
 {
 public:
+	struct Image
+	{
+		unsigned char* dataPtr = nullptr;
+		int width = 0;
+		int height = 0;
+		int bytePerPixel = 4;
+		std::string filePath;
+	};
 	static constexpr int maxNumMaterials = 20000;
 	static constexpr int maxNumAlbedoTextures = 100;
 	static constexpr int maxNumNormalTextures = 100;
+	static constexpr int maxNumMetallicRoughnessTextures = 100;
 	static constexpr int maxNumIndexBuffers = 100;
 	static constexpr int maxNumVertexBuffers = 100;
 
@@ -132,6 +144,7 @@ public:
 	uint64_t AddMesh(const Mesh& mesh, bool inludeInAccelerationStructure = true, const std::optional<SubMeshes>& subMeshes = std::nullopt);
 	uint64_t AddMaterial(const Material &material);
 	uint64_t AddTextureFromFile(const std::string& path, TextureType type, bool mipmapping, bool linearColorSpace);
+	uint64_t AddTextureFromMemory(Image image, TextureType type, bool mipmapping, bool linearColorSpace);
 
 	void MoveMeshToGPU(uint64_t id, bool keepCopyInMainMemory = false);
 	void MoveMaterialToGPU(uint64_t id);
@@ -152,9 +165,14 @@ public:
 	DescriptorHandle GetBindlessPBRTexturesStart() const;
 	DescriptorHandle GetBindlessAlbedoTexturesStart() const;
 	DescriptorHandle GetBindlessNormalMapStart() const;
+	DescriptorHandle GetBindlessMetallicRoughnessTextureStart() const;
 	DescriptorHandle GetBindlessMaterialStart() const;
 	DescriptorHandle GetBindlessIndexBufferStart() const;
 	DescriptorHandle GetBindlessVertexBufferStart() const;
+
+	
+
+	static Image LoadImageFromFile(const std::string& path);
 
 private:
 	AssetManager(Renderer* renderer);
@@ -174,6 +192,8 @@ private:
 	int m_albedoViewCount = 0;
 	DescriptorHandle m_normalMapViewsHandle;
 	int m_normalMapViewCount = 0;
+	DescriptorHandle m_metallicRoughnessViewsHandle;
+	int m_metallicRoughnessViewCount = 0;
 	DescriptorHandle m_materialViewsHandle;
 	int m_materialViewCount = 0;
 	DescriptorHandle m_vbViewsHandle;
@@ -194,15 +214,7 @@ private:
 	UINT64 m_uploadHeapSize = 0;
 	UINT64 m_uploadBufferOffset = 0;
 
-	struct Image
-	{
-		std::byte* dataPtr = nullptr;
-		int width = 0;
-		int height = 0;
-		std::string filePath;
-	};
-
-	static Image LoadImageFromFile(const std::string& path);
+	
 	void RecordUpload();
 	void ExecuteUpload();
 

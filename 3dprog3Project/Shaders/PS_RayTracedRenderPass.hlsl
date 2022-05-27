@@ -29,8 +29,19 @@ struct Material
 	float4 albedoFactor;
     float3 emissiveFactor;
     float metallicFactor;
+    float roughnessFactor;
 	int albedoTextureIndex;
 	int normalMapIndex;
+	int metallicRoughnessTextureIndex;
+};
+
+struct MaterialValues
+{
+    float4 albedo;
+    float3 emissive;
+    float metallic;
+    float roughness;
+    float ambientOcclusion;
 };
 
 ConstantBuffer<Material> materials[]: register(b0, space2);
@@ -60,6 +71,7 @@ RaytracingAccelerationStructure accelerationStructure : register(t1);
 StructuredBuffer<TopLevelInstanceMetaData> topLevelInstanceMetaData : register(t2);
 Texture2D albedoMap[] : register(t0, space1);
 Texture2D normalMap[] : register(t0, space3);
+Texture2D metallicRoughnessMap[] : register(t0, space6);
 
 struct Vertex
 {
@@ -96,20 +108,35 @@ float3 NormalMap(float3 valueFromNomalMap, float3 tangent, float3 biTangent, flo
     return normalize(mul(TBN, normalTanSpace));
 }
 
-float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int matIndex)
+MaterialValues SampleMaterials(float2 uv, Material mat)
 {
-	float3 outputColor = float3(0, 0, 0);
-	float4 albedo;
-    Material mat = materials[NonUniformResourceIndex(matIndex)];
+    MaterialValues matOut;
+    matOut.albedo = mat.albedoFactor;
+    matOut.emissive = mat.emissiveFactor;
+    matOut.metallic = mat.metallicFactor;
+    matOut.roughness = mat.roughnessFactor;
+    matOut.ambientOcclusion = 1;
 	
 	//https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
 	//if no texture exists, texture is assumed to gave value 1 for each pixel => factor is the color
 	//this is true for the roughness and the other pbr materials as well.
-	if(mat.albedoTextureIndex != -1)
-		albedo = mat.albedoFactor * albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
-	else
-		albedo = mat.albedoFactor;
+    if (mat.albedoTextureIndex != -1)
+        matOut.albedo *= albedoMap[NonUniformResourceIndex(mat.albedoTextureIndex)].Sample(anisotropicSampler, uv).rgba;
     
+    if (mat.metallicRoughnessTextureIndex != -1)
+    {
+        float3 value = metallicRoughnessMap[NonUniformResourceIndex(mat.metallicRoughnessTextureIndex)].Sample(anisotropicSampler, uv).rgb;
+        matOut.ambientOcclusion = value.r;
+        matOut.metallic *= value.b;
+        matOut.roughness *= value.g;
+        matOut.roughness = max(matOut.roughness, 0.05);
+    }
+    return matOut;
+}
+
+float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, MaterialValues mat)
+{
+	float3 outputColor = float3(0, 0, 0);
 	for (int i = 0; i < numberOfPointLights; i++)
 	{
 		PointLight pl = dynamicPointLights[i];
@@ -139,13 +166,13 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
 
 		float3 inLight = pl.color * pl.strength;
 		float3 spec = specFactor * inLight;
-		float3 diff = diffFactor * albedo.rgb * inLight;
+        float3 diff = diffFactor * mat.albedo.rgb * inLight;
 
 		outputColor += (diff + spec) * Attenuate(length(vecToLight), pl.constAtt, pl.linAtt, pl.expAtt);
 	}
-    outputColor += mat.emissiveFactor.rgb;
-	outputColor += 0.2f * albedo.rgb;
-	return float4(outputColor, albedo.a);
+    outputColor += mat.emissive;
+    outputColor += 0.2f * mat.albedo.rgb * mat.ambientOcclusion;
+    return float4(outputColor, mat.albedo.a);
 }
 
 struct RayTracedObject
@@ -257,21 +284,24 @@ float4 main(VS_OUT input) : SV_TARGET
         normal = NormalMap(normalFromMap, float3(0, 0, 1), float3(1, 0, 0), normal);
     }
     
-    outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, normal, input.uv, input.materialIndex);
+    MaterialValues matVal = SampleMaterials(input.uv, mat);
+    outputColor = CalcLightForTexturedMaterial(input.posWorld.xyz, normal, matVal);
     
     int bounceCount = 0;
     float3 origin = input.posWorld.xyz;
     float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normalize(normal));
     while (bounceCount < numberOfBounces)
     {
-        RayTracedObject obj1 = RayTrace(origin, dir);
+        RayTracedObject obj = RayTrace(origin, dir);
         
-        if (obj1.hit)
+        if (obj.hit)
         {
-            outputColor = lerp(outputColor, CalcLightForTexturedMaterial(obj1.position, obj1.normal, obj1.uv, obj1.matIndex), 0.2);
+            Material mat = materials[NonUniformResourceIndex(obj.matIndex)];
+            MaterialValues matVal = SampleMaterials(obj.uv, mat);
+            outputColor = lerp(outputColor, CalcLightForTexturedMaterial(obj.position, obj.normal, matVal), 0.2);
             //should not shade first intersection, later bounce might overwrite the color
-            origin = obj1.position;
-            dir = reflect(dir, obj1.normal);
+            origin = obj.position;
+            dir = reflect(dir, obj.normal);
         }
         else
         {
