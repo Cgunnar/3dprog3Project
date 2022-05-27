@@ -121,8 +121,6 @@ void Application::Run()
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
 
-			//ImGui::ShowDemoWindow();
-
 			static RenderingSettings newSettings;
 			if (frameNumber == 0) newSettings = m_renderSettings;
 			newSettings.fullscreemState = m_window->GetFullscreenState();
@@ -142,21 +140,13 @@ void Application::Run()
 				m_renderSettings.fullscreemState = newSettings.fullscreemState;
 			}
 
-			if (ImGui::Checkbox("vsync", &newSettings.vsync))
-			{
-				m_renderer->SetVSync(newSettings.vsync);
-				m_renderSettings.vsync = newSettings.vsync;
-			}
+			
 
 			UINT width, height;
 			if (m_window->GetFullscreenState() == FullscreenState::windowed)
-			{
 				std::tie(width, height) = Window::GetWidthAndHeight();
-			}
 			else
-			{
 				std::tie(width, height) = m_renderer->GetDisplayResolution();
-			}
 
 			std::vector<const char*> res =
 			{
@@ -196,18 +186,33 @@ void Application::Run()
 				newSettings.renderWidth = newSettings.renderHeight * width / height;
 				m_renderSettings.renderWidth = newSettings.renderWidth;
 				m_renderSettings.renderHeight = newSettings.renderHeight;
-				m_renderer->SetRenderResolution(m_renderSettings.renderWidth, m_renderSettings.renderHeight);
+				bool succeeded = m_renderer->ChangeRenderingSettings(m_renderSettings);
+				if (!succeeded)
+				{
+					utl::PrintDebug("ChangeRenderingSettings failed");
+				}
 			}
+
+			if (ImGui::Checkbox("vsync", &newSettings.vsync))
+			{
+				m_renderSettings.vsync = newSettings.vsync;
+				if (!m_renderer->ChangeRenderingSettings(m_renderSettings))
+					utl::PrintDebug("ChangeRenderingSettings failed");
+			}
+
+			if (ImGui::Checkbox("shadows", &newSettings.shadows))
+			{
+				m_renderSettings.shadows = newSettings.shadows;
+				if (!m_renderer->ChangeRenderingSettings(m_renderSettings))
+					utl::PrintDebug("ChangeRenderingSettings failed");
+			}
+
+			ImGui::Separator();
+			ImGui::Text("Restart renderer to apply");
+
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
 			static int numFramesIndex = 1;
 			if (frameNumber == 0) numFramesIndex = newSettings.numberOfFramesInFlight - 1;
-			ImGui::Separator();
-			ImGui::Text("Restart renderer to apply");
-			if (ImGui::Checkbox("shadows", &newSettings.shadows))
-			{
-				m_renderer->SetVSync(newSettings.vsync);
-				m_renderSettings.shadows = newSettings.shadows;
-			}
 			ImGui::Checkbox("profiling", &profiling);
 			ImGui::Text("frames in flight");
 			ImGui::SameLine();

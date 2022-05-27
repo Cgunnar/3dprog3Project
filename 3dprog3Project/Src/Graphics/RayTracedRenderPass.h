@@ -21,12 +21,12 @@ struct RenderUnit
 class RayTracedRenderPass : public RenderPass
 {
 public:
-	RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat, bool shadows, int numberOfbounces);
+	RayTracedRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat);
 	~RayTracedRenderPass();
 	RenderPassRequirements GetRequirements() override;
 	void Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) override;
 	void RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex) override;
-	void RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height) override;
+	bool OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device) override;
 	std::string Name() const override;
 
 	static constexpr UINT numDescriptorsInRootTable0 = 0; //per draw call vertexshader
@@ -47,9 +47,6 @@ private:
 
 	std::vector<std::unique_ptr<StructuredBuffer<PointLight>>> m_dynamicPointLightBuffer;
 	std::vector<std::unique_ptr<AccelerationStructure>> m_accelerationStructures;
-	int m_numberOfFramesInFlight;
-	int m_rayBounceCount = 2;
-	int m_useShadows = 0;
 	int FindObjectsToRender();
 	[[nodiscard]] int UpdateDynamicLights(int frameIndex);
 };

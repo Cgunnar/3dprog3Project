@@ -2,11 +2,10 @@
 #include "RayTracedRenderPass.h"
 #include "AssetManager.h"
 
-RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat, bool shadows, int numberOfbounces)
-	: m_device(device), m_rtFormat(renderTargetFormat), m_numberOfFramesInFlight(framesInFlight), m_rayBounceCount(numberOfbounces)
+RayTracedRenderPass::RayTracedRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat)
+	: RenderPass(settings), m_device(device), m_rtFormat(renderTargetFormat)
 {
-	m_useShadows = shadows ? 1 : 0;// fix so that shadow is a number that has to do with if shadows are used in reflections
-	m_constantBuffers.resize(framesInFlight);
+	m_constantBuffers.resize(m_settings.numberOfFramesInFlight);
 
 	for (auto& cbManager : m_constantBuffers)
 	{
@@ -256,7 +255,7 @@ RayTracedRenderPass::RayTracedRenderPass(ID3D12Device* device, int framesInFligh
 	assert(SUCCEEDED(hr));
 
 
-	m_dynamicPointLightBuffer.resize(framesInFlight);
+	m_dynamicPointLightBuffer.resize(m_settings.numberOfFramesInFlight);
 	for (auto& lightBuffer : m_dynamicPointLightBuffer)
 	{
 		lightBuffer = std::make_unique<StructuredBuffer<PointLight>>(device, 1000, true, true);
@@ -291,7 +290,7 @@ void RayTracedRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList*
 	ID3D12GraphicsCommandList4* cmdList4 = nullptr;
 	hr = cmdList->QueryInterface(__uuidof(ID3D12GraphicsCommandList4), reinterpret_cast<void**>(&cmdList4));
 	assert(SUCCEEDED(hr));
-	m_accelerationStructures.resize(m_numberOfFramesInFlight);
+	m_accelerationStructures.resize(m_settings.numberOfFramesInFlight);
 	for (auto& a : m_accelerationStructures)
 		a = std::make_unique<AccelerationStructure>(device5, cmdList4);
 	device5->Release();
@@ -348,8 +347,8 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 	}
 	else
 	{
-		cmdList->SetGraphicsRoot32BitConstant(0, m_rayBounceCount, 0);
-		cmdList->SetGraphicsRoot32BitConstant(0, m_useShadows, 2);
+		cmdList->SetGraphicsRoot32BitConstant(0, m_settings.numberOfBounces, 0);
+		cmdList->SetGraphicsRoot32BitConstant(0, m_settings.shadows ? 1 : 0, 2);
 	}
 	cmdList->SetGraphicsRoot32BitConstant(0, numPointLights, 1);
 
@@ -435,9 +434,12 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 	}
 }
 
-void RayTracedRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+bool RayTracedRenderPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
 {
-	return;
+	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight)
+		return false;
+	m_settings = settings;
+	return true;
 }
 
 std::string RayTracedRenderPass::Name() const

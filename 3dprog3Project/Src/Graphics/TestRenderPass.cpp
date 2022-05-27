@@ -5,14 +5,14 @@
 #include "AssetManager.h"
 
 
-TestRenderPass::TestRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat)
-	: m_device(device), m_rtFormat(renderTargetFormat)
+TestRenderPass::TestRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat)
+	: RenderPass(settings), m_device(device), m_rtFormat(renderTargetFormat)
 {
 	m_constantBuffers.resize(m_numThreads);
 
 	for (auto& t : m_constantBuffers)
 	{
-		t.resize(framesInFlight);
+		t.resize(m_settings.numberOfFramesInFlight);
 		for (auto& cbManager : t)
 			cbManager = new ConstantBufferManager(device, 100000, 64);
 	}
@@ -301,11 +301,14 @@ static void Draw(int id, ID3D12Device* device, ID3D12GraphicsCommandList* cmdLis
 	}
 }
 
-void TestRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+bool TestRenderPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
 {
-	return; // no need to recreate this class
+	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight)
+		return false;
+	m_settings = settings;
+	return true;// no need to recreate this class
 	this->~TestRenderPass();
-	new(this) TestRenderPass(device, framesInFlight, m_rtFormat);
+	new(this) TestRenderPass(settings, device, m_rtFormat);
 }
 
 std::string TestRenderPass::Name() const

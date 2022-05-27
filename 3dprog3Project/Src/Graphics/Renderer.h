@@ -26,9 +26,7 @@ public:
 	RenderingSettings GetRenderingSettings() const;
 	void FlushGPU();
 	std::pair<UINT, UINT> GetDisplayResolution() const;
-	void SetRenderResolution(UINT width, UINT height);
-	void SetVSync(bool value);
-	void SetShadows(bool value);
+	[[nodiscard]] bool ChangeRenderingSettings(RenderingSettings newSettings);
 	DescriptorPool& GetResourceDescriptorHeap();
 
 private:

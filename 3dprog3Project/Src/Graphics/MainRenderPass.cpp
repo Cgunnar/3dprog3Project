@@ -5,15 +5,15 @@
 #include "AssetManager.h"
 
 
-MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat, int numThreads)
-	: m_device(device), m_rtFormat(renderTargetFormat)
+MainRenderPass::MainRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat, int numThreads)
+	: RenderPass(settings), m_device(device), m_rtFormat(renderTargetFormat)
 {
 	m_numThreads = std::max(1, numThreads);
 	m_constantBuffers.resize(m_numThreads);
 
 	for (auto& t : m_constantBuffers)
 	{
-		t.resize(framesInFlight);
+		t.resize(m_settings.numberOfFramesInFlight);
 		for (auto& cbManager : t)
 			cbManager = new ConstantBufferManager(device, 100000, 256);
 	}
@@ -255,7 +255,7 @@ MainRenderPass::MainRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FO
 	assert(SUCCEEDED(hr));
 
 
-	m_dynamicPointLightBuffer.resize(framesInFlight);
+	m_dynamicPointLightBuffer.resize(m_settings.numberOfFramesInFlight);
 	for (auto& lightBuffer : m_dynamicPointLightBuffer)
 	{
 		lightBuffer = std::make_unique<StructuredBuffer<PointLight>>(device, 1000, true, true);
@@ -471,11 +471,16 @@ static void Draw(int id, ID3D12Device * device, ID3D12GraphicsCommandList * cmdL
 	}
 }
 
-void MainRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+bool MainRenderPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
 {
-	return; // no need to recreate this class
+	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight)
+		return false;
+
+
+	m_settings = settings;
+	return true; // no need to recreate this class
 	this->~MainRenderPass();
-	new(this) MainRenderPass(device, framesInFlight, m_rtFormat, m_numThreads);
+	new(this) MainRenderPass(settings, device, m_rtFormat, m_numThreads);
 }
 
 std::string MainRenderPass::Name() const

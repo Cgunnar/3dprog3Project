@@ -2,8 +2,8 @@
 #include "PostProcessingPass.h"
 #include "Window.h"
 
-PostProcessingPass::PostProcessingPass(ID3D12Device* device, int framesInFlight)
-	: m_device(device)
+PostProcessingPass::PostProcessingPass(RenderingSettings settings, ID3D12Device* device)
+	: RenderPass(settings), m_device(device)
 {
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -201,11 +201,14 @@ void PostProcessingPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> c
 	cmdList->ResourceBarrier(1, &transitionToRTVBarrier);
 }
 
-void PostProcessingPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+bool PostProcessingPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
 {
-	//this class does not need the resolution but the solution is to good to not be used
+	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight)
+		return false;
+	m_settings = settings;
+	return true;
 	this->~PostProcessingPass();
-	new(this) PostProcessingPass(device, framesInFlight);
+	new(this) PostProcessingPass(settings, device);
 }
 
 std::string PostProcessingPass::Name() const

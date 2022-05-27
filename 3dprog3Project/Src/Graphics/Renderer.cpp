@@ -100,12 +100,11 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	CreateRTV();
 	auto format = m_frameResource->renderTarget->GetDesc().Format;
 
-	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_device, m_numFramesInFlight, format, 12));
-	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_device, m_numFramesInFlight, format));
-	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_device, m_numFramesInFlight, format, 1));
-	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_device, m_numFramesInFlight, format,
-		m_renderingSettings.shadows, m_renderingSettings.numberOfBounces));
-	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_device, m_numFramesInFlight));
+	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_renderingSettings, m_device, format, 12));
+	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_renderingSettings, m_device, format));
+	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_renderingSettings, m_device, format, 1));
+	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_renderingSettings, m_device, format));
+	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_renderingSettings, m_device));
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -626,31 +625,20 @@ std::pair<UINT, UINT> Renderer::GetDisplayResolution() const
 	return std::make_pair(abs(monitorRect.right - monitorRect.left), abs(monitorRect.top - monitorRect.bottom));
 }
 
-void Renderer::SetRenderResolution(UINT width, UINT height)
+bool Renderer::ChangeRenderingSettings(RenderingSettings newSettings)
 {
 	FlushGPU();
-
-	m_renderingSettings.renderWidth = width;
-	m_renderingSettings.renderHeight = height;
+	m_renderingSettings = newSettings;
 	m_frameResource.reset();
-	m_frameResource = std::make_unique<FrameResource>(m_device, width, height);
-
+	m_frameResource = std::make_unique<FrameResource>(m_device, m_renderingSettings.renderWidth, m_renderingSettings.renderHeight);
+	bool succeeded = true;
 	for (auto& rp : m_renderPasses)
 	{
-		//rip object oriented programming
-		//virual Destructors are fine but how do i create a new object of right type
-		rp->RecreateOnResolutionChange(m_device, m_numFramesInFlight, width, height);
+		bool temp = rp->OnRenderingSettingsChange(m_renderingSettings, m_device);
+		//temp to not short-circuit
+		succeeded = succeeded && temp;
 	}
-}
-
-void Renderer::SetVSync(bool value)
-{
-	m_renderingSettings.vsync = value;
-}
-
-void Renderer::SetShadows(bool value)
-{
-	m_renderingSettings.shadows = value;
+	return succeeded;
 }
 
 DescriptorPool& Renderer::GetResourceDescriptorHeap()

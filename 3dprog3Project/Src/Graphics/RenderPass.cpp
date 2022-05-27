@@ -24,3 +24,7 @@ ID3DBlob* LoadCSO(const std::string& filepath)
 
 	return toReturn;
 }
+
+RenderPass::RenderPass(RenderingSettings settings) : m_settings(settings)
+{
+}
