@@ -97,7 +97,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, float2 uv, int ma
             RayDesc ray;
             ray.Origin = pos;
             ray.Direction = dirToLight;
-            ray.TMin = 1.0f;
+            ray.TMin = 0.01f;
             ray.TMax = length(vecToLight) - 0.21; //pointlights has a sphere mesh with radius 0.2, and i have no mask for the mesh to filter
             q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
             q.Proceed();
