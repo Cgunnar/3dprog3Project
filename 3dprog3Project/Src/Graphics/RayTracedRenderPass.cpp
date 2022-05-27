@@ -487,7 +487,6 @@ int RayTracedRenderPass::FindObjectsToRender()
 		}
 		else
 		{
-			assert(matID);
 			const auto& materialAsset = am.GetMaterial(matID);
 			RenderUnit ru;
 			ru.worldMatrix = e.GetComponent<TransformComp>()->transform;

@@ -22,6 +22,12 @@ struct MeshComp : public rfe::Component<MeshComp>
 	bool useStartAndCount = false;
 };
 
+struct ModelComp : public rfe::Component<ModelComp>
+{
+	ModelComp(uint64_t id = 0) : meshID(id) {}
+	uint64_t meshID;
+};
+
 struct MaterialComp : public rfe::Component<MaterialComp>
 {
 	MaterialComp(uint64_t id = 0) : materialID(id) {}

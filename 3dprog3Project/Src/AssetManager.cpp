@@ -369,6 +369,17 @@ AssetManager::AssetManager(Renderer* renderer) : m_renderer(renderer)
 		nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_uploadBuffer));
 	assert(SUCCEEDED(hr));
 
+
+
+	Material defaultMaterial;
+	defaultMaterial.albedoFactor = { 0, 0, 0, 1 };
+	defaultMaterial.emissiveFactor = { 1, 0, 1 };
+	defaultMaterial.metallicFactor = 0;
+	defaultMaterial.roughnessFactor = 1;
+	defaultMaterial.name = "Default Material";
+
+	m_materials[0] = MaterialAsset(defaultMaterial);
+	MoveMaterialToGPU(0);
 }
 
 AssetManager::~AssetManager()
