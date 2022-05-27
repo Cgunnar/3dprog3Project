@@ -166,11 +166,8 @@ void Application::Run()
 			{
 				resIndex = [&]()->int {
 					for (int i = 1; i < res.size() - 1; i++)
-					{
 						if (newSettings.renderHeight == std::stoi(res[i])) return i;
-					}
-					return 3;
-				}();
+					return 3; }();
 			}
 
 			ImGui::Text("resolution");
@@ -207,16 +204,36 @@ void Application::Run()
 					utl::PrintDebug("ChangeRenderingSettings failed");
 			}
 
+			std::vector<const char*> numBounces = { "0", "1", "2", "3", "4", "10", "12", "16", "20", "24", "32", "40", "50", "100"};
+			static int numBouncesIndex = 0;
+			if (frameNumber == 0)
+			{
+				numBouncesIndex = [&]()->int {
+					for (int i = 1; i < numBounces.size() - 1; i++)
+						if (newSettings.numberOfBounces == std::stoi(numBounces[i])) return i;
+					return 0; }();
+			}
+			ImGui::Text("ray max bounces");
+			ImGui::SameLine();
+			if (ImGui::Combo("##3", &numBouncesIndex, numBounces.data(), static_cast<int>(numBounces.size())))
+			{
+				newSettings.numberOfBounces = std::stoi(numBounces[numBouncesIndex]);
+				m_renderSettings = newSettings;
+				if (!m_renderer->ChangeRenderingSettings(m_renderSettings))
+					utl::PrintDebug("ChangeRenderingSettings failed");
+			}
+
+
 			ImGui::Separator();
 			ImGui::Text("Restart renderer to apply");
 
+			ImGui::Checkbox("profiling", &profiling);
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
 			static int numFramesIndex = 1;
 			if (frameNumber == 0) numFramesIndex = newSettings.numberOfFramesInFlight - 1;
-			ImGui::Checkbox("profiling", &profiling);
 			ImGui::Text("frames in flight");
 			ImGui::SameLine();
-			if (ImGui::Combo("##3", &numFramesIndex, numframes.data(), static_cast<int>(numframes.size())))
+			if (ImGui::Combo("##4", &numFramesIndex, numframes.data(), static_cast<int>(numframes.size())))
 			{
 				newSettings.numberOfFramesInFlight = numFramesIndex + 1;
 			}
@@ -225,7 +242,7 @@ void Application::Run()
 			if (frameNumber == 0) numBackbuffersIndex = newSettings.numberOfBackbuffers - 2;
 			ImGui::Text("backbuffers");
 			ImGui::SameLine();
-			if (ImGui::Combo("##4", &numBackbuffersIndex, numBackbuffers.data(), static_cast<int>(numBackbuffers.size())))
+			if (ImGui::Combo("##5", &numBackbuffersIndex, numBackbuffers.data(), static_cast<int>(numBackbuffers.size())))
 			{
 				newSettings.numberOfBackbuffers = numBackbuffersIndex + 2;
 			}
