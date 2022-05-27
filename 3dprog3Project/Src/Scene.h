@@ -17,6 +17,7 @@ private:
 	rfe::Entity m_camera;
 
 	uint64_t m_sponzaMesh;
+	uint64_t m_nanosuitMesh;
 	uint64_t m_sphereMesh;
 	uint64_t m_sphereMeshT;
 	uint64_t m_boxMesh;

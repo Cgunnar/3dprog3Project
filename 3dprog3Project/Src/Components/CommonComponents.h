@@ -39,6 +39,11 @@ struct SpinnComp : public rfe::Component<SpinnComp>
 	rfm::Vector3 rotSpeed{0, 15, 0};
 };
 
+struct OrbitComp : public rfe::Component<OrbitComp>
+{
+	rfm::Vector3 rotSpeed{ 0, 15, 0 };
+};
+
 struct PointLight
 {
 	rfm::Vector3 position;

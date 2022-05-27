@@ -297,11 +297,18 @@ float4 main(VS_OUT input) : SV_TARGET
         if (obj.hit)
         {
             Material mat = materials[NonUniformResourceIndex(obj.matIndex)];
-            MaterialValues matVal = SampleMaterials(obj.uv, mat);
-            outputColor = lerp(outputColor, CalcLightForTexturedMaterial(obj.position, obj.normal, matVal), 0.2);
+            MaterialValues reflectedObjMatVal = SampleMaterials(obj.uv, mat);
+            
+            //pbr calculations out of context with some random values changed out to other
+            float3 F0 = float3(0.04, 0.04, 0.04);
+            F0 = lerp(F0, matVal.albedo.xyz, matVal.metallic);
+            float madeUpBlendValue = (F0 + (max(F0, 1.0 - matVal.roughness) - F0) * pow(1.0 - saturate(dot(-dir, normal)), 5.0));
+            outputColor = lerp(outputColor, CalcLightForTexturedMaterial(obj.position, obj.normal, reflectedObjMatVal), madeUpBlendValue);
             //should not shade first intersection, later bounce might overwrite the color
             origin = obj.position;
             dir = reflect(dir, obj.normal);
+            matVal = reflectedObjMatVal;
+            normal = obj.normal;
         }
         else
         {

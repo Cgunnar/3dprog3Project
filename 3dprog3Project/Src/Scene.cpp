@@ -11,11 +11,23 @@ using namespace rfe;
 Scene::Scene()
 {
 	m_sponzaMesh = AssetManager::Get().LoadModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
+	m_nanosuitMesh = AssetManager::Get().LoadModel("Assets/nanosuit/nanosuit.obj");
 
 	Entity modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
-	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.2f);
+	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.3f);
 	//modelEntity.AddComponent<MaterialComp>();
-	modelEntity.AddComponent<ModelComp>()->meshID = m_sponzaMesh;
+	modelEntity.AddComponent<ModelComp>(m_sponzaMesh);
+
+	Entity modelEntityLight = m_entities.emplace_back(EntityReg::CreateEntity());
+	auto& lTransform = modelEntityLight.AddComponent<TransformComp>()->transform;
+	lTransform.setScale(0.04);
+	lTransform.setTranslation(1, 0.6, 0);
+	modelEntityLight.AddComponent<ModelComp>(m_nanosuitMesh);
+	auto& light = modelEntityLight.AddComponent<PointLightComp>()->pointLight;
+	light.color = { 0.7f, 1, 0.5f };
+	light.strength = 5;
+	light.position = lTransform.getTranslation();
+	
 
 	Geometry::Sphere_POS_NOR_UV* sphere = new Geometry::Sphere_POS_NOR_UV(32, 0.5f);
 	Mesh* newSphereMesh = new Mesh(reinterpret_cast<const float*>(sphere->VertexData().data()), sphere->ArraySize(), sphere->IndexData(), MeshType::POS_NOR_UV);
@@ -44,15 +56,19 @@ Scene::Scene()
 	whiteEmissiveMat.emissiveFactor = { 1, 1, 1};
 	Material matRed;
 	matRed.albedoFactor = { 1, 0, 0, 1 };
+	matRed.roughnessFactor = 0.5f;
 	Material matGreen;
 	matGreen.albedoFactor = { 0, 1, 0, 1 };
+	matGreen.roughnessFactor = 0.5f;
 	Material matBlue;
 	matBlue.albedoFactor = { 0, 0, 1, 1 };
+	matBlue.roughnessFactor = 0.5f;
 	Material texturedMaterial;
 	texturedMaterial.albedoFactor = { 1, 1, 1, 1 };
 	texturedMaterial.albedoID = AssetManager::Get().AddTextureFromFile("Assets/Hej.png", TextureType::albedo, false, false);
 	Material rustedIron;
 	rustedIron.albedoFactor = { 1, 1, 1, 1 };
+	rustedIron.metallicFactor = 1;
 	rustedIron.albedoID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/basecolor.png", TextureType::albedo, false, false);
 	rustedIron.normalID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/normal.png", TextureType::normalMap, false, true);
 
@@ -163,6 +179,7 @@ Scene::Scene()
 
 		newEntity.AddComponent<MeshComp>()->meshID = smallSphereMeshID;
 		newEntity.AddComponent<MaterialComp>()->materialID = matId;
+		newEntity.AddComponent<OrbitComp>();
 	}
 
 
@@ -195,17 +212,20 @@ void Scene::Update(float dt)
 	auto& pointLightsEntities = EntityReg::GetComponentArray<PointLightComp>();
 	for (auto& plComp : pointLightsEntities)
 	{
-		TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(plComp.GetEntityID());
-		if (transformComp)
+		if (rfe::EntityReg::GetComponent<OrbitComp>(plComp.GetEntityID()))
 		{
-			rfm::Transform& tr = transformComp->transform;
-			if ((orbitPoint - tr.getTranslation()).length() == 0) orbitPoint += {0.1f, 0, 0};
-			rfm::Vector3 rotNormal = rfm::cross(tr.right(), tr.getTranslation() - orbitPoint);
-			if (rotNormal.length() == 0) rotNormal = rfm::cross(tr.up(), tr.getTranslation() - orbitPoint);
-			tr.translateW(-orbitPoint);
-			tr = rfm::rotationMatrixFromNormal(rfm::normalize(rotNormal), rfm::DegToRad(30.0f * dt)) * tr;
-			tr.translateW(orbitPoint);
-			plComp.pointLight.position = tr.getTranslation();
+			TransformComp* transformComp = rfe::EntityReg::GetComponent<TransformComp>(plComp.GetEntityID());
+			if (transformComp)
+			{
+				rfm::Transform& tr = transformComp->transform;
+				if ((orbitPoint - tr.getTranslation()).length() == 0) orbitPoint += {0.1f, 0, 0};
+				rfm::Vector3 rotNormal = rfm::cross(tr.right(), tr.getTranslation() - orbitPoint);
+				if (rotNormal.length() == 0) rotNormal = rfm::cross(tr.up(), tr.getTranslation() - orbitPoint);
+				tr.translateW(-orbitPoint);
+				tr = rfm::rotationMatrixFromNormal(rfm::normalize(rotNormal), rfm::DegToRad(30.0f * dt)) * tr;
+				tr.translateW(orbitPoint);
+				plComp.pointLight.position = tr.getTranslation();
+			}
 		}
 	}
 }
