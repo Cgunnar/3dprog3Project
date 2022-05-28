@@ -27,13 +27,11 @@ public:
 	static constexpr UINT numDescriptorsInRootTable7 = 1; //bindless vb
 	static constexpr UINT numDescriptorsInRootTable9 = 1; //bindless vb t
 private:
-	//std::unique_ptr<ZPreRenderPass> m_zPrePass;
 	ID3D12Device* m_device = nullptr;
 	ID3D12RootSignature* m_rootSignature = nullptr;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 	DXGI_FORMAT m_rtFormat;
 	std::vector<ConstantBufferManager*> m_constantBuffers;
-
 	std::vector<RenderUnit> m_renderUnits;
 
 	std::vector<std::unique_ptr<StructuredBuffer<PointLight>>> m_dynamicPointLightBuffer;

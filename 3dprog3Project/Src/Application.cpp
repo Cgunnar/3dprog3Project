@@ -17,7 +17,7 @@ Application::Application()
 {
 	m_window = new Window();
 
-	m_renderSettings.vsync = false;
+	m_renderSettings.zPrePass = true;
 	m_renderSettings.numberOfFramesInFlight = 3;
 	m_renderSettings.numberOfBackbuffers = 3;
 	m_renderSettings.renderHeight = 1080;
@@ -57,6 +57,12 @@ void Application::Run()
 		Mouse::Get().SetMode(Mouse::Mode::Visible);
 		if (restartRenderer)
 		{
+			rfe::Entity camera = rfe::EntityReg::ViewEntities<CameraControllerScript, TransformComp>().front();
+			rfm::Transform transform = camera.GetComponent<TransformComp>()->transform;
+			float p = camera.GetComponent<CameraControllerScript>()->m_pitch;
+			float y = camera.GetComponent<CameraControllerScript>()->m_yaw;
+			camera.Reset(); //this holds a reference to the camera in the scene, cant hold it if we are to reset the scene without having created two cameras in the ecs
+
 			delete m_scene;
 			m_renderer->FlushGPU();
 			AssetManager::Destroy();
@@ -69,6 +75,11 @@ void Application::Run()
 			m_renderer->PostAssetManagerSetUp();
 			restartRenderer = false;
 			Mouse::Get().SetMode(Mouse::Mode::Visible);
+
+			camera = rfe::EntityReg::ViewEntities<CameraControllerScript, TransformComp>().front();
+			camera.GetComponent<TransformComp>()->transform = transform;
+			camera.GetComponent<CameraControllerScript>()->m_pitch = p;
+			camera.GetComponent<CameraControllerScript>()->m_yaw = y;
 		}
 
 		Timer myTimer(Duration::NANOSECONDS);
@@ -218,15 +229,14 @@ void Application::Run()
 			if (ImGui::Combo("##3", &numBouncesIndex, numBounces.data(), static_cast<int>(numBounces.size())))
 			{
 				newSettings.numberOfBounces = std::stoi(numBounces[numBouncesIndex]);
-				m_renderSettings = newSettings;
+				m_renderSettings.numberOfBounces = newSettings.numberOfBounces;
 				if (!m_renderer->ChangeRenderingSettings(m_renderSettings))
 					utl::PrintDebug("ChangeRenderingSettings failed");
 			}
 
-
 			ImGui::Separator();
 			ImGui::Text("Restart renderer to apply");
-
+			ImGui::Checkbox("Z prepass", &newSettings.zPrePass);
 			ImGui::Checkbox("profiling", &profiling);
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
 			static int numFramesIndex = 1;

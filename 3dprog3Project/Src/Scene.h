@@ -12,9 +12,9 @@ public:
 
 	void Update(float dt);
 
+	rfe::Entity m_camera;
 private:
 	std::vector<rfe::Entity> m_entities;
-	rfe::Entity m_camera;
 
 	uint64_t m_sponzaMesh;
 	uint64_t m_nanosuitMesh;

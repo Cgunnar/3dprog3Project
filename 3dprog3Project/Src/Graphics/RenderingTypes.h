@@ -23,6 +23,7 @@ struct RenderingSettings
 	UINT numberOfBounces = 0;
 	bool shadows = false;
 	bool vsync = false;
+	bool zPrePass = false;
 };
 
 struct RenderUnit

@@ -5,7 +5,6 @@
 RayTracedRenderPass::RayTracedRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat)
 	: RenderPass(settings), m_device(device), m_rtFormat(renderTargetFormat)
 {
-	//m_zPrePass = std::make_unique<ZPreRenderPass>(settings, m_device, renderTargetFormat);
 	m_constantBuffers.resize(m_settings.numberOfFramesInFlight);
 
 	for (auto& cbManager : m_constantBuffers)
@@ -201,26 +200,10 @@ RayTracedRenderPass::RayTracedRenderPass(RenderingSettings settings, ID3D12Devic
 	rtvBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
 	rtvBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	/*D3D12_DEPTH_STENCIL_DESC dssDesc;
-	dssDesc.DepthEnable = true;
-	dssDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	dssDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-	dssDesc.StencilEnable = false;
-	dssDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-	dssDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-	dssDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	dssDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	dssDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	dssDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	dssDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-	dssDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-	dssDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	dssDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;*/
-
 	D3D12_DEPTH_STENCIL_DESC dssDesc;
 	dssDesc.DepthEnable = true;
-	dssDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-	dssDesc.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
+	dssDesc.DepthWriteMask = m_settings.zPrePass ? D3D12_DEPTH_WRITE_MASK_ZERO : D3D12_DEPTH_WRITE_MASK_ALL;
+	dssDesc.DepthFunc = m_settings.zPrePass ? D3D12_COMPARISON_FUNC_EQUAL : D3D12_COMPARISON_FUNC_LESS;
 	dssDesc.StencilEnable = false;
 	dssDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
 	dssDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
@@ -345,7 +328,6 @@ void RayTracedRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& r
 		}
 		return a.meshID < b.meshID;
 	});
-	//m_zPrePass->SubmitObjectsToRender(m_renderUnits);
 }
 
 
@@ -490,7 +472,8 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 
 bool RayTracedRenderPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
 {
-	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight)
+	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight
+		|| m_settings.zPrePass != settings.zPrePass)
 		return false;
 	m_settings = settings;
 	return true;
