@@ -218,16 +218,13 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
             Vertex vertex2 = vertices[NonUniformResourceIndex(obj.meshIndex)][topLevelData.vertexStart + index2];
 
             float3x4 worldMatrix = q.CommittedObjectToWorld3x4();
-            vertex0.position = mul(worldMatrix, float4(vertex0.position, 1));
-            vertex1.position = mul(worldMatrix, float4(vertex1.position, 1));
-            vertex2.position = mul(worldMatrix, float4(vertex2.position, 1));
-            vertex0.normal = normalize(mul(worldMatrix, float4(vertex0.normal, 0)));
-            vertex1.normal = normalize(mul(worldMatrix, float4(vertex1.normal, 0)));
-            vertex2.normal = normalize(mul(worldMatrix, float4(vertex2.normal, 0)));
         
             obj.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
             obj.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
             obj.position = vertex0.position + bar.x * (vertex1.position - vertex0.position) + bar.y * (vertex2.position - vertex0.position);
+            
+            obj.position = mul(worldMatrix, float4(obj.position, 1));
+            obj.normal = normalize(mul(worldMatrix, float4(obj.normal, 0)));
         }
         else if (topLevelData.vetexType == 1)
         {
@@ -236,29 +233,23 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
             VertexT vertex2 = verticesT[NonUniformResourceIndex(obj.meshIndex)][topLevelData.vertexStart + index2];
 
             float3x4 worldMatrix = q.CommittedObjectToWorld3x4();
-            vertex0.position = mul(worldMatrix, float4(vertex0.position, 1));
-            vertex1.position = mul(worldMatrix, float4(vertex1.position, 1));
-            vertex2.position = mul(worldMatrix, float4(vertex2.position, 1));
-            vertex0.normal = normalize(mul(worldMatrix, float4(vertex0.normal, 0)));
-            vertex1.normal = normalize(mul(worldMatrix, float4(vertex1.normal, 0)));
-            vertex2.normal = normalize(mul(worldMatrix, float4(vertex2.normal, 0)));
             
             obj.uv = vertex0.uv + bar.x * (vertex1.uv - vertex0.uv) + bar.y * (vertex2.uv - vertex0.uv);
             obj.normal = vertex0.normal + bar.x * (vertex1.normal - vertex0.normal) + bar.y * (vertex2.normal - vertex0.normal);
             obj.position = vertex0.position + bar.x * (vertex1.position - vertex0.position) + bar.y * (vertex2.position - vertex0.position);
             
+            obj.position = mul(worldMatrix, float4(obj.position, 1));
+            obj.normal = normalize(mul(worldMatrix, float4(obj.normal, 0)));
+            
             Material mat = materials[NonUniformResourceIndex(obj.matIndex)];
             if (mat.normalMapIndex != -1)
             {
                 float3 normalFromMap = normalMap[NonUniformResourceIndex(mat.normalMapIndex)].Sample(anisotropicSampler, obj.uv).xyz;
-                vertex0.tangent = normalize(mul(worldMatrix, float4(vertex0.tangent, 0)));
-                vertex1.tangent = normalize(mul(worldMatrix, float4(vertex1.tangent, 0)));
-                vertex2.tangent = normalize(mul(worldMatrix, float4(vertex2.tangent, 0)));
-                vertex0.biTangent = normalize(mul(worldMatrix, float4(vertex0.biTangent, 0)));
-                vertex1.biTangent = normalize(mul(worldMatrix, float4(vertex1.biTangent, 0)));
-                vertex2.biTangent = normalize(mul(worldMatrix, float4(vertex2.biTangent, 0)));
                 float3 tangent = vertex0.tangent + bar.x * (vertex1.tangent - vertex0.tangent) + bar.y * (vertex2.tangent - vertex0.tangent);
                 float3 biTangent = vertex0.biTangent + bar.x * (vertex1.biTangent - vertex0.biTangent) + bar.y * (vertex2.biTangent - vertex0.biTangent);
+                
+                tangent = normalize(mul(worldMatrix, float4(tangent, 0)));
+                biTangent = normalize(mul(worldMatrix, float4(biTangent, 0)));
                 
                 obj.normal = NormalMap(normalFromMap, tangent, biTangent, obj.normal);
             }
@@ -301,9 +292,9 @@ float4 main(VS_OUT input) : SV_TARGET
             
             //pbr calculations out of context with some random values changed out to other
             float3 F0 = float3(0.04, 0.04, 0.04);
-            F0 = lerp(F0, matVal.albedo.xyz, matVal.metallic);
-            float madeUpBlendValue = (F0 + (max(F0, 1.0 - matVal.roughness) - F0) * pow(1.0 - saturate(dot(-dir, normal)), 5.0));
-            outputColor = lerp(outputColor, CalcLightForTexturedMaterial(obj.position, obj.normal, reflectedObjMatVal), madeUpBlendValue);
+            F0 = lerp(F0, matVal.albedo.rgb, matVal.metallic);
+            float3 madeUpBlendValue = (F0 + (max(F0, 1.0 - matVal.roughness) - F0) * pow(1.0 - saturate(dot(-dir, normal)), 5.0));
+            outputColor.rgb = lerp(outputColor.rgb, CalcLightForTexturedMaterial(obj.position, obj.normal, reflectedObjMatVal).rgb, madeUpBlendValue);
             //should not shade first intersection, later bounce might overwrite the color
             origin = obj.position;
             dir = reflect(dir, obj.normal);
