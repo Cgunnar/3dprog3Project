@@ -15,8 +15,26 @@ Scene::Scene()
 
 	Entity modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.3f);
-	//modelEntity.AddComponent<MaterialComp>();
 	modelEntity.AddComponent<ModelComp>(m_sponzaMesh);
+
+	modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.7f);
+	modelEntity.GetComponent<TransformComp>()->transform.setTranslation(10, 20, 15);
+	modelEntity.GetComponent<TransformComp>()->transform.setRotationDeg(-110, 0, 30);
+	modelEntity.AddComponent<ModelComp>(m_sponzaMesh);
+
+	for (int i = 0; i < 10; i++)
+	{
+		modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+		modelEntity.AddComponent<TransformComp>()->transform.setScale((10-i) * 0.06f);
+		modelEntity.GetComponent<TransformComp>()->transform.setTranslation(-8, 0, 4-i*3);
+		modelEntity.AddComponent<ModelComp>(m_nanosuitMesh);
+
+		modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+		modelEntity.AddComponent<TransformComp>()->transform.setScale((10 - i) * 0.06f);
+		modelEntity.GetComponent<TransformComp>()->transform.setTranslation(-8, -10, 4 - i * 3);
+		modelEntity.AddComponent<ModelComp>(m_nanosuitMesh);
+	}
 
 	Entity modelEntityLight = m_entities.emplace_back(EntityReg::CreateEntity());
 	auto& lTransform = modelEntityLight.AddComponent<TransformComp>()->transform;
@@ -96,7 +114,7 @@ Scene::Scene()
 	std::uniform_int_distribution<> distMat(0, 4);
 	std::uniform_int_distribution<> distMesh(0, 3);
 
-	int l = 8;
+	int l = 10;
 #ifdef _DEBUG
 	l = 4;
 #endif // _DEBUG
@@ -146,7 +164,7 @@ Scene::Scene()
 		}
 	}
 
-	int numLight = 4;
+	int numLight = 5;
 #ifdef _DEBUG
 	numLight = 1;
 #endif // _DEBUG
