@@ -120,6 +120,9 @@
     <ClCompile Include="Src\KeyBoard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Graphics\zPreRenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Window.h">
@@ -236,6 +239,9 @@
     <ClInclude Include="Src\KeyBoard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Graphics\zPreRenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\VertexShader.hlsl" />
@@ -248,5 +254,7 @@
     <FxCompile Include="Shaders\VS_OldMainRenderPass.hlsl" />
     <FxCompile Include="Shaders\PS_RayTracedRenderPass.hlsl" />
     <FxCompile Include="Shaders\VS_RayTracedRenderPass.hlsl" />
+    <FxCompile Include="Shaders\PS_empty.hlsl" />
+    <FxCompile Include="Shaders\VS_zPrePass.hlsl" />
   </ItemGroup>
 </Project>

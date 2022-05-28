@@ -5,6 +5,7 @@
 RayTracedRenderPass::RayTracedRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat)
 	: RenderPass(settings), m_device(device), m_rtFormat(renderTargetFormat)
 {
+	//m_zPrePass = std::make_unique<ZPreRenderPass>(settings, m_device, renderTargetFormat);
 	m_constantBuffers.resize(m_settings.numberOfFramesInFlight);
 
 	for (auto& cbManager : m_constantBuffers)
@@ -200,10 +201,26 @@ RayTracedRenderPass::RayTracedRenderPass(RenderingSettings settings, ID3D12Devic
 	rtvBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
 	rtvBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	D3D12_DEPTH_STENCIL_DESC dssDesc;
+	/*D3D12_DEPTH_STENCIL_DESC dssDesc;
 	dssDesc.DepthEnable = true;
 	dssDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	dssDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	dssDesc.StencilEnable = false;
+	dssDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+	dssDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+	dssDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	dssDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	dssDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	dssDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	dssDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	dssDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	dssDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	dssDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;*/
+
+	D3D12_DEPTH_STENCIL_DESC dssDesc;
+	dssDesc.DepthEnable = true;
+	dssDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	dssDesc.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
 	dssDesc.StencilEnable = false;
 	dssDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
 	dssDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
@@ -297,7 +314,7 @@ RenderPassRequirements RayTracedRenderPass::GetRequirements()
 	req.cmdListCount = 1;
 	req.descriptorHandleSize = (numDescriptorsInRootTable0 + numDescriptorsInRootTable5) * renderCount + numDescriptorsInRootTable3
 		+ numDescriptorsInRootTable6 + numDescriptorsInRootTable7;
-	req.numDescriptorHandles = 1;
+	req.numDescriptorHandles = 2;
 	return req;
 }
 
@@ -328,6 +345,7 @@ void RayTracedRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& r
 		}
 		return a.meshID < b.meshID;
 	});
+	//m_zPrePass->SubmitObjectsToRender(m_renderUnits);
 }
 
 

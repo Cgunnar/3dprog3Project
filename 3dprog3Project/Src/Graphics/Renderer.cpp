@@ -3,6 +3,7 @@
 #include "MainRenderPass.h"
 #include "OldMainRenderPass.h"
 #include "TestRenderPass.h"
+#include "zPreRenderPass.h"
 #include "RayTracedRenderPass.h"
 #include "PostProcessingPass.h"
 #include "AssetManager.h"
@@ -105,6 +106,7 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_renderingSettings, m_device, format));
 	//I have not tested Old and Test renderpasses in a while, thay might not work
 	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_renderingSettings, m_device, format, 1));
+	m_renderPasses.emplace_back(std::make_unique<ZPreRenderPass>(m_renderingSettings, m_device, format));
 	m_renderPasses.emplace_back(std::make_unique<RayTracedRenderPass>(m_renderingSettings, m_device, format));
 	m_renderPasses.emplace_back(std::make_unique<PostProcessingPass>(m_renderingSettings, m_device));
 
