@@ -1,6 +1,8 @@
 #pragma once
 #include "RimfrostMath.hpp"
 
+extern int g_drawCallsPerFrame;
+
 struct MemoryInfo
 {
 	UINT64 adapterMemory;
@@ -24,6 +26,7 @@ struct RenderingSettings
 	bool shadows = false;
 	bool vsync = false;
 	bool zPrePass = false;
+	bool instancing = true;
 };
 
 struct RenderUnit

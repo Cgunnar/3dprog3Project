@@ -232,7 +232,7 @@ void ZPreRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& render
 
 static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<RenderUnit>& renderUnits, FrameResource& frameResource,
-	ConstantBufferManager* cbManager, int frameIndex);
+	ConstantBufferManager* cbManager, int frameIndex, bool instancing);
 
 void ZPreRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
@@ -282,13 +282,13 @@ void ZPreRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLi
 
 
 	Draw(m_device, cmdList, descriptorHandle, m_renderUnits, frameResource,
-		m_constantBuffers[frameIndex], frameIndex);
+		m_constantBuffers[frameIndex], frameIndex, m_settings.instancing);
 }
 
 
 static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, DescriptorHandle& descHandle,
 	std::vector<RenderUnit>& renderUnits, FrameResource& frameResource,
-	ConstantBufferManager* cbManager, int frameIndex)
+	ConstantBufferManager* cbManager, int frameIndex, bool instancing)
 {
 	int counter = 0;
 	for (auto& ru : renderUnits)
@@ -305,29 +305,19 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 		device->CopyDescriptorsSimple(1, descHandle[counter].cpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		counter++;
 	}
-
 	cmdList->SetGraphicsRootDescriptorTable(5, descHandle.gpuHandle);
-	DescriptorHandle visBaseDescHandle = descHandle[counter];
-	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
+
 	counter = 0;
 	int numInstances = 1;
-	uint64_t nextMeshID = 0;
-	uint64_t nextSubMeshID = 0;
 	int numEntitiesToDraw = static_cast<int>(renderUnits.size());
 
 	for (int i = 0; i < numEntitiesToDraw; i++)
 	{
 		auto& ru = renderUnits[i];
 
-		uint64_t meshID = i == 0 ? ru.meshID : nextMeshID;
-		uint64_t subMeshID = i == 0 ? ru.subMeshID : nextSubMeshID;
-		if (i < numEntitiesToDraw - 1)
-		{
-			nextMeshID = renderUnits[i + 1].meshID;
-			nextSubMeshID = renderUnits[i + 1].subMeshID;
-		}
-
-		if (meshID != nextMeshID || subMeshID != nextSubMeshID || i == numEntitiesToDraw - 1)
+		if (i == numEntitiesToDraw - 1 || !instancing ||
+			ru.meshID != renderUnits[i + 1].meshID ||
+			ru.subMeshID != renderUnits[i + 1].subMeshID)
 		{
 			cmdList->SetGraphicsRoot32BitConstant(0, counter, 0);
 			cmdList->SetGraphicsRoot32BitConstant(0, ru.indexBufferDescriptorIndex, 1);
@@ -337,12 +327,10 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 			cmdList->SetGraphicsRoot32BitConstant(0, ru.vertexType, 5);
 			cmdList->DrawInstanced(ru.indexCount, numInstances, 0, 0);
 			counter += numInstances;
-			numInstances = 1;
+			g_drawCallsPerFrame++;
+			numInstances = 0;
 		}
-		else
-		{
-			numInstances++;
-		}
+		numInstances++;
 	}
 }
 

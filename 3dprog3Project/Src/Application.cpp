@@ -208,6 +208,16 @@ void Application::Run()
 					utl::PrintDebug("ChangeRenderingSettings failed");
 			}
 
+			if (ImGui::Checkbox("Instancing", &newSettings.instancing))
+			{
+				m_renderSettings.instancing = newSettings.instancing;
+				if (!m_renderer->ChangeRenderingSettings(m_renderSettings))
+					utl::PrintDebug("ChangeRenderingSettings failed");
+			}
+			ImGui::SameLine();
+			ImGui::Text(("draw calls per frame: " + std::to_string(g_drawCallsPerFrame)).c_str());
+			g_drawCallsPerFrame = 0;
+
 			if (ImGui::Checkbox("shadows", &newSettings.shadows))
 			{
 				m_renderSettings.shadows = newSettings.shadows;
