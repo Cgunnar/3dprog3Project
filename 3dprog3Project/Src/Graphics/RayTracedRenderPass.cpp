@@ -385,7 +385,6 @@ void RayTracedRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> 
 
 	const AssetManager& am = AssetManager::Get();
 	cmdList->SetGraphicsRootDescriptorTable(1, am.GetBindlessMaterialStart().gpuHandle);
-	//cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessAlbedoTexturesStart().gpuHandle);
 	cmdList->SetGraphicsRootDescriptorTable(4, am.GetBindlessPBRTexturesStart().gpuHandle);
 	cmdList->SetGraphicsRootDescriptorTable(6, am.GetBindlessIndexBufferStart().gpuHandle);
 	cmdList->SetGraphicsRootDescriptorTable(7, am.GetBindlessVertexBufferStart().gpuHandle);
@@ -427,44 +426,28 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 		device->CopyDescriptorsSimple(1, descHandle[counter].cpuHandle, cbManager->GetAllDescriptors()[worldMatrixCB], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		counter++;
 	}
-
 	cmdList->SetGraphicsRootDescriptorTable(5, descHandle.gpuHandle);
-	DescriptorHandle visBaseDescHandle = descHandle[counter];
-	D3D12_CPU_DESCRIPTOR_HANDLE currentCpuHandle = visBaseDescHandle.cpuHandle;
+
 	counter = 0;
 	int numInstances = 1;
-	uint64_t nextMeshID = 0;
-	uint64_t nextSubMeshID = 0;
-	int numEntitiesToDraw = static_cast<int>(renderUnits.size());
-
-	for (int i = 0; i < numEntitiesToDraw; i++)
+	for (int i = 0; i < renderUnits.size(); i++)
 	{
-		auto& ru = renderUnits[i];
-		
-		uint64_t meshID = i == 0 ? ru.meshID  : nextMeshID;
-		uint64_t subMeshID = i == 0 ? ru.subMeshID  : nextSubMeshID;
-		if (i < numEntitiesToDraw - 1)
-		{
-			nextMeshID = renderUnits[i + 1].meshID;
-			nextSubMeshID = renderUnits[i + 1].subMeshID;
-		}
-
-		if (meshID != nextMeshID || subMeshID != nextSubMeshID || i == numEntitiesToDraw - 1)
+		auto& renderUnit = renderUnits[i];
+		if (i == renderUnits.size() - 1 ||
+			renderUnit.meshID != renderUnits[i + 1].meshID ||
+			renderUnit.subMeshID != renderUnits[i + 1].subMeshID)
 		{
 			cmdList->SetGraphicsRoot32BitConstant(8, counter, 0);
-			cmdList->SetGraphicsRoot32BitConstant(8, ru.indexBufferDescriptorIndex, 1);
-			cmdList->SetGraphicsRoot32BitConstant(8, ru.vertexBufferDescriptorIndex, 2);
-			cmdList->SetGraphicsRoot32BitConstant(8, ru.indexStart, 3);
-			cmdList->SetGraphicsRoot32BitConstant(8, ru.vertexStart, 4);
-			cmdList->SetGraphicsRoot32BitConstant(8, ru.vertexType, 5);
-			cmdList->DrawInstanced(ru.indexCount, numInstances, 0, 0);
+			cmdList->SetGraphicsRoot32BitConstant(8, renderUnit.indexBufferDescriptorIndex, 1);
+			cmdList->SetGraphicsRoot32BitConstant(8, renderUnit.vertexBufferDescriptorIndex, 2);
+			cmdList->SetGraphicsRoot32BitConstant(8, renderUnit.indexStart, 3);
+			cmdList->SetGraphicsRoot32BitConstant(8, renderUnit.vertexStart, 4);
+			cmdList->SetGraphicsRoot32BitConstant(8, renderUnit.vertexType, 5);
+			cmdList->DrawInstanced(renderUnit.indexCount, numInstances, 0, 0);
 			counter += numInstances;
-			numInstances = 1;
+			numInstances = 0;
 		}
-		else
-		{
-			numInstances++;
-		}
+		numInstances++;
 	}
 }
 
