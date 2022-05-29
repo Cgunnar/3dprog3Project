@@ -87,8 +87,8 @@ Scene::Scene()
 	Material rustedIron;
 	rustedIron.albedoFactor = { 1, 1, 1, 1 };
 	rustedIron.metallicFactor = 1;
-	rustedIron.albedoID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/basecolor.png", TextureType::albedo, false, false);
-	rustedIron.normalID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/normal.png", TextureType::normalMap, false, true);
+	rustedIron.albedoID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/basecolor.png", TextureType::albedo, true, false);
+	rustedIron.normalID = AssetManager::Get().AddTextureFromFile("Assets/rustediron/normal.png", TextureType::normalMap, true, true);
 
 	m_redMaterial = AssetManager::Get().AddMaterial(matRed);
 	AssetManager::Get().MoveMaterialToGPU(m_redMaterial);

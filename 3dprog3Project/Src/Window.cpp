@@ -59,6 +59,10 @@ Window::Window()
 	Mouse::Init(m_hWnd);
 	KeyBoard::Init();
 
+
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		if (FAILED(hr))
+
 	m_isStarting = false;
 }
 

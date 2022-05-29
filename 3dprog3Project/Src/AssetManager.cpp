@@ -125,7 +125,6 @@ uint64_t AssetManager::AddTextureFromFile(const std::string& path, TextureType t
 	uint64_t id;
 	if (g_allowMipMappingWithDXTK)
 	{
-		utl::PrintDebug("Loaded Texture With CreateWICTextureFromFileEx");
 		id = utl::GenerateRandomID();
 		m_textures[id] = GPUAsset();
 
@@ -170,7 +169,6 @@ uint64_t AssetManager::AddTextureFromFile(const std::string& path, TextureType t
 	}
 	else
 	{
-		utl::PrintDebug("Loaded Texture With stbi image and uploaded manually");
 		Image image = AssetManager::LoadImageFromFile(path);
 		id = AddTextureFromMemory(image, type, false, linearColorSpace);
 		stbi_image_free(image.dataPtr);
@@ -180,6 +178,7 @@ uint64_t AssetManager::AddTextureFromFile(const std::string& path, TextureType t
 
 uint64_t AssetManager::AddTextureFromMemory(Image image, TextureType type, bool mipmapping, bool linearColorSpace)
 {
+	assert(!mipmapping);
 	uint64_t id = utl::GenerateRandomID();
 	m_textures[id] = GPUAsset();
 

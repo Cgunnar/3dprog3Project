@@ -126,7 +126,7 @@ MaterialValues SampleMaterials(float2 uv, Material mat)
     if (mat.metallicRoughnessTextureIndex != -1)
     {
         float3 value = metallicRoughnessMap[NonUniformResourceIndex(mat.metallicRoughnessTextureIndex)].Sample(anisotropicSampler, uv).rgb;
-        matOut.ambientOcclusion = value.r;
+        matOut.ambientOcclusion = 1; // value.r; no standard for if this is included or not
         matOut.metallic *= value.b;
         matOut.roughness *= value.g;
         matOut.roughness = max(matOut.roughness, 0.05);
