@@ -72,12 +72,10 @@ RayTracedRenderPass::RayTracedRenderPass(RenderingSettings settings, ID3D12Devic
 	descriptorRange.NumDescriptors = AssetManager::maxNumAlbedoTextures;
 	table4[0] = descriptorRange;
 
-	descriptorRange.BaseShaderRegister = 0;
 	descriptorRange.RegisterSpace = 3;
 	descriptorRange.NumDescriptors = AssetManager::maxNumNormalTextures;
 	table4[1] = descriptorRange;
 
-	descriptorRange.BaseShaderRegister = 0;
 	descriptorRange.RegisterSpace = 6;
 	descriptorRange.NumDescriptors = AssetManager::maxNumMetallicRoughnessTextures;
 	table4[2] = descriptorRange;
