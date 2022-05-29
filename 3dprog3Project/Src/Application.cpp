@@ -5,7 +5,7 @@
 #include "rfEntity.hpp"
 #include "AssetManager.h"
 #include "Mouse.h"
-#include "KeyBoard.h"
+#include "KeyBoardInput.h"
 #include "RenderingTypes.h"
 #include "CameraControllerScript.h"
 #include "CommonComponents.h"
@@ -238,6 +238,7 @@ void Application::Run()
 			ImGui::Text("Restart renderer to apply");
 			ImGui::Checkbox("Z prepass", &newSettings.zPrePass);
 			ImGui::Checkbox("profiling", &profiling);
+			ImGui::Checkbox("AllowMipMappingWithDXTK", &g_allowMipMappingWithDXTK);
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
 			static int numFramesIndex = 1;
 			if (frameNumber == 0) numFramesIndex = newSettings.numberOfFramesInFlight - 1;

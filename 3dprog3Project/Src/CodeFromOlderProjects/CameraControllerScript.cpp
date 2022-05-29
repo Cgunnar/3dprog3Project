@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "CameraControllerScript.h"
 #include "commonComponents.h"
-#include "Mouse.h"
-#include "KeyBoard.h"
+#include "CodeFromOlderProjects\Mouse.h"
+#include "KeyBoardInput.h"
 
 using namespace rfm;
 

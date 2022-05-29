@@ -166,6 +166,11 @@ ID3D12Device* Renderer::GetDevice()
 	return m_device;
 }
 
+ID3D12CommandQueue* Renderer::GetQueue()
+{
+	return m_directCmdQueue;
+}
+
 void Renderer::BeginFrame()
 {
 	

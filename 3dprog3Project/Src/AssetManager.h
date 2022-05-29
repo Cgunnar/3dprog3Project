@@ -5,6 +5,8 @@
 #include "DescriptorVector.h"
 #include "Renderer.h"
 
+extern bool g_allowMipMappingWithDXTK;
+
 enum class TextureType
 {
 	unknown,

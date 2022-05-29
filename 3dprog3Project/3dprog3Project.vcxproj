@@ -104,7 +104,7 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Src\KeyBoard.cpp" />
+    <ClCompile Include="Src\KeyBoardInput.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\AssimpLoader.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\boundingVolumes.cpp" />
     <ClCompile Include="Src\Graphics\AccelerationStructure.cpp" />
@@ -148,7 +148,7 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
     <ClCompile Include="Src\Graphics\zPreRenderPass.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Src\KeyBoard.h" />
+    <ClInclude Include="Src\KeyBoardInput.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\AssimpLoader.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\boundingVolumes.h" />
     <ClInclude Include="Src\Graphics\AccelerationStructure.h" />
@@ -297,7 +297,17 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
       <Project>{57e7a32c-eebf-48ad-be20-a779d228eacb}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\directxtk12_desktop_2019.2022.5.10.1\build\native\directxtk12_desktop_2019.targets" Condition="Exists('..\packages\directxtk12_desktop_2019.2022.5.10.1\build\native\directxtk12_desktop_2019.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\directxtk12_desktop_2019.2022.5.10.1\build\native\directxtk12_desktop_2019.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtk12_desktop_2019.2022.5.10.1\build\native\directxtk12_desktop_2019.targets'))" />
+  </Target>
 </Project>

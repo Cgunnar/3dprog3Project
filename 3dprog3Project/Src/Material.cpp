@@ -5,12 +5,12 @@
 
 void Material::SetAlbedoTexture(const std::string& path)
 {
-	albedoID = AssetManager::Get().AddTextureFromFile(path, TextureType::albedo, false, false);
+	albedoID = AssetManager::Get().AddTextureFromFile(path, TextureType::albedo, true, false);
 }
 
 void Material::SetNormalTexture(const std::string& path)
 {
-	normalID = AssetManager::Get().AddTextureFromFile(path, TextureType::normalMap, false, true);
+	normalID = AssetManager::Get().AddTextureFromFile(path, TextureType::normalMap, true, true);
 }
 
 void Material::SetMetallicRoughnessTexture(const std::string& path)

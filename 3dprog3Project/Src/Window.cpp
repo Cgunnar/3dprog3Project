@@ -2,7 +2,7 @@
 
 #include "Window.h"
 #include "Mouse.h"
-#include "KeyBoard.h"
+#include "KeyBoardInput.h"
 #include "RenderingTypes.h"
 #include <imgui_impl_win32.h>
 

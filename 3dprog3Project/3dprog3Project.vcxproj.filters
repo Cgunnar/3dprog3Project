@@ -117,7 +117,7 @@
     <ClCompile Include="Src\CodeFromOlderProjects\boundingVolumes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\KeyBoard.cpp">
+    <ClCompile Include="Src\KeyBoardInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Src\Graphics\zPreRenderPass.cpp">
@@ -236,7 +236,7 @@
     <ClInclude Include="Src\CodeFromOlderProjects\boundingVolumes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Src\KeyBoard.h">
+    <ClInclude Include="Src\KeyBoardInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Src\Graphics\zPreRenderPass.h">
@@ -256,5 +256,8 @@
     <FxCompile Include="Shaders\VS_RayTracedRenderPass.hlsl" />
     <FxCompile Include="Shaders\PS_empty.hlsl" />
     <FxCompile Include="Shaders\VS_zPrePass.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

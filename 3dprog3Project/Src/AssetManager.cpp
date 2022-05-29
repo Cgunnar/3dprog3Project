@@ -8,8 +8,11 @@
 #include "AssetManager.h"
 #include "FrameTimer.h"
 #include "AssimpLoader.h"
+#include <DirectXMath.h>
+#include <WICTextureLoader.h>
+#include "ResourceUploadBatch.h"
 
-
+bool g_allowMipMappingWithDXTK = true;
 
 AssetManager* AssetManager::s_instance = nullptr;
 
@@ -119,9 +122,59 @@ uint64_t AssetManager::AddMaterial(const Material& material)
 
 uint64_t AssetManager::AddTextureFromFile(const std::string& path, TextureType type, bool mipmapping, bool linearColorSpace)
 {
-	Image image = AssetManager::LoadImageFromFile(path);
-	uint64_t id = AddTextureFromMemory(image, type, mipmapping, linearColorSpace);
-	stbi_image_free(image.dataPtr);
+	uint64_t id;
+	if (g_allowMipMappingWithDXTK)
+	{
+		utl::PrintDebug("Loaded Texture With CreateWICTextureFromFileEx");
+		id = utl::GenerateRandomID();
+		m_textures[id] = GPUAsset();
+
+		DirectX::ResourceUploadBatch re(m_renderer->GetDevice());
+		re.Begin();
+		DirectX::WIC_LOADER_FLAGS flag = DirectX::WIC_LOADER_DEFAULT;
+		if (mipmapping) flag |= DirectX::WIC_LOADER_MIP_AUTOGEN;
+		flag |= linearColorSpace ? DirectX::WIC_LOADER_IGNORE_SRGB : DirectX::WIC_LOADER_FORCE_SRGB;
+		HRESULT hr = DirectX::CreateWICTextureFromFileEx(m_renderer->GetDevice(), re, utl::StringToWString(path).c_str(),
+			0, D3D12_RESOURCE_FLAG_NONE, flag, &m_textures[id].resource);
+		assert(SUCCEEDED(hr));
+
+		auto uploadResourcesFinished = re.End(m_renderer->GetQueue());
+		uploadResourcesFinished.wait();
+
+		m_textures[id].valid = true;
+		m_textures[id].flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::TEXTURE_2D | GPUAsset::Flag::SRV);
+
+		DescriptorHandle handle;
+		switch (type)
+		{
+		case TextureType::unknown:
+			break;
+		case TextureType::albedo:
+			m_textures[id].descIndex = m_albedoViewCount;
+			handle = m_albedoViewsHandle[m_albedoViewCount++];
+			break;
+		case TextureType::normalMap:
+			m_textures[id].descIndex = m_normalMapViewCount;
+			handle = m_normalMapViewsHandle[m_normalMapViewCount++];
+			break;
+		case TextureType::emissive:
+			break;
+		case TextureType::metallicRoughness:
+			m_textures[id].descIndex = m_metallicRoughnessViewCount;
+			handle = m_metallicRoughnessViewsHandle[m_metallicRoughnessViewCount++];
+			break;
+		}
+		m_renderer->GetDevice()->CreateShaderResourceView(m_textures[id].resource.Get(), nullptr, handle.cpuHandle);
+		m_textures[id].valid = true;
+		m_textures[id].flag = static_cast<GPUAsset::Flag>(GPUAsset::Flag::TEXTURE_2D | GPUAsset::Flag::SRV);
+	}
+	else
+	{
+		utl::PrintDebug("Loaded Texture With stbi image and uploaded manually");
+		Image image = AssetManager::LoadImageFromFile(path);
+		id = AddTextureFromMemory(image, type, false, linearColorSpace);
+		stbi_image_free(image.dataPtr);
+	}
 	return id;
 }
 
