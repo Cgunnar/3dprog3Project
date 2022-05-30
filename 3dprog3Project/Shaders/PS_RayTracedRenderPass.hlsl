@@ -143,7 +143,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, MaterialValues ma
         float3 vecToLight = pl.position - pos;
         float3 dirToLight = normalize(vecToLight);
         
-        if (shadows == 1)
+        if (shadows)
         {
             RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
@@ -152,7 +152,7 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, MaterialValues ma
             ray.Origin = pos;
             ray.Direction = dirToLight;
             ray.TMin = 0.01f;
-            ray.TMax = length(vecToLight) - 0.21; //pointlights has a sphere mesh with radius 0.2, and i have no mask for the mesh to filter
+            ray.TMax = length(vecToLight);
             q.TraceRayInline(accelerationStructure, 0, 0xff, ray);
             q.Proceed();
             if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)

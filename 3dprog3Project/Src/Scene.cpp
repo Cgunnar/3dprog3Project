@@ -38,9 +38,7 @@ Scene::Scene()
 
 	Entity modelEntityLight = m_entities.emplace_back(EntityReg::CreateEntity());
 	auto& lTransform = modelEntityLight.AddComponent<TransformComp>()->transform;
-	lTransform.setScale(0.04);
 	lTransform.setTranslation(1, 0.6, 0);
-	modelEntityLight.AddComponent<ModelComp>(m_nanosuitMesh);
 	auto& light = modelEntityLight.AddComponent<PointLightComp>()->pointLight;
 	light.color = { 0.7f, 1, 0.5f };
 	light.strength = 5;
