@@ -7,6 +7,13 @@
 IndirectRenderPass::IndirectRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat)
 	: RenderPass(settings), m_device(device), m_rtFormat(renderTargetFormat)
 {
+	m_gpuRenderUnitsBuffers.resize(settings.numberOfFramesInFlight);
+	for (auto& b : m_gpuRenderUnitsBuffers)
+	{
+		b = new StructuredBuffer<RenderUnit>(device, 20000, true, true);
+	}
+
+
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
 	ID3DBlob* csBlob = nullptr;
@@ -27,6 +34,10 @@ IndirectRenderPass::IndirectRenderPass(RenderingSettings settings, ID3D12Device*
 
 IndirectRenderPass::~IndirectRenderPass()
 {
+	for (auto& b : m_gpuRenderUnitsBuffers)
+	{
+		delete b;
+	}
 	m_pipelineState->Release();
 	m_rootSignature->Release();
 	m_pipelineStateCompute->Release();
@@ -54,25 +65,24 @@ void IndirectRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& re
 void IndirectRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
 	//cmdLists cant run compute work, add compute list
-
-	DescriptorHandle descHandle = descriptorHandles.front();
-	
-
-	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
-	if (entities.empty()) return;
-
+	if (m_renderUnits.empty()) return;
 	const AssetManager& am = AssetManager::Get();
-	uint64_t meshID = entities.front().GetComponent<MeshComp>()->meshID;
-	const auto& mesh = am.GetMesh(meshID);
-	const GPUAsset& vb = mesh.vertexBuffer;
-	const GPUAsset& ib = mesh.indexBuffer;
+	DescriptorHandle descHandle = descriptorHandles.front();
 
 	cmdLists.front()->SetGraphicsRootSignature(m_rootSignature);
 	cmdLists.front()->SetPipelineState(m_pipelineState);
+
+	//this should go to the compute shader
 	cmdLists.front()->SetGraphicsRoot32BitConstant(meshIndexRP, 0, 0);
+	cmdLists.front()->SetGraphicsRootShaderResourceView(renderUnitBufferRP, m_gpuRenderUnitsBuffers[frameIndex]->GpuAddress());
 	cmdLists.front()->SetGraphicsRootDescriptorTable(ibBindlessRP, am.GetBindlessIndexBufferStart().gpuHandle);
 	cmdLists.front()->SetGraphicsRootDescriptorTable(vbBindlessRP, am.GetBindlessVertexBufferStart().gpuHandle);
 	cmdLists.front()->SetGraphicsRootDescriptorTable(vbtBindlessRP, am.GetBindlessVertexBufferStart().gpuHandle);
+
+
+	m_gpuRenderUnitsBuffers[frameIndex]->Update(m_renderUnits.data(), m_renderUnits.size());
+
+
 }
 
 bool IndirectRenderPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
@@ -91,7 +101,7 @@ std::string IndirectRenderPass::Name() const
 void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 {
 
-	std::array<D3D12_ROOT_PARAMETER, 4> rootParameters;
+	std::array<D3D12_ROOT_PARAMETER, 5> rootParameters;
 	//root constant
 	rootParameters[meshIndexRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 	rootParameters[meshIndexRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -99,6 +109,10 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	rootParameters[meshIndexRP].Constants.ShaderRegister = 0;
 	rootParameters[meshIndexRP].Constants.Num32BitValues = 1;
 
+	rootParameters[renderUnitBufferRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[renderUnitBufferRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[renderUnitBufferRP].Descriptor.RegisterSpace = 0;
+	rootParameters[renderUnitBufferRP].Descriptor.ShaderRegister = 1;
 
 	D3D12_DESCRIPTOR_RANGE ibRange;
 	ibRange.BaseShaderRegister = 0;
@@ -136,6 +150,8 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	rootParameters[vbtBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[vbtBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[vbtBindlessRP].DescriptorTable.pDescriptorRanges = &vbtRange;
+
+	
 
 
 	D3D12_RASTERIZER_DESC rasterState;

@@ -32,8 +32,6 @@ struct RenderingSettings
 struct RenderUnit
 {
 	rfm::Matrix worldMatrix;
-	uint64_t subMeshID = 0;
-	uint64_t meshID = 0;
 	uint32_t indexBufferDescriptorIndex = 0;
 	uint32_t vertexBufferDescriptorIndex = 0;
 	uint32_t indexStart = 0;
@@ -41,4 +39,7 @@ struct RenderUnit
 	uint32_t vertexStart = 0;
 	int32_t materialDescriptorIndex = -1;
 	int32_t vertexType = 0; // 1 == has tangents and bitangents
+	int32_t extraInt = 0;
+	uint64_t subMeshID = 0;
+	uint64_t meshID = 0;
 };

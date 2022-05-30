@@ -1,5 +1,6 @@
 #pragma once
 #include "RenderPass.h"
+#include "StructuredBuffer.h"
 class IndirectRenderPass : public RenderPass
 {
 public:
@@ -14,15 +15,18 @@ public:
 
 private:
 	constexpr static size_t meshIndexRP = 0;
-	constexpr static size_t ibBindlessRP = 1;
-	constexpr static size_t vbBindlessRP = 2;
-	constexpr static size_t vbtBindlessRP = 3;
+	constexpr static size_t renderUnitBufferRP = 1;
+	constexpr static size_t ibBindlessRP = 2;
+	constexpr static size_t vbBindlessRP = 3;
+	constexpr static size_t vbtBindlessRP = 4;
 
 	DXGI_FORMAT m_rtFormat;
 	int m_framesInFlight;
 	ID3D12Device* m_device = nullptr;
 
 	std::vector<RenderUnit> m_renderUnits;
+
+	std::vector<StructuredBuffer<RenderUnit>*> m_gpuRenderUnitsBuffers;
 
 	ID3D12RootSignature* m_rootSignature = nullptr;
 	ID3D12PipelineState* m_pipelineState = nullptr;
