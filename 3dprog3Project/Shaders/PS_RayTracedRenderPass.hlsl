@@ -295,7 +295,6 @@ float4 main(VS_OUT input) : SV_TARGET
             F0 = lerp(F0, matVal.albedo.rgb, matVal.metallic);
             float3 madeUpBlendValue = (F0 + (max(F0, 1.0 - matVal.roughness) - F0) * pow(1.0 - saturate(dot(-dir, normal)), 5.0));
             outputColor.rgb = lerp(outputColor.rgb, CalcLightForTexturedMaterial(obj.position, obj.normal, reflectedObjMatVal).rgb, madeUpBlendValue);
-            //should not shade first intersection, later bounce might overwrite the color
             origin = obj.position;
             dir = reflect(dir, obj.normal);
             matVal = reflectedObjMatVal;
