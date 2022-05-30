@@ -199,8 +199,8 @@ RayTracedObject RayTrace(float3 origin, float3 dir)
     if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
         obj.hit = true;
-        uint combinedMatIndexAndMeshIndex = q.CommittedInstanceContributionToHitGroupIndex();
-        TopLevelInstanceMetaData topLevelData = topLevelInstanceMetaData[combinedMatIndexAndMeshIndex];
+        uint topLevelInstanceIndex = q.CommittedInstanceContributionToHitGroupIndex();
+        TopLevelInstanceMetaData topLevelData = topLevelInstanceMetaData[topLevelInstanceIndex];
         obj.meshIndex = topLevelData.indexBufferDescriptorIndex;
         obj.matIndex = topLevelData.materialDescriptorIndex;
         
