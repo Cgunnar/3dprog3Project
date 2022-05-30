@@ -31,22 +31,9 @@ struct VertexT
     float3 biTangent;
 };
 
-struct RenderUnit
-{
-	float4x4 worldMatrix;
-    uint indexBufferDescriptorIndex;
-    uint vertexBufferDescriptorIndex;
-    uint indexStart;
-    uint indexCount;
-    uint vertexStart;
-    int materialDescriptorIndex;
-    int vertexType; // 1 == has tangents and bitangents
-    int extraInt;
-    uint2  subMeshID;//uint64_t
-    uint2 meshID; //uint64_t
-};
 
-StructuredBuffer<RenderUnit> renderUnits : register(t1, space0);
+
+
 
 StructuredBuffer<unsigned int> indices[] : register(t0, space1);
 StructuredBuffer<Vertex> vertices[] : register(t0, space2);

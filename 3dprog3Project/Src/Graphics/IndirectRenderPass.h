@@ -14,11 +14,13 @@ public:
 	std::string Name() const override;
 
 private:
-	constexpr static size_t meshIndexRP = 0;
-	constexpr static size_t renderUnitBufferRP = 1;
-	constexpr static size_t ibBindlessRP = 2;
-	constexpr static size_t vbBindlessRP = 3;
-	constexpr static size_t vbtBindlessRP = 4;
+	constexpr static size_t meshIndexGRP = 0;
+	constexpr static size_t ibBindlessGRP = 1;
+	constexpr static size_t vbBindlessGRP = 2;
+	constexpr static size_t vbtBindlessGRP = 3;
+
+	constexpr static size_t renderUnitCountCRP = 0;
+	constexpr static size_t renderUnitBufferCRP = 1;
 
 	DXGI_FORMAT m_rtFormat;
 	int m_framesInFlight;

@@ -68,16 +68,29 @@ void IndirectRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> c
 	if (m_renderUnits.empty()) return;
 	const AssetManager& am = AssetManager::Get();
 	DescriptorHandle descHandle = descriptorHandles.front();
+	auto& ccmdList = cmdLists[0];
+	auto& gcmdList = cmdLists[1];
 
-	cmdLists.front()->SetGraphicsRootSignature(m_rootSignature);
-	cmdLists.front()->SetPipelineState(m_pipelineState);
+	//compute
+	//the command list is a graphics type, replace it
+	ccmdList->SetComputeRootSignature(m_rootSignatureCompute);
+	ccmdList->SetPipelineState(m_pipelineStateCompute);
+	ccmdList->SetComputeRoot32BitConstant(renderUnitCountCRP, 0, 0);
+	ccmdList->SetComputeRootShaderResourceView(renderUnitBufferCRP, m_gpuRenderUnitsBuffers[frameIndex]->GpuAddress());
+	UINT threadGroupCount = std::max(1u, static_cast<UINT>(ceil(static_cast<double>(m_renderUnits.size()) / 32)));
+	ccmdList->Dispatch(threadGroupCount, 1, 1);
 
-	//this should go to the compute shader
-	cmdLists.front()->SetGraphicsRoot32BitConstant(meshIndexRP, 0, 0);
-	cmdLists.front()->SetGraphicsRootShaderResourceView(renderUnitBufferRP, m_gpuRenderUnitsBuffers[frameIndex]->GpuAddress());
-	cmdLists.front()->SetGraphicsRootDescriptorTable(ibBindlessRP, am.GetBindlessIndexBufferStart().gpuHandle);
-	cmdLists.front()->SetGraphicsRootDescriptorTable(vbBindlessRP, am.GetBindlessVertexBufferStart().gpuHandle);
-	cmdLists.front()->SetGraphicsRootDescriptorTable(vbtBindlessRP, am.GetBindlessVertexBufferStart().gpuHandle);
+
+
+
+	//graphics
+	gcmdList->SetGraphicsRootSignature(m_rootSignature);
+	gcmdList->SetPipelineState(m_pipelineState);
+	
+	gcmdList->SetGraphicsRoot32BitConstant(meshIndexGRP, 0, 0);	
+	gcmdList->SetGraphicsRootDescriptorTable(ibBindlessGRP, am.GetBindlessIndexBufferStart().gpuHandle);
+	gcmdList->SetGraphicsRootDescriptorTable(vbBindlessGRP, am.GetBindlessVertexBufferStart().gpuHandle);
+	gcmdList->SetGraphicsRootDescriptorTable(vbtBindlessGRP, am.GetBindlessVertexBufferStart().gpuHandle);
 
 
 	m_gpuRenderUnitsBuffers[frameIndex]->Update(m_renderUnits.data(), m_renderUnits.size());
@@ -101,18 +114,13 @@ std::string IndirectRenderPass::Name() const
 void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 {
 
-	std::array<D3D12_ROOT_PARAMETER, 5> rootParameters;
+	std::array<D3D12_ROOT_PARAMETER, 4> rootParameters;
 	//root constant
-	rootParameters[meshIndexRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParameters[meshIndexRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[meshIndexRP].Constants.RegisterSpace = 0;
-	rootParameters[meshIndexRP].Constants.ShaderRegister = 0;
-	rootParameters[meshIndexRP].Constants.Num32BitValues = 1;
-
-	rootParameters[renderUnitBufferRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
-	rootParameters[renderUnitBufferRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[renderUnitBufferRP].Descriptor.RegisterSpace = 0;
-	rootParameters[renderUnitBufferRP].Descriptor.ShaderRegister = 1;
+	rootParameters[meshIndexGRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParameters[meshIndexGRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[meshIndexGRP].Constants.RegisterSpace = 0;
+	rootParameters[meshIndexGRP].Constants.ShaderRegister = 0;
+	rootParameters[meshIndexGRP].Constants.Num32BitValues = 1;
 
 	D3D12_DESCRIPTOR_RANGE ibRange;
 	ibRange.BaseShaderRegister = 0;
@@ -121,10 +129,10 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	ibRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	ibRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
-	rootParameters[ibBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[ibBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[ibBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[ibBindlessRP].DescriptorTable.pDescriptorRanges = &ibRange;
+	rootParameters[ibBindlessGRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[ibBindlessGRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[ibBindlessGRP].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[ibBindlessGRP].DescriptorTable.pDescriptorRanges = &ibRange;
 
 	//bindless vb
 	D3D12_DESCRIPTOR_RANGE vbRange;
@@ -134,10 +142,10 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	vbRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	vbRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
-	rootParameters[vbBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[vbBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[vbBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[vbBindlessRP].DescriptorTable.pDescriptorRanges = &vbRange;
+	rootParameters[vbBindlessGRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[vbBindlessGRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[vbBindlessGRP].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[vbBindlessGRP].DescriptorTable.pDescriptorRanges = &vbRange;
 
 
 	D3D12_DESCRIPTOR_RANGE vbtRange;
@@ -146,10 +154,10 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	vbtRange.NumDescriptors = AssetManager::maxNumVertexBuffers;
 	vbtRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	vbtRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	rootParameters[vbtBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[vbtBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[vbtBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[vbtBindlessRP].DescriptorTable.pDescriptorRanges = &vbtRange;
+	rootParameters[vbtBindlessGRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[vbtBindlessGRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[vbtBindlessGRP].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[vbtBindlessGRP].DescriptorTable.pDescriptorRanges = &vbtRange;
 
 	
 
@@ -270,12 +278,17 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 
 void IndirectRenderPass::SetUpComputePipeline(ID3DBlob* cs)
 {
-	std::array<D3D12_ROOT_PARAMETER, 1> rootParameters;
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	rootParameters[0].Constants.RegisterSpace = 0;
-	rootParameters[0].Constants.ShaderRegister = 0;
-	rootParameters[0].Constants.Num32BitValues = 1;
+	std::array<D3D12_ROOT_PARAMETER, 2> rootParameters;
+	rootParameters[renderUnitCountCRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParameters[renderUnitCountCRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rootParameters[renderUnitCountCRP].Constants.RegisterSpace = 0;
+	rootParameters[renderUnitCountCRP].Constants.ShaderRegister = 0;
+	rootParameters[renderUnitCountCRP].Constants.Num32BitValues = 1;
+
+	rootParameters[renderUnitBufferCRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[renderUnitBufferCRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rootParameters[renderUnitBufferCRP].Descriptor.RegisterSpace = 0;
+	rootParameters[renderUnitBufferCRP].Descriptor.ShaderRegister = 1;
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignDesc;
 	rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
