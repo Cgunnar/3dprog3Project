@@ -162,10 +162,10 @@ float4 CalcLightForTexturedMaterial(float3 pos, float3 normal, MaterialValues ma
 		float diffFactor = saturate(dot(normal, dirToLight));
 		float3 r = normalize(reflect(-dirToLight, normal));
 		float3 v = normalize(cameraPosition - pos);
-		float specFactor = pow(saturate(dot(r, v)), 1000);
+        float specFactor = pow(saturate(dot(r, v)), (1 - mat.roughness / 2) * 1000);
 
 		float3 inLight = pl.color * pl.strength;
-		float3 spec = specFactor * inLight;
+        float3 spec = specFactor * (1 - mat.roughness) * inLight;
         float3 diff = diffFactor * mat.albedo.rgb * inLight;
 
 		outputColor += (diff + spec) * Attenuate(length(vecToLight), pl.constAtt, pl.linAtt, pl.expAtt);
@@ -280,7 +280,7 @@ float4 main(VS_OUT input) : SV_TARGET
     
     int bounceCount = 0;
     float3 origin = input.posWorld.xyz;
-    float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normalize(normal));
+    float3 dir = reflect(normalize(input.posWorld.xyz - cameraPosition), normal);
     while (bounceCount < numberOfBounces)
     {
         RayTracedObject obj = RayTrace(origin, dir);
