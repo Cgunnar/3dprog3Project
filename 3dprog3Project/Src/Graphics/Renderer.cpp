@@ -102,9 +102,9 @@ Renderer::Renderer(HWND windowHandle, RenderingSettings settings) : m_hWnd(windo
 	CreateRTV();
 	auto format = m_frameResource->renderTarget->GetDesc().Format;
 
+	//Sadly these does not work any more, they run but can't render meshes correctly 
 	//m_renderPasses.emplace_back(std::make_unique<OldMainRenderPass>(m_renderingSettings, m_device, format, 12));
 	//m_renderPasses.emplace_back(std::make_unique<TestRenderPass>(m_renderingSettings, m_device, format));
-	//I have not tested Old and Test renderpasses in a while, thay might not work
 	//m_renderPasses.emplace_back(std::make_unique<MainRenderPass>(m_renderingSettings, m_device, format, 1));
 
 	if(m_renderingSettings.zPrePass) m_renderPasses.emplace_back(std::make_unique<ZPreRenderPass>(m_renderingSettings, m_device, format));
@@ -713,9 +713,32 @@ std::pair<UINT, UINT> Renderer::GetDisplayResolution() const
 bool Renderer::ChangeRenderingSettings(RenderingSettings newSettings)
 {
 	FlushGPU();
+
+	if (m_renderingSettings.renderWidth != newSettings.renderWidth || m_renderingSettings.renderHeight != newSettings.renderHeight)
+	{
+		m_frameResource.reset();
+		m_frameResource = std::make_unique<FrameResource>(m_device, newSettings.renderWidth, newSettings.renderHeight);
+	}
+
+	if (m_renderingSettings.zPrePass != newSettings.zPrePass)
+	{
+		if (newSettings.zPrePass)
+		{
+			auto it = std::find_if(m_renderPasses.begin(), m_renderPasses.end(), [](auto& rp) {
+				return dynamic_cast<RayTracedRenderPass*>(rp.get()); });
+			if(it != m_renderPasses.end()) // only the RayTracedRenderPass can use the z-prepass
+				m_renderPasses.emplace_front(std::make_unique<ZPreRenderPass>(newSettings, m_device, m_frameResource->renderTarget->GetDesc().Format));
+		}
+		else
+		{
+			auto it = std::find_if(m_renderPasses.begin(), m_renderPasses.end(), [](auto& rp) {
+				return dynamic_cast<ZPreRenderPass*>(rp.get());});
+			if (it != m_renderPasses.end()) m_renderPasses.erase(it);
+		}
+	}
+
 	m_renderingSettings = newSettings;
-	m_frameResource.reset();
-	m_frameResource = std::make_unique<FrameResource>(m_device, m_renderingSettings.renderWidth, m_renderingSettings.renderHeight);
+	
 	bool succeeded = true;
 	for (auto& rp : m_renderPasses)
 	{

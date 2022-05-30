@@ -455,10 +455,21 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 
 bool RayTracedRenderPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
 {
-	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight
-		|| m_settings.zPrePass != settings.zPrePass)
+	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight)
 		return false;
-	m_settings = settings;
+
+	if (m_settings.zPrePass != settings.zPrePass)
+	{
+		m_settings = settings;
+		auto saveAccelerationStructure = std::move(m_accelerationStructures);
+		this->~RayTracedRenderPass();
+		new(this) RayTracedRenderPass(m_settings, device, m_rtFormat);
+		m_accelerationStructures = std::move(saveAccelerationStructure);
+	}
+	else
+	{
+		m_settings = settings;
+	}
 	return true;
 }
 

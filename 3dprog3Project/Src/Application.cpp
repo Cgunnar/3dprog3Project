@@ -139,7 +139,7 @@ void Application::Run()
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::SameLine();
 			static bool pauseSceneUpdate = true;
-			if (ImGui::Button("pause scene")) pauseSceneUpdate = !pauseSceneUpdate;
+			if (ImGui::Button(pauseSceneUpdate ? "play scene" : "pause scene")) pauseSceneUpdate = !pauseSceneUpdate;
 			std::array<const char*, 3> fullscreenCompo = {"windowed", "borderLess", "fullscreen"};
 			FullscreenState selectedFullscreenState = newSettings.fullscreemState;
 			ImGui::Text("fullscreen mode");
@@ -151,7 +151,6 @@ void Application::Run()
 				m_renderSettings.fullscreemState = newSettings.fullscreemState;
 			}
 
-			
 
 			UINT width, height;
 			if (m_window->GetFullscreenState() == FullscreenState::windowed)
@@ -218,6 +217,13 @@ void Application::Run()
 			ImGui::Text(("draw calls per frame: " + std::to_string(g_drawCallsPerFrame)).c_str());
 			g_drawCallsPerFrame = 0;
 
+			if(ImGui::Checkbox("Z prepass", &newSettings.zPrePass))
+			{
+				m_renderSettings.zPrePass = newSettings.zPrePass;
+				if (!m_renderer->ChangeRenderingSettings(m_renderSettings))
+					utl::PrintDebug("ChangeRenderingSettings failed");
+			}
+
 			if (ImGui::Checkbox("shadows", &newSettings.shadows))
 			{
 				m_renderSettings.shadows = newSettings.shadows;
@@ -246,7 +252,7 @@ void Application::Run()
 
 			ImGui::Separator();
 			ImGui::Text("Restart renderer to apply");
-			ImGui::Checkbox("Z prepass", &newSettings.zPrePass);
+			
 			ImGui::Checkbox("profiling", &profiling);
 			ImGui::Checkbox("AllowMipMappingWithDXTK", &g_allowMipMappingWithDXTK);
 			std::vector<const char*> numframes = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};

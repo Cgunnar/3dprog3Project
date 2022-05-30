@@ -37,7 +37,7 @@ private:
 	DXGI_OUTPUT_DESC1 m_outputDesc;
 	RenderingSettings m_renderingSettings;
 	std::unique_ptr<DescriptorPool> m_desriptorPool = nullptr;
-	std::vector<std::unique_ptr<RenderPass>> m_renderPasses;
+	std::list<std::unique_ptr<RenderPass>> m_renderPasses;
 
 	HWND m_hWnd;
 	ID3D12Device* m_device = nullptr;
