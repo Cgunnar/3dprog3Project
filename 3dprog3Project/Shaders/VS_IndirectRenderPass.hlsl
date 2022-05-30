@@ -22,8 +22,18 @@ struct Vertex
     float2 uv;
 };
 
-StructuredBuffer<Vertex> vertices[] : register(t0, space1);
-StructuredBuffer<unsigned int> indices[] : register(t0, space2);
+struct VertexT
+{
+    float3 position;
+    float3 normal;
+    float2 uv;
+    float3 tangent;
+    float3 biTangent;
+};
+
+StructuredBuffer<unsigned int> indices[] : register(t0, space1);
+StructuredBuffer<Vertex> vertices[] : register(t0, space2);
+StructuredBuffer<VertexT> verticesT[] : register(t0, space3);
 
 VS_OUT main(VS_IN input)
 {

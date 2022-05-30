@@ -4,8 +4,8 @@
 #include "CommonComponents.h"
 #include "AssetManager.h"
 
-IndirectRenderPass::IndirectRenderPass(ID3D12Device* device, int framesInFlight, DXGI_FORMAT renderTargetFormat)
-	: m_device(device), m_framesInFlight(framesInFlight), m_rtFormat(renderTargetFormat)
+IndirectRenderPass::IndirectRenderPass(RenderingSettings settings, ID3D12Device* device, DXGI_FORMAT renderTargetFormat)
+	: RenderPass(settings), m_device(device), m_rtFormat(renderTargetFormat)
 {
 	ID3DBlob* vsBlob = nullptr;
 	ID3DBlob* psBlob = nullptr;
@@ -42,6 +42,15 @@ RenderPassRequirements IndirectRenderPass::GetRequirements()
 	return req;
 }
 
+void IndirectRenderPass::Start(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+{
+}
+
+void IndirectRenderPass::SubmitObjectsToRender(const std::vector<RenderUnit>& renderUnits)
+{
+	m_renderUnits = renderUnits;
+}
+
 void IndirectRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
 	//cmdLists cant run compute work, add compute list
@@ -52,26 +61,26 @@ void IndirectRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> c
 	std::vector<rfe::Entity> entities = rfe::EntityReg::ViewEntities<MeshComp, MaterialComp, TransformComp>();
 	if (entities.empty()) return;
 
+	const AssetManager& am = AssetManager::Get();
 	uint64_t meshID = entities.front().GetComponent<MeshComp>()->meshID;
-	const auto& mesh = AssetManager::Get().GetMesh(meshID);
+	const auto& mesh = am.GetMesh(meshID);
 	const GPUAsset& vb = mesh.vertexBuffer;
 	const GPUAsset& ib = mesh.indexBuffer;
 
-	auto currentCpuHandle = descHandle.cpuHandle;
-	m_device->CopyDescriptorsSimple(2, currentCpuHandle, AssetManager::Get().GetHeapDescriptors()[vb.descIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	currentCpuHandle.ptr += 2 * descHandle.incrementSize;
-
 	cmdLists.front()->SetGraphicsRootSignature(m_rootSignature);
 	cmdLists.front()->SetPipelineState(m_pipelineState);
-
 	cmdLists.front()->SetGraphicsRoot32BitConstant(meshIndexRP, 0, 0);
-	cmdLists.front()->SetGraphicsRootDescriptorTable(vbBindlessRP, descHandle.gpuHandle);
-	cmdLists.front()->SetGraphicsRootDescriptorTable(ibBindlessRP, descHandle[1].gpuHandle);
+	cmdLists.front()->SetGraphicsRootDescriptorTable(ibBindlessRP, am.GetBindlessIndexBufferStart().gpuHandle);
+	cmdLists.front()->SetGraphicsRootDescriptorTable(vbBindlessRP, am.GetBindlessVertexBufferStart().gpuHandle);
+	cmdLists.front()->SetGraphicsRootDescriptorTable(vbtBindlessRP, am.GetBindlessVertexBufferStart().gpuHandle);
 }
 
-void IndirectRenderPass::RecreateOnResolutionChange(ID3D12Device* device, int framesInFlight, UINT width, UINT height)
+bool IndirectRenderPass::OnRenderingSettingsChange(RenderingSettings settings, ID3D12Device* device)
 {
-	return;
+	if (m_settings.numberOfFramesInFlight != settings.numberOfFramesInFlight)
+		return false;
+	m_settings = settings;
+	return true;
 }
 
 std::string IndirectRenderPass::Name() const
@@ -82,7 +91,7 @@ std::string IndirectRenderPass::Name() const
 void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 {
 
-	std::array<D3D12_ROOT_PARAMETER, 3> rootParameters;
+	std::array<D3D12_ROOT_PARAMETER, 4> rootParameters;
 	//root constant
 	rootParameters[meshIndexRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 	rootParameters[meshIndexRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -90,11 +99,24 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	rootParameters[meshIndexRP].Constants.ShaderRegister = 0;
 	rootParameters[meshIndexRP].Constants.Num32BitValues = 1;
 
+
+	D3D12_DESCRIPTOR_RANGE ibRange;
+	ibRange.BaseShaderRegister = 0;
+	ibRange.RegisterSpace = 1;
+	ibRange.NumDescriptors = AssetManager::maxNumIndexBuffers;
+	ibRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	ibRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+	rootParameters[ibBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[ibBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[ibBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[ibBindlessRP].DescriptorTable.pDescriptorRanges = &ibRange;
+
 	//bindless vb
 	D3D12_DESCRIPTOR_RANGE vbRange;
 	vbRange.BaseShaderRegister = 0;
-	vbRange.RegisterSpace = 1;
-	vbRange.NumDescriptors = -1;
+	vbRange.RegisterSpace = 2;
+	vbRange.NumDescriptors = AssetManager::maxNumVertexBuffers;
 	vbRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	vbRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
@@ -103,17 +125,18 @@ void IndirectRenderPass::SetUpRenderPipeline(ID3DBlob* vs, ID3DBlob* ps)
 	rootParameters[vbBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[vbBindlessRP].DescriptorTable.pDescriptorRanges = &vbRange;
 
-	D3D12_DESCRIPTOR_RANGE ibRange;
-	ibRange.BaseShaderRegister = 0;
-	ibRange.RegisterSpace = 2;
-	ibRange.NumDescriptors = -1;
-	ibRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-	ibRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
-	rootParameters[ibBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[ibBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParameters[ibBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[ibBindlessRP].DescriptorTable.pDescriptorRanges = &ibRange;
+	D3D12_DESCRIPTOR_RANGE vbtRange;
+	vbtRange.BaseShaderRegister = 0;
+	vbtRange.RegisterSpace = 3;
+	vbtRange.NumDescriptors = AssetManager::maxNumVertexBuffers;
+	vbtRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	vbtRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	rootParameters[vbtBindlessRP].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[vbtBindlessRP].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[vbtBindlessRP].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[vbtBindlessRP].DescriptorTable.pDescriptorRanges = &vbtRange;
+
 
 	D3D12_RASTERIZER_DESC rasterState;
 	rasterState.FillMode = D3D12_FILL_MODE_SOLID;
