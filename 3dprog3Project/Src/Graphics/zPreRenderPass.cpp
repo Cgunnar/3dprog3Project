@@ -236,6 +236,8 @@ static void Draw(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Descr
 
 void ZPreRenderPass::RunRenderPass(std::vector<ID3D12GraphicsCommandList*> cmdLists, std::vector<DescriptorHandle> descriptorHandles, FrameResource& frameResource, int frameIndex)
 {
+	//this pass updates its own set of constant buffers, should fix this later.
+
 	m_constantBuffers[frameIndex]->Clear();
 
 	auto camera = rfe::EntityReg::ViewEntities<CameraComp>().front();
