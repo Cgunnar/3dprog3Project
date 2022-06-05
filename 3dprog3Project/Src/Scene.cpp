@@ -12,24 +12,25 @@ using namespace rfe;
 Scene::Scene()
 {
 	auto& am = AssetManager::Get();
-	m_sponzaMesh = AssetManager::Get().LoadModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
+	//m_sponzaMesh = AssetManager::Get().LoadModel("Assets/Sponza_gltf/glTF/Sponza.gltf");
 	m_nanosuitMesh = AssetManager::Get().LoadModel("Assets/nanosuit/nanosuit.obj");
 	Entity modelEntity;
 	//modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	//modelEntity.AddComponent<TransformComp>()->transform.setScale(0.3f);
 	//modelEntity.AddComponent<ModelComp>(m_sponzaMesh);
 
-	modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
+	/*modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	modelEntity.AddComponent<TransformComp>()->transform.setScale(0.7f);
 	modelEntity.GetComponent<TransformComp>()->transform.setTranslation(10, 20, 15);
 	modelEntity.GetComponent<TransformComp>()->transform.setRotationDeg(-110, 0, 30);
-	modelEntity.AddComponent<ModelComp>(m_sponzaMesh);
+	modelEntity.AddComponent<ModelComp>(m_sponzaMesh);*/
 
 
 	modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	auto& t = modelEntity.AddComponent<TransformComp>()->transform;
-	t.setScale(2);
-	t.setRotationDeg(0, 0, 80);
+	t.setScale(1);
+	t.setTranslation(0, 0, -15);
+	t.setRotationDeg(0, 0, 64);
 	modelEntity.AddComponent<ModelComp>(am.LoadModel("Assets/boomerang/boomerang.obj"));
 	modelEntity.AddComponent<BoomerangScript>();
 
