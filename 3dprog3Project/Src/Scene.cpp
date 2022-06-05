@@ -4,6 +4,7 @@
 #include "AssetManager.h"
 #include "Window.h"
 #include "CameraControllerScript.h"
+#include "BoomerangScript.h"
 #include "AssimpLoader.h"
 
 using namespace rfe;
@@ -27,7 +28,10 @@ Scene::Scene()
 
 	modelEntity = m_entities.emplace_back(EntityReg::CreateEntity());
 	auto& t = modelEntity.AddComponent<TransformComp>()->transform;
+	t.setScale(2);
+	t.setRotationDeg(0, 0, 80);
 	modelEntity.AddComponent<ModelComp>(am.LoadModel("Assets/boomerang/boomerang.obj"));
+	modelEntity.AddComponent<BoomerangScript>();
 
 
 	for (int i = 0; i < 10; i++)

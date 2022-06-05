@@ -8,6 +8,7 @@
 #include "KeyBoardInput.h"
 #include "RenderingTypes.h"
 #include "CameraControllerScript.h"
+#include "BoomerangScript.h"
 #include "CommonComponents.h"
 #include "Timer.hpp"
 #include <imgui_impl_dx12.h>
@@ -321,7 +322,7 @@ void Application::Run()
 					= rfm::PerspectiveProjectionMatrix(rfm::PIDIV4,
 						static_cast<float>(width) / static_cast<float>(height), 0.001f, 1000);
 			}
-			rfe::EntityReg::RunScripts<CameraControllerScript>(dt);
+			rfe::EntityReg::RunScripts<CameraControllerScript, BoomerangScript>(dt);
 			if(!pauseSceneUpdate)
 				m_scene->Update(dt);
 

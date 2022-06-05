@@ -104,6 +104,7 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Src\BoomerangScript.cpp" />
     <ClCompile Include="Src\KeyBoardInput.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\AssimpLoader.cpp" />
     <ClCompile Include="Src\CodeFromOlderProjects\boundingVolumes.cpp" />
@@ -149,6 +150,7 @@ copy /Y "$(SolutionDir)Libs\assimp-vc142-mt.dll" "$(TargetDir)assimp-vc142-mt.dl
     <ClCompile Include="Src\Graphics\zPreRenderPass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\BoomerangScript.h" />
     <ClInclude Include="Src\KeyBoardInput.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\AssimpLoader.h" />
     <ClInclude Include="Src\CodeFromOlderProjects\boundingVolumes.h" />
