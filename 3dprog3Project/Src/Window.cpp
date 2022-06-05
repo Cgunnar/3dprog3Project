@@ -37,6 +37,9 @@ Window::Window()
 	ShowWindow(m_hWnd, SW_SHOWDEFAULT);
 	GetWindowRect(m_hWnd, &m_windowModeRect);
 
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	if (FAILED(hr));
+
 	RAWINPUTDEVICE rid;
 	rid.usUsagePage = 0x01;
 	rid.usUsage = 0x02;
@@ -58,10 +61,6 @@ Window::Window()
 
 	Mouse::Init(m_hWnd);
 	KeyBoard::Init();
-
-
-	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-		if (FAILED(hr))
 
 	m_isStarting = false;
 }
