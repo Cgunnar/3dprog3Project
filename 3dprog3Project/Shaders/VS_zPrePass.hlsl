@@ -17,12 +17,6 @@ struct VertexT
 struct VS_OUT
 {
     float4 position : SV_POSITION;
-    float4 posWorld : WORLD_POS;
-    float4 normal : NORMAL;
-    float4 tangent : TANGENT;
-    float4 biTangent : BITANGENT;
-    float2 uv : UV;
-    int materialIndex : MATERIAL_INDEX;
 };
 
 cbuffer CameraCB : register(b0)
@@ -69,14 +63,12 @@ VS_OUT main(VS_IN input)
     if (hasTangents)
     {
         VertexT vertex = verticesT[vbIndex][indices[ibIndex][input.vertexID + indexStart] + vertexStart];
-        output.posWorld = mul(insData.worldMatrix, float4(vertex.position, 1.0f));
-        output.position = mul(viewProjectionMatrix, output.posWorld);
+        output.position = mul(viewProjectionMatrix, mul(insData.worldMatrix, float4(vertex.position, 1.0f)));
     }
     else
     {
         Vertex vertex = vertices[vbIndex][indices[ibIndex][input.vertexID + indexStart] + vertexStart];
-        output.posWorld = mul(insData.worldMatrix, float4(vertex.position, 1.0f));
-        output.position = mul(viewProjectionMatrix, output.posWorld);
+        output.position = mul(viewProjectionMatrix, mul(insData.worldMatrix, float4(vertex.position, 1.0f)));
     }
 	return output;
 }
